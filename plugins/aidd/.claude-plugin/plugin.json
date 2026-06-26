@@ -1,0 +1,10 @@
+{
+  "name": "aidd",
+  "displayName": "AIDD — AI Driven Development",
+  "version": "1.0.0",
+  "description": "Conjunto de skills de planificacion y arquitectura asistida por IA (AIDD): Fases 0-2 (client-requirements, requirements, user-stories, user-story-details, prototype-architecture, prototype, style-guide, architecture-proposal, architecture) y capa de entrega Fase 3.5 (project-plan, sprint-planning, con volcado opcional a Jira). Incluye la metodologia AIDD-SDD como referencia.",
+  "author": {
+    "name": "NTT DATA Spain GDN-e"
+  },
+  "keywords": ["aidd", "ai-driven-development", "planning", "architecture", "scrum", "delivery", "jira"]
+}

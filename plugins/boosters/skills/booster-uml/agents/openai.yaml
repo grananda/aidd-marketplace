@@ -1,0 +1,4 @@
+interface:
+  display_name: "Booster UML"
+  short_description: "Genera HTML con diagramas UML Mermaid para OpenSpec"
+  default_prompt: "Use $booster-uml para generar diagramas UML en HTML desde un change de OpenSpec."
