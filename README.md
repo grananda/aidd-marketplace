@@ -1,6 +1,6 @@
-# AIDD + SDD — Marketplace de skills para Claude Code
+# AIDD + SDD + AIAD — Marketplace de skills para Claude Code
 
-Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — planificación y arquitectura asistida por IA) y **SDD** (Native AI Specs sobre OpenSpec) desde cualquier instancia de Claude Code.
+Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — planificación y arquitectura asistida por IA), **SDD** (Native AI Specs sobre OpenSpec) y **AIAD** (AI-Augmented Development — ejecución human-first *ia-in-the-loop*) desde cualquier instancia de Claude Code.
 
 - Repositorio: `grananda/aidd-marketplace` — **privado**.
 - Nombre del marketplace: `aidd-sdd`.
@@ -12,6 +12,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | `aidd` | 11 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira). |
 | `sdd` | `native-ai-specs` + metodología | Ejecutar con OpenSpec: roadmap y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. |
 | `boosters` | `booster-ux`, `booster-uml` | Generar prototipos UX y diagramas UML. **Lo usan `aidd` y `sdd`.** |
+| `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `sdd` para la fase de ejecución. |
 
 ## Por qué hay que instalar los tres
 
@@ -25,6 +26,24 @@ No son tres copias del mismo paquete: son **tres piezas de un mismo flujo** que 
    - Si `boosters` no está instalado, esos pasos avisan de que falta el booster y no generan ni prototipos ni diagramas.
 
 Claude Code **no resuelve dependencias entre plugins automáticamente**: cada plugin se instala por separado. Por eso, para el flujo de extremo a extremo necesitas los tres. (Si solo vas a hacer planificación sin prototipos ni diagramas, `aidd` por sí solo funciona; pero la instalación recomendada y completa son los tres.)
+
+## AIAD — ejecución human-first (opcional e independiente)
+
+`aiad` **no forma parte del trío anterior**: es un plugin independiente con filosofía invertida para la fase de ejecución. Donde `sdd` es *human-in-the-loop* (la IA es el motor, tú validas), `aiad` es **ia-in-the-loop**: **tú eres el motor** que escribe el código y la IA te **aumenta a demanda** (*pull, not push*). Devuelve al ingeniero la autoría, la maestría y el flow del oficio sin renunciar al apalancamiento de la IA.
+
+11 skills agrupados por intención:
+
+- **Think** (aconsejan, no escriben código): `aiad-design` (opciones/enfoque), `aiad-explain`, `aiad-rubber-duck`.
+- **Build** (la IA solo escribe tests): `aiad-tdd` (tests en rojo → tú implementas), `aiad-test` (`unit`/`e2e` sobre código existente).
+- **Improve**: `aiad-review` (`correctness`/`quality`/`perf`, enseña el porqué, no aplica fixes).
+- **Flow & control**: `aiad-pair` (driver/navigator), `aiad-bridge` (puente HU ↔ change para saltar AIAD ↔ SDD), `aiad-unblock` (hub "estoy atascado"), `aiad-save` (commit + push sin preguntas).
+- **Record**: `aiad-journal` (bitácora de autoría / *craft ratio*).
+
+Además incluye un **hook** opcional (`hooks/`) que registra de forma factual qué ficheros toca la IA (autoría real, no auto-declarada; opt-in por proyecto) y un **subagente** `aiad-reviewer` que aísla la revisión para no ensuciar tu contexto de trabajo.
+
+**Uso autónomo:** `aiad` se puede instalar y usar **solo**, sobre cualquier repo, con o sin AIDD/SDD. Lee los artefactos de AIDD (`docs/detalle-historias-usuario.md`, `arquitectura-base.md`…) *si existen*, pero no los exige. La única dependencia externa es de `sdd`: `aiad-bridge` necesita OpenSpec/native-ai-specs instalado para saltar de motor (si no está, lo avisa y sigues en standalone). Eliges el motor **por HU** y puedes cambiarlo a mitad.
+
+> Autoría: el plugin `aiad` es de creación propia (Julio Fernández), independiente del resto del marketplace.
 
 ## Instalación (repositorio privado)
 
@@ -52,10 +71,13 @@ Si usas SSH en vez de HTTPS, vale igual siempre que tu clave tenga acceso al rep
 #   variante por URL HTTPS:  /plugin marketplace add https://github.com/grananda/aidd-marketplace.git
 #   variante por SSH:        /plugin marketplace add git@github.com:grananda/aidd-marketplace.git
 
-# Instalar los tres plugins
+# Instalar los tres plugins del flujo integrado
 /plugin install aidd@aidd-sdd
 /plugin install sdd@aidd-sdd
 /plugin install boosters@aidd-sdd
+
+# Opcional e independiente: ejecución human-first (ia-in-the-loop)
+/plugin install aiad@aidd-sdd
 
 # Comprobar
 /plugin list
@@ -71,8 +93,9 @@ Tras instalar, cada skill queda *namespaced* por su plugin:
 - `/aidd:aidd-sprint-planning`, `/aidd:aidd-requirements`, …
 - `/sdd:native-ai-specs`
 - `/boosters:booster-ux`, `/boosters:booster-uml`
+- `/aiad:aiad-tdd`, `/aiad:aiad-review`, `/aiad:aiad-save`, …
 
-También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `native-ai open change`, …).
+También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `native-ai open change`, `aiad tdd`, `aiad review`, …).
 
 ### Activación automática por proyecto (equipo)
 
@@ -86,7 +109,8 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
   "enabledPlugins": {
     "aidd@aidd-sdd": true,
     "sdd@aidd-sdd": true,
-    "boosters@aidd-sdd": true
+    "boosters@aidd-sdd": true,
+    "aiad@aidd-sdd": true
   }
 }
 ```
@@ -94,6 +118,8 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 ## Metodología
 
 La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `sdd` (carpeta `methodology/`). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
+
+El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiad.md`): el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría.
 
 ## Mantenimiento
 

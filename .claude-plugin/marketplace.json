@@ -16,6 +16,11 @@
       "description": "SDD — native-ai-specs: gestion de changes sobre OpenSpec con auditoria e integracion Jira."
     },
     {
+      "name": "aiad",
+      "source": "./plugins/aiad",
+      "description": "AIAD — AI-Augmented Development (ia-in-the-loop): on-demand augmentation skills for human-first execution; the human writes the code and the AI augments it when invoked."
+    },
+    {
       "name": "boosters",
       "source": "./plugins/boosters",
       "description": "Boosters de UX (booster-ux) y UML (booster-uml) usados por aidd y sdd."
