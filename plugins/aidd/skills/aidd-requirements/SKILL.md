@@ -30,6 +30,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** del documento con `booster-docs` (ver paso 4). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 ## Rol y objetivo
 
 Actua con este rol durante todo el comando:
@@ -127,12 +129,23 @@ Reglas de contenido:
 - La seccion 9 sustituye a la auditoria estructurada: deja constancia de las decisiones de preferencia/confirmacion del pre-flight, incluidas las resueltas por default.
 - Manten el documento navegable y conciso. Es el catalogo de requisitos, no el diseno.
 
+### 4. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/requisitos.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/requisitos.md` como entrada y salida en `docs/html/requisitos.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`requisitos`) y anade dashboard de KPIs, chips de RF/NFR/prioridad y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el `.md` quedo pendiente de cambios: hazlo cuando el documento este estable.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar a 1.2.
+- Nunca modifiques el `.md` al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd requirements`) y fase/paso (1 / 1.1).
-- Ruta del documento generado o actualizado (`docs/requisitos.md`).
+- Ruta del documento generado o actualizado (`docs/requisitos.md`) y de su vista HTML (`docs/html/requisitos.html`), o aviso si no se pudo generar el HTML.
 - Numero de RF y NFR generados y dudas que quedan pendientes (bloqueantes destacadas).
 - Recordatorio: el documento queda **pendiente de aprobacion humana** antes del handoff.
 - Criterio de salida: indica si los requisitos son suficientes para arrancar el paso 1.2 o que falta.

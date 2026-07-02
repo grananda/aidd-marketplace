@@ -32,6 +32,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** de la propuesta de arquitectura con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 > Este skill y `aidd style-guide` cubren juntos el paso 2.3 de la metodologia (guia de estilos + propuesta de arquitectura). Se separan en dos skills para mantener cada invocacion enfocada; pueden ejecutarse en cualquier orden. Esta es una **propuesta**, no la arquitectura definitiva (eso es `aidd architecture`, paso 2.4).
 
 ## Rol y objetivo
@@ -107,12 +109,24 @@ Reglas de contenido:
 - No contradigas restricciones no negociables; si lo harias, marcalo como observacion abierta.
 - La seccion 7 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
+### 4. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/propuesta-arquitectura-base.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/propuesta-arquitectura-base.md` como entrada y salida en `docs/html/propuesta-arquitectura-base.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`propuesta-arquitectura-base`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el documento quedo pendiente de cambios: hazlo cuando este estable.
+- Nunca modifiques el `.md` de origen al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd architecture-proposal`) y fase/paso (2 / 2.3).
 - Ruta del documento generado o actualizado (`docs/propuesta-arquitectura-base.md`).
+- Ruta de la vista HTML generada (`docs/html/propuesta-arquitectura-base.html`), o aviso si no se pudo generar el HTML.
 - Decisiones de stack principales y las que quedan pendientes de confirmar.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd style-guide` (si no se hizo) y despues `aidd architecture` (arquitectura tecnica definitiva).

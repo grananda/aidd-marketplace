@@ -30,6 +30,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, y las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** del mapa de historias con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 ## Rol y objetivo
 
 Actua con este rol durante todo el comando:
@@ -121,12 +123,24 @@ Reglas de contenido:
 - La seccion 7 sustituye a la auditoria estructurada: deja constancia de decisiones de fasear/priorizar, incluidas las resueltas por default.
 - Manten el documento navegable. Es el mapa, no el detalle de cada historia.
 
+### 4. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/mapa-historias-usuario.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/mapa-historias-usuario.md` como entrada y salida en `docs/html/mapa-historias-usuario.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`mapa-historias-usuario`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el documento quedo pendiente de cambios: hazlo cuando este estable.
+- Nunca modifiques el `.md` de origen al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd user-stories`) y fase/paso (1 / 1.2).
 - Ruta del documento generado o actualizado (`docs/mapa-historias-usuario.md`).
+- Ruta de la vista HTML generada (`docs/html/mapa-historias-usuario.html`), o aviso si no se pudo generar el HTML.
 - Numero de historias y fases, y cobertura de RF (RF sin historia destacados).
 - Recordatorio: el documento queda **pendiente de aprobacion humana** antes del handoff.
 - Criterio de salida: indica si el mapa es suficiente para arrancar el paso 1.3 o que falta.

@@ -30,6 +30,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** del plan de sprints con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 > Relacion con el SDD: el `roadmap` del AI Lead (Fase 3) fasea los changes segun el **presupuesto de contexto** del modelo. Este skill anade la **capa de delivery humana**: agrupa esos changes en sprints con fecha, capacidad y asignacion, para que un equipo Scrum los ejecute. **Respeta el faseado del roadmap**: no parte un change para encajarlo en un sprint; un sprint contiene changes/historias completos.
 
 ## Rol y objetivo
@@ -193,12 +195,24 @@ Convencion del enlace entre los dos planos (negocio y ejecucion), que este skill
 - **Enlace**: cada change conoce su(s) HU (anotada en `proposal.md` y en `docs/jira-sync.md`); cada HU conoce sus changes (sus sub-tareas). El pegamento operativo es referenciar la clave de la sub-tarea/Story (`ABC-123`) en el PR del change.
 - **Avance**: `implement change` mueve la sub-tarea y su Story a In Progress; `close change` pasa la sub-tarea a Done y la Story a Done **solo cuando todas sus sub-tareas estan Done**. Asi una HU no se marca completada a medias.
 
+### 6. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/sprint-plan.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/sprint-plan.md` como entrada y salida en `docs/html/sprint-plan.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`sprint-plan`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el documento quedo pendiente de cambios: hazlo cuando este estable.
+- Nunca modifiques el `.md` de origen al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd sprint-planning`).
 - Ruta del documento generado o actualizado (`docs/sprint-plan.md`).
+- Ruta de la vista HTML generada (`docs/html/sprint-plan.html`), o aviso si no se pudo generar el HTML.
 - Numero de sprints, hito del MVP (F1) y principales dependencias/riesgos de planificacion.
 - Si se ejecuto el volcado a Jira: proyecto/board destino, sprints y Stories (HU) creados (con sus claves) y elementos omitidos; rutas del registro `docs/jira-sync.md` y de la seccion `jira:` en `openspec/config.yaml`. Si no se ejecuto, recuerda que es un paso opcional disponible (requiere el MCP de Atlassian).
 - Recordatorio del enlace: los changes se crearan como sub-tareas de su HU al ejecutar `native-ai open change`, y `implement`/`close change` moveran los tickets de columna automaticamente.

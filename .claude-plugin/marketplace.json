@@ -3,7 +3,7 @@
   "owner": {
     "name": "NTT DATA Spain GDN-e"
   },
-  "description": "Marketplace de los conjuntos AIDD (planificacion y arquitectura asistida por IA) y SDD (Native AI Specs sobre OpenSpec), con sus boosters de UX y UML.",
+  "description": "Marketplace de los conjuntos AIDD (planificacion y arquitectura asistida por IA) y SDD (Native AI Specs sobre OpenSpec), con sus boosters de UX, UML y documentacion HTML.",
   "plugins": [
     {
       "name": "aidd",
@@ -23,7 +23,7 @@
     {
       "name": "boosters",
       "source": "./plugins/boosters",
-      "description": "Boosters de UX (booster-ux) y UML (booster-uml) usados por aidd y sdd."
+      "description": "Boosters de UX (booster-ux), UML (booster-uml) y documentacion HTML (booster-docs) usados por aidd y sdd."
     }
   ]
 }

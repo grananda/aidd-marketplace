@@ -30,6 +30,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y los documentos que produce estan expuestos a muchos cambios, por lo que las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** del brief con `booster-docs` (ver paso 5). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 ## Rol y objetivo
 
 Actua con este rol durante todo el comando:
@@ -142,12 +144,23 @@ Solo si el usuario lo pide o acepta la propuesta, crea o actualiza `AGENTS.md` e
 - Si `AGENTS.md` no existe, crealo con una cabecera minima y un bloque de contexto del proyecto.
 - Si existe, conserva integro el contenido ajeno y actualiza solo la parte de contexto del proyecto. No dupliques secciones ni toques bloques gestionados por otros skills (por ejemplo el bloque `native-ai-specs commands` si lo hubiera).
 
+### 5. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/cliente-requisitos.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/cliente-requisitos.md` como entrada y salida en `docs/html/cliente-requisitos.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`cliente-requisitos`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el brief quedo pendiente de cambios: hazlo cuando el documento este estable.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para arrancar la Fase 1.
+- Nunca modifiques el `.md` (ni `AGENTS.md`) al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd client-requirements`) y fase (0).
-- Ruta del documento generado o actualizado (`docs/cliente-requisitos.md`).
+- Ruta del documento generado o actualizado (`docs/cliente-requisitos.md`) y de su vista HTML (`docs/html/cliente-requisitos.html`), o aviso si no se pudo generar el HTML.
 - Resumen de decisiones tomadas y preguntas que quedan pendientes (bloqueantes destacadas).
 - Si se creo o actualizo `AGENTS.md`.
 - Criterio de salida: indica si el brief es suficiente para arrancar la Fase 1 o que falta para que lo sea.

@@ -32,6 +32,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, y las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** de la arquitectura del prototipo con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 ## Rol y objetivo
 
 Actua con este rol durante todo el comando:
@@ -117,12 +119,24 @@ Reglas de contenido:
 - La demo debe poder recorrerse de punta a punta sin bloqueos; comprueba que los pasos de la seccion 8 lo permiten.
 - La seccion 9 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
+### 4. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/arquitectura-base-prototipo.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/arquitectura-base-prototipo.md` como entrada y salida en `docs/html/arquitectura-base-prototipo.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`arquitectura-base-prototipo`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el documento quedo pendiente de cambios: hazlo cuando este estable.
+- Nunca modifiques el `.md` de origen al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd prototype-architecture`) y fase/paso (2 / 2.1).
 - Ruta del documento generado o actualizado (`docs/arquitectura-base-prototipo.md`).
+- Ruta de la vista HTML generada (`docs/html/arquitectura-base-prototipo.html`), o aviso si no se pudo generar el HTML.
 - Flujos que la demo permitira recorrer y supuestos/exclusiones relevantes.
 - Recordatorio: pendiente de **aprobacion humana** antes de implementar la demo.
 - Siguiente paso sugerido: `aidd prototype` para implementar la demo (via `booster-ux`) y, tras presentarla al cliente, actualizar `docs/cliente-requisitos.md`. Si el feedback trae cambios significativos, se vuelve al paso 1.1 (`aidd requirements`).

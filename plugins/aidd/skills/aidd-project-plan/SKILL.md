@@ -30,6 +30,8 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
 
 Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
+Como complemento opcional, al final del comando se genera una **vista HTML** del plan de proyecto con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+
 > Este skill NO sustituye al `roadmap` del AI Lead (Fase 3), que fasea los changes segun el presupuesto de contexto del modelo. Aporta la dimension que el SDD no cubre: **los recursos humanos y materiales** necesarios para ejecutar ese plan.
 
 ## Rol y objetivo
@@ -114,12 +116,24 @@ Reglas de contenido:
 - Costes cualitativos con rangos salvo que el usuario pida y aporte tarifas.
 - La seccion 8 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
+### 4. Generacion de la vista HTML (complementaria)
+
+Una vez escrito y confirmado `docs/planificacion-proyecto.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
+
+- Invoca `booster-docs` con `docs/planificacion-proyecto.md` como entrada y salida en `docs/html/planificacion-proyecto.html` (crea `docs/html/` si no existe). El script auto-detecta el tipo de documento (`planificacion-proyecto`) y anade dashboard de KPIs, chips y demas elementos visuales.
+- Pasa el flag `--open` para que el HTML **se abra automaticamente en el navegador** al terminar el comando. En modo no interactivo (CI/auto o si el usuario pidio no ser interrumpido) omite `--open` y solo informa de la ruta.
+- **Degradacion elegante**: si `booster-docs` no esta disponible, avisa de que la vista HTML no se genero y de que puede instalarse el plugin `boosters`, pero **no bloquees** el comando: el `.md` es suficiente para continuar.
+- El HTML es parte de la documentacion del repo (se versiona junto al `.md`); no lo anadas a `.gitignore`.
+- No regeneres el HTML si el documento quedo pendiente de cambios: hazlo cuando este estable.
+- Nunca modifiques el `.md` de origen al generar el HTML.
+
 ## Verificacion final
 
 Al terminar, informa:
 
 - Comando AIDD ejecutado (`aidd project-plan`).
 - Ruta del documento generado o actualizado (`docs/planificacion-proyecto.md`).
+- Ruta de la vista HTML generada (`docs/html/planificacion-proyecto.html`), o aviso si no se pudo generar el HTML.
 - Resumen del equipo recomendado, software/licencias con coste y principales riesgos de recursos.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd sprint-planning` para distribuir el trabajo en sprints usando estos recursos (requiere `docs/roadmap.md`; si no existe, generarlo antes con el AI Lead via `native-ai roadmap`).
