@@ -11,7 +11,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 |--------|-----------|----------------|
 | `aidd` | 11 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira). |
 | `sdd` | `native-ai-specs` + metodología | Ejecutar con OpenSpec: roadmap y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. |
-| `boosters` | `booster-ux`, `booster-uml` | Generar prototipos UX y diagramas UML. **Lo usan `aidd` y `sdd`.** |
+| `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `sdd`.** |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `sdd` para la fase de ejecución. |
 
 ## Por qué hay que instalar los tres
@@ -23,7 +23,8 @@ No son tres copias del mismo paquete: son **tres piezas de un mismo flujo** que 
 3. **`boosters` es la dependencia compartida** de los dos anteriores. No es opcional si usas el flujo completo:
    - `aidd prototype` (Fase 2.2) **redirige a `booster-ux`** para maquetar las pantallas del prototipo.
    - `native-ai prototype-ux` y `native-ai uml` (del plugin `sdd`) **invocan a `booster-ux` y `booster-uml`** para documentar cada change.
-   - Si `boosters` no está instalado, esos pasos avisan de que falta el booster y no generan ni prototipos ni diagramas.
+   - Los skills de planificación de `aidd` y `sdd` **invocan a `booster-docs`** para dejar, junto a cada `.md` generado (requisitos, historias, roadmap, sprint-plan…), una vista HTML complementaria para consumo humano (el Markdown sigue siendo la única fuente de verdad).
+   - Si `boosters` no está instalado, esos pasos avisan de que falta el booster y no generan ni prototipos, ni diagramas, ni vistas HTML.
 
 Claude Code **no resuelve dependencias entre plugins automáticamente**: cada plugin se instala por separado. Por eso, para el flujo de extremo a extremo necesitas los tres. (Si solo vas a hacer planificación sin prototipos ni diagramas, `aidd` por sí solo funciona; pero la instalación recomendada y completa son los tres.)
 
@@ -92,7 +93,7 @@ Tras instalar, cada skill queda *namespaced* por su plugin:
 
 - `/aidd:aidd-sprint-planning`, `/aidd:aidd-requirements`, …
 - `/sdd:native-ai-specs`
-- `/boosters:booster-ux`, `/boosters:booster-uml`
+- `/boosters:booster-ux`, `/boosters:booster-uml`, `/boosters:booster-docs`
 - `/aiad:aiad-tdd`, `/aiad:aiad-review`, `/aiad:aiad-save`, …
 
 También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `native-ai open change`, `aiad tdd`, `aiad review`, …).
