@@ -1,7 +1,7 @@
 # Native AI · AIDD-SDD — Metodología AI-Native (AI Driven Development + Spec-Driven Development)
 **Versión:** 4.0
 **Fecha:** 2026-06-22
-**Base de tooling:** skills **AIDD** (`aidd-*` — planificación, diseño y entrega) + skill **native-ai-specs** (OpenSpec + `booster-ux` + `booster-uml` — ejecución).
+**Base de tooling:** skills **AIDD** (`aidd-*` — planificación, diseño y entrega) + skill **native-ai-specs** (OpenSpec — ejecución) + **boosters** compartidos (`booster-ux` prototipos, `booster-uml` diagramas, `booster-docs` vistas HTML de los documentos de planificación).
 
 > **Terminología (importante).** Tres conceptos que conviven y NO son lo mismo:
 > - **SDD** (*Spec-Driven Development*) — la **metodología**: proceso, roles y fases. El "cómo se trabaja" (este documento).
@@ -200,6 +200,8 @@ docs/
 ├── requisitos.md                    ← AI Architect / Fase 1
 ├── mapa-historias-usuario.md        ← AI Architect / Fase 1
 ├── detalle-historias-usuario.md     ← AI Architect / Fase 1
+├── plan-revision-hu.md              ← aidd hu-review-plan (opcional) · fuente de verdad
+├── xlsx/plan-revision-hu.xlsx       ← aidd hu-review-plan (opcional) · Excel de revisión de HU
 ├── arquitectura-base-prototipo.md   ← AI Architect / Fase 2
 ├── guia-estilos.md                  ← AI Architect / Fase 2
 ├── propuesta-arquitectura-base.md   ← AI Architect / Fase 2
@@ -288,6 +290,17 @@ aidd user-story-details
 `aidd user-story-details` actúa como Product Owner y especialista en criterios de aceptación: lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripción completa, prioridad dentro de su fase, estimación orientativa (S ≤ 2 días · M 3-5 días · L 1-2 semanas), criterios de aceptación verificables (Dado/Cuando/Entonces), marca de criterios bloqueantes y notas técnicas y dependencias.
 
 **Criterio de salida de Fase 1:** Cada requisito tiene al menos una historia. Cada historia tiene criterios de aceptación verificables. Humano ha aprobado los tres documentos.
+
+#### Paso 1.4 — Planificación de la revisión de HU (opcional)
+
+**Comando AIDD:**
+```text
+aidd hu-review-plan
+```
+
+`aidd hu-review-plan` consolida `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` en un **Excel de planificación** (`docs/xlsx/plan-revision-hu.xlsx`) con cuatro pestañas: **Detalle HU** (todas las HU combinadas, con las palabras *Como/quiero/para* en negrita), **Dashboard** (KPIs y gráficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), **Leyenda** (significado de campos codificados como `Persona` P1/P5 o `GAP`) y **Gantt** (planificación de la revisión: kickoff, semana 1 de revisión de la documentación del cliente y resto del periodo con reuniones **funcionales** con negocio y **técnicas** con TI, con detalle por HU). El `docs/plan-revision-hu.md` es la fuente de verdad; el Excel es el entregable rico.
+
+Es la **antesala de la Fase 3.5**: `aidd sprint-planning` lee `plan-revision-hu.md` para no planificar por libre — solo compromete en sprint las HU que la revisión ha dejado cerradas/validadas y reutiliza las personas implicadas en la revisión para asignar el sprint y, al volcar a Jira, el *assignee* de cada Story. Skill autónomo (openpyxl se autoinstala si falta).
 
 ---
 

@@ -29,6 +29,7 @@ Un flujo de desarrollo donde **la especificación es el motor**: **defines y dis
 - Skills auxiliares (opcionales pero recomendados):
   - `booster-ux` — prototipos UX.
   - `booster-uml` — diagramas del change.
+  - `booster-docs` — vistas HTML de los documentos de planificación (AIDD/SDD).
 - Comprobación rápida:
 
 ```bash
@@ -97,6 +98,13 @@ Ejecuta, en este orden, los comandos `aidd` (cada uno aplica el prompt de su pas
 aidd requirements          # docs/requisitos.md — requisitos formales trazables (RF-XX, NFR-XX)
 aidd user-stories          # docs/mapa-historias-usuario.md — historias por fases
 aidd user-story-details    # docs/detalle-historias-usuario.md — criterios de aceptación verificables
+```
+
+Opcional, sobre las HU ya definidas — planificar su **revisión/validación** con negocio y TI en un Excel:
+
+```text
+aidd hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
+                           #   (consolida mapa+detalle de HU: Detalle HU, Dashboard, Leyenda y Gantt de revisión)
 ```
 
 ### Paso 2 — Diseño (AI Architect)
@@ -202,6 +210,7 @@ openspec/
 | `native-ai close change <slug>` | Outcome Validator | Valida y archiva el change |
 | `native-ai prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
 | `native-ai uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
+| `aidd hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
 | `aidd project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
 | `aidd sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
 

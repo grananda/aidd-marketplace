@@ -9,10 +9,61 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 
 | Plugin | Contenido | Para qué sirve |
 |--------|-----------|----------------|
-| `aidd` | 11 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira). |
+| `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
 | `sdd` | `native-ai-specs` + metodología | Ejecutar con OpenSpec: roadmap y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `sdd`.** |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `sdd` para la fase de ejecución. |
+
+## Índice de skills
+
+Resumen de un vistazo. Cada skill se invoca por su comando (`aidd …`, `native-ai …`, `aiad …`) o namespaced (`/aidd:…`, `/sdd:…`, `/boosters:…`, `/aiad:…`).
+
+### `aidd` — planificación, diseño y entrega (12)
+
+| Skill | Fase | Para qué |
+|-------|------|----------|
+| `aidd-client-requirements` | 0 | Brief del cliente → `docs/cliente-requisitos.md` |
+| `aidd-requirements` | 1.1 | Requisitos formales (RF/NFR) → `docs/requisitos.md` |
+| `aidd-user-stories` | 1.2 | Mapa de historias por fases → `docs/mapa-historias-usuario.md` |
+| `aidd-user-story-details` | 1.3 | Detalle de HU con criterios de aceptación → `docs/detalle-historias-usuario.md` |
+| `aidd-hu-review-plan` | 1.4 (opc.) | **Excel de planificación de revisión de HU** (Detalle, Dashboard, Leyenda, Gantt) → `docs/xlsx/plan-revision-hu.xlsx`. Antesala de sprints + Jira |
+| `aidd-prototype-architecture` | 2.1 | Arquitectura del prototipo mockeado → `docs/arquitectura-base-prototipo.md` |
+| `aidd-prototype` | 2.2 | Prototipo mockeado (redirige a `booster-ux`) |
+| `aidd-style-guide` | 2.3 | Guía de estilos y design tokens → `docs/guia-estilos.md` |
+| `aidd-architecture-proposal` | 2.3 | Propuesta de arquitectura base → `docs/propuesta-arquitectura-base.md` |
+| `aidd-architecture` | 2.4 | Arquitectura técnica definitiva → `docs/arquitectura-base.md` |
+| `aidd-project-plan` | 3.5.1 | Plan de recursos (perfiles, licencias, infra) → `docs/planificacion-proyecto.md` |
+| `aidd-sprint-planning` | 3.5.2 | Reparto en sprints + volcado opcional a Jira → `docs/sprint-plan.md` |
+
+### `sdd` — ejecución sobre OpenSpec (1)
+
+| Skill | Para qué |
+|-------|----------|
+| `native-ai-specs` | Roadmap y ciclo `open` / `implement` / `close change`, pre-flight de dudas, auditoría e integración Jira |
+
+### `boosters` — dependencia compartida (3)
+
+| Skill | Para qué |
+|-------|----------|
+| `booster-ux` | Prototipos/pantallas UX en dos variantes (imagen + HTML navegable) |
+| `booster-uml` | Diagramas UML (Mermaid) en HTML para un change de OpenSpec |
+| `booster-docs` | Vista HTML dinámica de un documento de planificación AIDD/SDD |
+
+### `aiad` — ejecución human-first, *ia-in-the-loop* (11)
+
+| Skill | Grupo | Para qué |
+|-------|-------|----------|
+| `aiad-design` | Think | Explorar opciones / plan de ataque de una HU (no escribe código) |
+| `aiad-explain` | Think | Explicar código, librerías, patrones o errores (mentor) |
+| `aiad-rubber-duck` | Think | Sesión socrática para pensar en voz alta |
+| `aiad-tdd` | Build | Tests en rojo para lo que vas a construir (tú implementas) |
+| `aiad-test` | Build | Rellenar tests (`unit`/`e2e`) sobre código existente |
+| `aiad-review` | Improve | Review didáctico (`correctness`/`quality`/`perf`), no aplica fixes |
+| `aiad-pair` | Flow | Pair-programming sostenido (tú driver, IA navigator) |
+| `aiad-bridge` | Flow | Puente HU ↔ change para saltar AIAD ↔ SDD |
+| `aiad-unblock` | Flow | Hub "estoy atascado": triaje y enrutado al skill adecuado |
+| `aiad-save` | Flow | Commit + push de todo, sin preguntas |
+| `aiad-journal` | Record | Bitácora de autoría (*craft ratio*: qué escribes tú vs delegas) |
 
 ## Por qué hay que instalar los tres
 
