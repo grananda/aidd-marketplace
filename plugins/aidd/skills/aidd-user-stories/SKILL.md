@@ -1,9 +1,9 @@
 ---
 name: aidd-user-stories
-description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Permite indicar opcionalmente el numero de fases deseado o un minimo (por ejemplo `aidd user-stories fases=4` o `fases>=3`); si no se indica, el numero emerge de la cohesion logica. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-user-stories (AIDD · Fase 1 · paso 1.2)
@@ -12,8 +12,9 @@ Usa este skill cuando el usuario quiera descomponer los requisitos en un mapa de
 
 - `aidd user-stories`
 - `aidd fase 1.2`
+- `aidd user-stories fases=<N>` (numero exacto de fases deseado) o `aidd user-stories fases>=<N>` / `fases-min=<N>` (minimo de fases)
 
-Tambien cuando pida "crear el mapa de historias", "story map", "organizar las historias por fases", "backbone de actividades" o equivalentes del paso 1.2.
+Tambien cuando pida "crear el mapa de historias", "story map", "organizar las historias por fases", "backbone de actividades" o equivalentes del paso 1.2. Y cuando indique cuantas fases quiere ("quiero N fases", "al menos N fases", "no mas de N fases").
 
 Responde y documenta en espanol siempre que sea posible. Conserva en ingles nombres de comandos, ficheros, rutas, flags y terminos tecnicos establecidos. Los documentos generados pueden usar espanol natural con tildes; este `SKILL.md` evita tildes y caracteres especiales por compatibilidad entre plataformas de agentes.
 
@@ -63,11 +64,29 @@ Lee y consolida antes de preguntar nada:
 
 Construye un mapa mental de actividades principales del usuario (backbone) y agrupa los RF bajo ellas.
 
+### 1.5 Numero de fases (control opcional)
+
+Por defecto el **numero de fases emerge de la cohesion logica**: agrupas las historias por lo que forma un incremento entregable con criterio de salida propio (F0 foundation habilitadora, F1 MVP, F2... incrementos), no por un numero fijado de antemano.
+
+El usuario puede **acotar ese numero**. Interpreta la intencion asi:
+
+- **Exacto** (`fases=N`, "quiero N fases"): apunta a exactamente N fases (contando F0).
+- **Minimo** (`fases>=N`, `fases-min=N`, "al menos N fases"): usa N o mas; nunca menos.
+- **Maximo** (`fases<=N`, "no mas de N fases"): usa N o menos.
+- Sin indicacion: el que exija la cohesion logica (registra en la seccion 7 cuantas salieron y por que).
+
+Reglas al aplicar un objetivo de fases:
+
+- **F0 siempre es foundation** y sigue siendo la primera fase; no la elimines para cuadrar un numero.
+- **No trocees ni fusiones de forma artificial** solo para llegar a la cifra: cada fase debe conservar un objetivo y un criterio de salida coherentes. Es preferible una fase menos/mas bien formada que N fases forzadas.
+- Si el objetivo **choca** con la cohesion (p. ej. piden 5 fases pero el alcance solo da para 3 incrementos con sentido, o piden 2 pero hay dependencias que exigen 4), **respeta lo que puedas y avisa**: aplica el faseado mas cercano que siga teniendo sentido, explica la tension y registrala en la seccion 7 (Decisiones). No fuerces el numero en silencio ni lo ignores en silencio.
+- Un objetivo de fases es de **agrupacion**, no de alcance: no aniade ni quita historias ni RF; solo cambia como se agrupan.
+
 ### 2. Pre-flight de preguntas
 
 Resuelve solo lo imprescindible para un mapa util.
 
-1. Cubre, como minimo: definicion de personas/roles si el brief no las cierra, criterio de agrupacion en fases (que entra en F0 foundation y en F1), y prioridades MoSCoW de Fase 1 cuando haya ambiguedad.
+1. Cubre, como minimo: definicion de personas/roles si el brief no las cierra, criterio de agrupacion en fases (que entra en F0 foundation y en F1), el **numero o minimo de fases deseado** si el usuario no lo ha indicado ya en el comando y el alcance admite varias faseaciones razonables (preferencia; default: el que exija la cohesion logica), y prioridades MoSCoW de Fase 1 cuando haya ambiguedad.
 2. Clasifica cada hueco:
    - **bloqueante**: sin respuesta no se puede cerrar el alcance de una fase o la priorizacion de Fase 1.
    - **preferencia**: hay varias formas validas de fasear o priorizar y la elegida condiciona el roadmap.
@@ -120,6 +139,7 @@ Reglas de contenido:
 
 - Cada historia con ID unico, enunciado Como/quiero/para y referencia al RF.
 - La seccion 5 debe demostrar cobertura completa de los RF; cualquier RF sin historia es un hueco a registrar, no a ocultar.
+- **Numero de fases**: aplica el objetivo del usuario (exacto/minimo/maximo) segun el paso 1.5, siempre respetando F0=foundation y la cohesion. Si hubo objetivo de fases, registra en la seccion 7 el numero pedido, el numero final y, si difieren, por que.
 - La seccion 7 sustituye a la auditoria estructurada: deja constancia de decisiones de fasear/priorizar, incluidas las resueltas por default.
 - Manten el documento navegable. Es el mapa, no el detalle de cada historia.
 
@@ -141,7 +161,7 @@ Al terminar, informa:
 - Comando AIDD ejecutado (`aidd user-stories`) y fase/paso (1 / 1.2).
 - Ruta del documento generado o actualizado (`docs/mapa-historias-usuario.md`).
 - Ruta de la vista HTML generada (`docs/html/mapa-historias-usuario.html`), o aviso si no se pudo generar el HTML.
-- Numero de historias y fases, y cobertura de RF (RF sin historia destacados).
+- Numero de historias y fases, y cobertura de RF (RF sin historia destacados). Si el usuario pidio un numero o minimo de fases, indica si se cumplio y, si no, por que (tension con la cohesion).
 - Recordatorio: el documento queda **pendiente de aprobacion humana** antes del handoff.
 - Criterio de salida: indica si el mapa es suficiente para arrancar el paso 1.3 o que falta.
 - Siguiente paso sugerido: `aidd user-story-details` (detalle de historias) a partir de `docs/requisitos.md` y `docs/mapa-historias-usuario.md`.
