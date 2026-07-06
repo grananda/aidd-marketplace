@@ -1,9 +1,9 @@
 ---
 name: aiad-review
-description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Didactic review of the code the human wrote, via the command `aiad review`. Three focuses. `correctness` checks behavior, edge cases, errors, and coverage of the user story's acceptance criteria. `quality` checks readability, naming, duplication, fit with the architecture and style guide. `perf` proposes performance/refactor improvements demanding measurement first and a test safety net, distinguishing performance from readability and rejecting premature micro-optimizations. It explains the WHY of every finding so the human learns and decides, and by default does NOT apply fixes and does NOT change behavior. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "review my code", "take a look at this", "code review of my changes", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
+description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Didactic review of the code the human wrote, via the command `aiad review`. Three focuses. `correctness` checks behavior, edge cases, errors, and coverage of the user story's acceptance criteria. `quality` checks readability, naming, duplication, fit with the architecture and style guide. `perf` proposes performance/refactor improvements demanding measurement first and a test safety net, distinguishing performance from readability and rejecting premature micro-optimizations. It explains the WHY of every finding so the human learns and decides, and by default does NOT apply fixes and does NOT change behavior. As a deliverable it generates a standalone HTML report of the review that embeds the referenced code lines (line-numbered, with the relevant lines highlighted) so the human can follow each recommendation. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "review my code", "take a look at this", "code review of my changes", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiad-review (AIAD · ia-in-the-loop)
@@ -62,6 +62,7 @@ This skill ships a companion subagent, **`aiad-reviewer`**, for the heavy readin
 
 - **Prefer delegating the analysis to the `aiad-reviewer` subagent** when the `Agent`/`Task` tool is available: pass it the scope (files/US) and focus, let it do the reading in its isolated context, and relay its findings report to the human. The human's main context stays clean.
 - The subagent has **read-only tools** (Read, Grep, Glob, Bash) and cannot apply fixes — which enforces the "propose, don't apply" rule structurally.
+- The subagent reports each finding with its `file:line`. The **main skill** (this context) then assembles the JSON manifest from that report and generates the HTML report (step 4.5) — the subagent does not write files. Keeping the `file:line` precise is what lets the report embed the real code.
 - If subagents are not available, run the flow below directly in the current context.
 
 ## Flow of `aiad review`
@@ -80,7 +81,69 @@ Apply the focus above. For `perf`, run the safety-net and measurement checks bef
 
 ### 4. Deliver the findings
 
-Prioritized list (blocking / improvement / optional). Each finding: location (`file:line`), what happens, why it matters, suggested direction. Do not rewrite the code for the human.
+Prioritized list (blocking / improvement / optional). Each finding: location (`file:line`), what happens, why it matters, suggested direction. Do not rewrite the code for the human. Present this list in chat as usual.
+
+### 4.5 Generate the HTML report
+
+Always produce a **standalone HTML report** of the review so the human can follow the recommendations with the code in front of them. Build a JSON manifest from the findings (whether produced inline or relayed from the `aiad-reviewer` subagent) and render it with the bundled script.
+
+1. **Write the manifest** to a JSON file (e.g. `docs/aiad-reviews/aiad-review-<focus>-<date>.json`; if the repo has no `docs/`, use `.aiad-reviews/`). Schema:
+
+   ```jsonc
+   {
+     "title": "Review — <scope>",
+     "scope": "src/foo.ts, src/bar.ts (HU-07)",
+     "focus": "correctness",              // correctness | quality | perf
+     "date": "<YYYY-MM-DD>",              // today's date
+     "verdict": "fixes-needed",           // ready | fixes-needed
+     "verdict_note": "1 blocking to resolve before closing the US",
+     "summary": "one short paragraph",
+     "good": ["what is well solved", "..."],
+     "labels": {                          // OPTIONAL — fill in the human's language
+       "blocking": "Bloqueante", "improvement": "Mejora", "optional": "Opcional",
+       "what": "Que pasa", "why": "Por que importa", "suggestion": "Sugerencia",
+       "good": "Lo que esta bien resuelto", "location": "Ubicacion",
+       "scope": "Alcance", "focus": "Foco"
+     },
+     "findings": [
+       {
+         "id": "F1",
+         "priority": "blocking",          // blocking | improvement | optional
+         "tag": "correctness",            // free label (correctness/security/quality/perf...)
+         "title": "short finding title",
+         "file": "src/foo.ts",            // referenced file (the script reads the real lines)
+         "line": 42,                      // or "lines": [40, 46] for a range
+         "highlight": [42],               // OPTIONAL explicit lines to highlight
+         "context": 3,                    // OPTIONAL context window (default 3)
+         "lang": "ts",                    // OPTIONAL language badge
+         "what": "what happens",
+         "why": "why it matters (the principle/pattern behind it)",
+         "suggestion": "suggested direction (NOT a full rewrite)"
+       }
+     ]
+   }
+   ```
+
+   - Prefer `file` + `line`/`lines`: the script reads the **actual code from the repo** and shows it line-numbered with the referenced line(s) highlighted. Do **not** transcribe code by hand when the file exists.
+   - Use `snippet` (a string) plus optional `snippet_start` (first line number) and `highlight` only when the code is not in a readable file (e.g. a proposed alternative, generated output, or the subagent could not access the file).
+   - Keep `suggestion` as a direction, never a full rewrite — this stays a didactic, propose-don't-apply review.
+   - Fill `labels` in the human's language so the report reads natively; omit it for English.
+
+2. **Render** the HTML with the bundled script (Python 3 standard library only, no dependencies):
+
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/skills/aiad-review/scripts/render_review_html.py" \
+     --input docs/aiad-reviews/aiad-review-<focus>-<date>.json \
+     --output docs/aiad-reviews/aiad-review-<focus>-<date>.html \
+     --base-dir . \
+     --open
+   ```
+
+   - `--base-dir` is the repo root used to resolve each finding's `file` (default: current directory).
+   - `--open` opens the report in the browser (best-effort; no-op in headless). Omit it in non-interactive mode.
+   - The report is self-contained (inline CSS, no external requests), theme-aware (light/dark) and print-friendly.
+
+3. If Python is unavailable, do not block: deliver the findings in chat and note that the HTML report could not be generated.
 
 ### 5. Close
 
@@ -94,4 +157,5 @@ Report:
 
 - Scope reviewed (files/US) and focus used.
 - Findings by priority, with blocking ones highlighted.
+- Path of the generated HTML report (`docs/aiad-reviews/…html`), or a note if it could not be generated.
 - Verdict and the human's next step (and, for `perf`, whether tests are required first).
