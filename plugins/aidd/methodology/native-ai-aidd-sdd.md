@@ -278,7 +278,9 @@ aidd requirements
 aidd user-stories
 ```
 
-`aidd user-stories` actúa como Product Owner experto: lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, historias agrupadas por fases (F0 foundation, F1, F2...), cada una con ID único en formato "Como [rol], quiero [acción] para [objetivo]", criterio de salida por fase, priorización MoSCoW para Fase 1 y referencia al RF correspondiente.
+`aidd user-stories` actúa como Product Owner experto: lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, historias agrupadas por fases (F0 foundation, F1, F2...), cada una con ID único en formato "Como [rol], quiero [acción] para [objetivo]", criterio de salida por fase, priorización MoSCoW para Fase 1 y referencia al RF correspondiente. Opcionalmente admite acotar el número de fases o un mínimo (`aidd user-stories fases=N` / `fases>=N`).
+
+> **F0 foundation (fase del mapa) = habilitadores, no núcleo funcional.** La fase F0 agrupa las **historias habilitadoras** (walking skeleton: esqueleto de auth, modelo de datos base, shell de navegación, infra transversal); **ninguna historia que entregue valor funcional al usuario final va en F0** — eso es F1+. Prueba: si un usuario final "la usaría" para lograr su objetivo, es F1. **Ojo con el nombre:** esta fase F0 **no es** el change `foundation` del roadmap (Fase 3), que es *scaffolding puro* derivado de la arquitectura y sin funcionalidad; están alineados pero no son un mapeo 1:1.
 
 #### Paso 1.3 — Detalle de historias de usuario
 
@@ -445,6 +447,8 @@ Un **change** es la unidad de trabajo: equivale a una fase del roadmap o feature
 ---
 
 **Change `foundation`** — siempre el primero, siempre especial. No implementa funcionalidad: establece la estructura base del proyecto (árbol de carpetas, configuración, archivos iniciales). Sin él, los changes funcionales no tienen base sobre la que operar. El AI Lead lo ejecuta completo:
+
+> **No confundir con la fase F0 del mapa de HU.** Este change `foundation` es *scaffolding puro* derivado de `docs/arquitectura-base.md` (estructura y configuración, sin comportamiento). La **fase F0 foundation** del mapa de historias (Paso 1.2) es una agrupación de *producto* con las **historias habilitadoras** (auth base, modelo de datos, shell de navegación…). Este change materializa la estructura base; las historias habilitadoras de F0 se ejecutan como sus propios changes. El roadmap re-fasea todo por presupuesto de contexto, así que no hay correspondencia 1:1 entre fases del mapa y changes.
 
 1. `native-ai open change foundation` — responde el pre-flight (verifica que la estructura propuesta coincide con `arquitectura-base.md`)
 2. Revisar y ajustar los artefactos generados (`proposal.md`, `design.md`, `spec.md`)

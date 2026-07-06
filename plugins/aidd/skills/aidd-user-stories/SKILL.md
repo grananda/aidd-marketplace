@@ -1,9 +1,9 @@
 ---
 name: aidd-user-stories
-description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Permite indicar opcionalmente el numero de fases deseado o un minimo (por ejemplo `aidd user-stories fases=4` o `fases>=3`); si no se indica, el numero emerge de la cohesion logica. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Permite indicar opcionalmente el numero de fases deseado o un minimo (por ejemplo `aidd user-stories fases=4` o `fases>=3`); si no se indica, el numero emerge de la cohesion logica. F0 foundation es la fase de habilitadores (walking skeleton), nunca el nucleo funcional de valor (que va a F1+), y no debe confundirse con el change `foundation` de scaffolding del roadmap. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-user-stories (AIDD · Fase 1 · paso 1.2)
@@ -82,11 +82,34 @@ Reglas al aplicar un objetivo de fases:
 - Si el objetivo **choca** con la cohesion (p. ej. piden 5 fases pero el alcance solo da para 3 incrementos con sentido, o piden 2 pero hay dependencias que exigen 4), **respeta lo que puedas y avisa**: aplica el faseado mas cercano que siga teniendo sentido, explica la tension y registrala en la seccion 7 (Decisiones). No fuerces el numero en silencio ni lo ignores en silencio.
 - Un objetivo de fases es de **agrupacion**, no de alcance: no aniade ni quita historias ni RF; solo cambia como se agrupan.
 
+### 1.6 Alcance de F0 foundation (que entra y que NO)
+
+F0 foundation es la fase de **habilitadores** (walking skeleton): el trabajo tecnico transversal del que depende todo lo demas pero que **no entrega valor funcional al usuario final**. F0 **no es** el nucleo funcional del producto.
+
+**Prueba que decide (aplicala a cada historia candidata a F0):** *"¿esta historia entrega valor directo al usuario final?"* Si la respuesta es SI, **no es F0** -> va a F1+, aunque sea "core tecnico", complejo o critico. Regla mental: **F0 solo habilita construir; F1 es el primer trozo de lo que el usuario viene a hacer.**
+
+**Entra en F0 (habilitadores):**
+- Esqueleto de autenticacion / sesion / roles (el mecanismo, no las reglas de negocio de cada rol).
+- Modelo de datos base, persistencia base, migraciones iniciales.
+- Shell de navegacion, layout base, tema/estilos base.
+- Habilitadores transversales: cliente de API base, logging, i18n base, manejo de errores comun.
+- CI/CD, entornos, semillas de datos.
+
+**NO entra en F0 (va a F1+):**
+- Los casos de uso reales del usuario (crear / gestionar / consultar lo que da valor).
+- Las reglas de negocio de valor.
+- Las pantallas que resuelven la necesidad del usuario.
+- Cualquier historia que un usuario final "usaria" para lograr su objetivo.
+
+**Aclaracion de nombres (importante):** la fase **F0 del mapa de HU NO es el change `foundation`** del roadmap. El change `foundation` (Fase 3, `native-ai`) es **scaffolding puro** (arbol de carpetas, configuracion, archivos iniciales) derivado de `docs/arquitectura-base.md`, sin funcionalidad, y es la primera unidad de **ejecucion**. La fase F0 del mapa es de **producto**: agrupa las **historias habilitadoras**. Estan alineadas (ambas "preparan la base") pero **no son un mapeo 1:1**: el roadmap re-fasea por presupuesto de contexto y el change `foundation` sale de la arquitectura, no de esta fase.
+
+Si detectas historias de **nucleo funcional colocadas en F0, reubicalas en F1+** y registra el motivo en la seccion 7. Ante la duda entre F0 y F1, aplica la prueba del valor: si aporta valor al usuario, es F1.
+
 ### 2. Pre-flight de preguntas
 
 Resuelve solo lo imprescindible para un mapa util.
 
-1. Cubre, como minimo: definicion de personas/roles si el brief no las cierra, criterio de agrupacion en fases (que entra en F0 foundation y en F1), el **numero o minimo de fases deseado** si el usuario no lo ha indicado ya en el comando y el alcance admite varias faseaciones razonables (preferencia; default: el que exija la cohesion logica), y prioridades MoSCoW de Fase 1 cuando haya ambiguedad.
+1. Cubre, como minimo: definicion de personas/roles si el brief no las cierra, criterio de agrupacion en fases (que entra en F0 foundation y en F1, aplicando la **prueba del valor** del paso 1.6: si aporta valor al usuario final es F1, no F0), el **numero o minimo de fases deseado** si el usuario no lo ha indicado ya en el comando y el alcance admite varias faseaciones razonables (preferencia; default: el que exija la cohesion logica), y prioridades MoSCoW de Fase 1 cuando haya ambiguedad.
 2. Clasifica cada hueco:
    - **bloqueante**: sin respuesta no se puede cerrar el alcance de una fase o la priorizacion de Fase 1.
    - **preferencia**: hay varias formas validas de fasear o priorizar y la elegida condiciona el roadmap.
@@ -119,7 +142,7 @@ Genera (o actualiza) `docs/mapa-historias-usuario.md` con esta estructura:
 
 ## 3. Historias por fase
 Para cada fase (F0 foundation, F1, F2...):
-- **Objetivo de la fase** y **criterio de salida**.
+- **Objetivo de la fase** y **criterio de salida**. Para F0, el criterio de salida es "base habilitada" (auth/datos/navegacion/infra listos), **sin valor funcional**; el valor empieza en F1.
 - Tabla de historias con: ID (`HU-XX`), enunciado "Como [rol], quiero [accion] para [objetivo]", RF cubierto(s) y MoSCoW (solo Fase 1).
 
 ## 4. Priorizacion MoSCoW (Fase 1)
@@ -139,7 +162,8 @@ Reglas de contenido:
 
 - Cada historia con ID unico, enunciado Como/quiero/para y referencia al RF.
 - La seccion 5 debe demostrar cobertura completa de los RF; cualquier RF sin historia es un hueco a registrar, no a ocultar.
-- **Numero de fases**: aplica el objetivo del usuario (exacto/minimo/maximo) segun el paso 1.5, siempre respetando F0=foundation y la cohesion. Si hubo objetivo de fases, registra en la seccion 7 el numero pedido, el numero final y, si difieren, por que.
+- **Alcance de F0**: F0 solo lleva historias **habilitadoras** (paso 1.6); ninguna historia con valor funcional para el usuario final. Verifica cada historia de F0 con la prueba del valor y, si detectas nucleo funcional en F0, reubicalo en F1+ y registralo en la seccion 7.
+- **Numero de fases**: aplica el objetivo del usuario (exacto/minimo/maximo) segun el paso 1.5, siempre respetando F0=foundation (habilitadores) y la cohesion. Si hubo objetivo de fases, registra en la seccion 7 el numero pedido, el numero final y, si difieren, por que.
 - La seccion 7 sustituye a la auditoria estructurada: deja constancia de decisiones de fasear/priorizar, incluidas las resueltas por default.
 - Manten el documento navegable. Es el mapa, no el detalle de cada historia.
 
