@@ -134,6 +134,16 @@ PRIORITY = {
 }
 EFFORT = {"s": "chip-eff-s", "m": "chip-eff-m", "l": "chip-eff-l", "xl": "chip-eff-l"}
 
+# Inline per-story metadata (e.g. "**Prioridad**: Alta   **Estimacion**: M"): turn
+# the priority and effort *values* into pills so the human can scan them at a glance,
+# and drop the estimation onto its own line when it trails other metadata. The label
+# separator tolerates the closing </strong> left by bold conversion, colons and spaces.
+PRIO_INLINE_RE = re.compile(
+    r"(Prioridad(?:\s|:|</strong>){0,6})(Alta|Media|Baja|Cr[íi]tica)\b", re.IGNORECASE)
+EFFORT_INLINE_RE = re.compile(
+    r"(Estimaci[oó]n(?:\s|:|</strong>){0,6})(XL|S|M|L)\b")
+ESTIM_BREAK_RE = re.compile(r"(\S)[ \t]+(?=(?:<strong>)?Estimaci[oó]n\b)")
+
 
 def decorate_chips(escaped: str) -> str:
     """Wrap traceable IDs and markers in styled chips (input already escaped)."""
@@ -145,7 +155,23 @@ def decorate_chips(escaped: str) -> str:
     return escaped
 
 
-def inline_markdown(text: str, chips: bool = True) -> str:
+def decorate_meta(escaped: str) -> str:
+    """Priority & effort values as pills; estimation on its own line. Input escaped."""
+    escaped = ESTIM_BREAK_RE.sub(r"\1<br>", escaped)
+
+    def _prio(m):
+        label, cls = PRIORITY[m.group(2).lower().replace("í", "i")]
+        return f'{m.group(1)}<span class="chip {cls}">{label}</span>'
+
+    def _eff(m):
+        return f'{m.group(1)}<span class="chip {EFFORT[m.group(2).lower()]}">{m.group(2).upper()}</span>'
+
+    escaped = PRIO_INLINE_RE.sub(_prio, escaped)
+    escaped = EFFORT_INLINE_RE.sub(_eff, escaped)
+    return escaped
+
+
+def inline_markdown(text: str, chips: bool = True, meta: bool = True) -> str:
     escaped = html.escape(text)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
     escaped = re.sub(
@@ -157,12 +183,14 @@ def inline_markdown(text: str, chips: bool = True) -> str:
     escaped = re.sub(r"(?<!\*)\*(?!\s)([^*\n]+?)(?<!\s)\*(?!\*)", r"<em>\1</em>", escaped)
     if chips:
         escaped = decorate_chips(escaped)
+        if meta:
+            escaped = decorate_meta(escaped)
     return escaped
 
 
 def cell_html(cell: str, header: bool) -> str:
     """Render a table cell, turning standalone priority/MoSCoW/effort tokens into chips."""
-    rendered = inline_markdown(cell)
+    rendered = inline_markdown(cell, meta=False)
     if header:
         return rendered
     token = cell.strip().lower().strip(".")
