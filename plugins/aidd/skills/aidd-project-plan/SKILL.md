@@ -1,9 +1,9 @@
 ---
 name: aidd-project-plan
-description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, estimacion de esfuerzo agregada (a partir de S/M/L), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de S/M/L vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-project-plan (AIDD · Fase 3.5 · paso 3.5.1 · recursos)
@@ -38,9 +38,9 @@ Como complemento opcional, al final del comando se genera una **vista HTML** del
 
 Actua con este rol durante todo el comando:
 
-> Actua como delivery manager tecnico (gestion de proyecto con criterio de arquitectura). Tu objetivo es derivar, a partir del diseno aprobado, que recursos hacen falta para construir el producto: perfiles y equipo, software y licencias, infraestructura y entornos, esfuerzo agregado, dependencias de recursos y riesgos. No planificas el calendario (eso es `aidd sprint-planning`); planificas el QUE se necesita, no el CUANDO.
+> Actua como delivery manager tecnico (gestion de proyecto con criterio de arquitectura). Tu objetivo es derivar, a partir del diseno aprobado, que recursos hacen falta para construir el producto: perfiles y equipo, software y licencias, infraestructura y entornos, esfuerzo (en doble estimacion humano vs IA), dependencias de recursos y riesgos. No planificas el calendario (eso es `aidd sprint-planning`); planificas el QUE se necesita, no el CUANDO.
 
-Criterio de salida del paso: existe `docs/planificacion-proyecto.md` con perfiles/equipo, software/licencias, infraestructura, esfuerzo agregado, dependencias de recursos y riesgos, derivados de la arquitectura y las historias, sin inventar lo que no este soportado por los documentos. Lo que no se pueda concluir queda como supuesto explicito.
+Criterio de salida del paso: existe `docs/planificacion-proyecto.md` con perfiles/equipo, software/licencias, infraestructura, la doble estimacion de esfuerzo (humano clasico vs IA) con sus KPIs de diferencia, dependencias de recursos y riesgos, derivados de la arquitectura y las historias, sin inventar lo que no este soportado por los documentos. Lo que no se pueda concluir queda como supuesto explicito.
 
 ## Reglas generales
 
@@ -97,24 +97,50 @@ Genera (o actualiza) `docs/planificacion-proyecto.md` con esta estructura:
 ## 4. Infraestructura y entornos
 - Entornos (dev/pre/pro), hosting (segun despliegue de la arquitectura), almacenamiento y backups, red/acceso. Sin valores de secretos.
 
-## 5. Estimacion de esfuerzo (agregada)
-- Agregacion de las estimaciones S/M/L por fase/historia en rangos de esfuerzo. No es calendario; es volumen de trabajo.
+## 5. Estimacion de esfuerzo — humano clasico vs IA
+Dos estimaciones **en paralelo** por fase (y por historia si aporta), para poder contrastarlas:
 
-## 6. Dependencias y prerequisitos de recursos
+| Fase / Historia | Talla | Esfuerzo humano clasico | Esfuerzo estimado con IA | Diferencia |
+|-----------------|-------|-------------------------|--------------------------|-----------|
+| F1 / HU-03 | M | 4 d-persona | 1,5 d-persona | -2,5 (-63%) |
+| ... | ... | ... | ... | ... |
+| **Total** | | **X d-persona** | **Y d-persona** | **-(X-Y) (-Z%)** |
+
+- **Esfuerzo humano clasico**: deriva de las tallas S/M/L de `docs/detalle-historias-usuario.md` con la escala de la metodologia (S <= 2 dias, M 3-5, L 1-2 semanas). Es volumen de trabajo, no calendario.
+- **Esfuerzo estimado con IA**: el mismo trabajo asumiendo la IA como recurso (p. ej. Claude Code). La IA genera el grueso; **lo no comprimible es dirigir, revisar y validar** (PR, criterios de aceptacion, e2e, accesibilidad, seguridad). Aplica una **compresion por naturaleza de la tarea**, no un % plano: boilerplate/CRUD/scaffolding comprime mucho; logica de dominio compleja, decisiones de diseno, integraciones delicadas o trabajo exploratorio comprimen poco. Es una **estimacion con supuestos**; marcalo como tal.
+
+## 6. KPIs de esfuerzo (diferencia humano vs IA)
+Cuadro de indicadores de la diferencia, calculados a partir de la tabla anterior:
+
+| KPI | Valor |
+|-----|-------|
+| Esfuerzo humano total | X d-persona |
+| Esfuerzo con IA total | Y d-persona |
+| Ahorro absoluto | X - Y d-persona |
+| Reduccion (%) | (X - Y) / X * 100 |
+| Factor de aceleracion | X / Y (p. ej. x2,6) |
+| Fase con mayor ahorro | <fase> (-N%) |
+| Fase con menor ahorro | <fase> (-N%) |
+
+- Calcula estos KPIs de forma consistente con la tabla de la seccion 5 (no cifras sueltas). Redondea a una cifra util.
+- Si el usuario **no** contempla la IA como recurso, dilo y deja la columna/seccion IA como N/A (o con supuesto explicito), en vez de inventar una aceleracion.
+
+## 7. Dependencias y prerequisitos de recursos
 - Que debe estar disponible antes de empezar (accesos, entornos, licencias, perfiles) y dependencias entre recursos.
 
-## 7. Riesgos de recursos y supuestos
-- Riesgos (perfiles escasos, dependencias, licencias) y supuestos tomados. Marca [BLOQUEANTE] cuando aplique.
+## 8. Riesgos de recursos y supuestos
+- Riesgos (perfiles escasos, dependencias, licencias) y supuestos tomados. Incluye los supuestos de la compresion por IA. Marca [BLOQUEANTE] cuando aplique.
 
-## 8. Decisiones tomadas
+## 9. Decisiones tomadas
 - Registro ligero: pregunta, opciones, decision, origen (usuario | default), una linea de justificacion.
 ```
 
 Reglas de contenido:
 
 - Cada recurso justificado y trazable a la arquitectura, un NFR o una historia. Nada generico de relleno.
+- **Doble estimacion**: da siempre el esfuerzo humano clasico y el esfuerzo con IA en paralelo (seccion 5), y deriva de ahi los KPIs de la diferencia (seccion 6). El esfuerzo con IA se comprime segun la naturaleza de la tarea; no uses un porcentaje unico para todo. La cifra IA es una hipotesis con supuestos, no un dato cerrado.
 - Costes cualitativos con rangos salvo que el usuario pida y aporte tarifas.
-- La seccion 8 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
+- La seccion 9 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
 ### Sello de version y fecha-hora (antes de renderizar)
 
@@ -145,5 +171,6 @@ Al terminar, informa:
 - Ruta del documento generado o actualizado (`docs/planificacion-proyecto.md`).
 - Ruta de la vista HTML generada (`docs/html/planificacion-proyecto.html`), o aviso si no se pudo generar el HTML.
 - Resumen del equipo recomendado, software/licencias con coste y principales riesgos de recursos.
+- **KPIs de esfuerzo humano vs IA**: esfuerzo humano total, esfuerzo con IA total, ahorro absoluto, % de reduccion y factor de aceleracion.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd sprint-planning` para distribuir el trabajo en sprints usando estos recursos (requiere `docs/roadmap.md`; si no existe, generarlo antes con el AI Lead via `native-ai roadmap`).
