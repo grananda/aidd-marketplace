@@ -289,7 +289,7 @@ aidd user-stories
 aidd user-story-details
 ```
 
-`aidd user-story-details` actúa como Product Owner y especialista en criterios de aceptación: lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripción completa, prioridad dentro de su fase, estimación orientativa (S ≤ 2 días · M 3-5 días · L 1-2 semanas), criterios de aceptación verificables (Dado/Cuando/Entonces), marca de criterios bloqueantes y notas técnicas y dependencias.
+`aidd user-story-details` actúa como Product Owner y especialista en criterios de aceptación: lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripción completa, prioridad dentro de su fase, estimación orientativa (S ≤ 2 días · M 3-5 días · L 1-2 semanas), criterios de aceptación verificables (Dado/Cuando/Entonces), marca de criterios **imprescindibles** (esenciales para aceptar la historia; no confundir con "bloqueante", que es un impedimento real y solo aplica a preguntas/dependencias sin resolver) y notas técnicas y dependencias.
 
 **Criterio de salida de Fase 1:** Cada requisito tiene al menos una historia. Cada historia tiene criterios de aceptación verificables. Humano ha aprobado los tres documentos.
 

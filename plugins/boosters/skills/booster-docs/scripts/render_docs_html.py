@@ -9,7 +9,8 @@ Beyond a faithful Markdown render it adds planning-oriented visual elements:
   * a KPI dashboard auto-computed from the content (RF/NFR counts, blockers,
     open questions, scope in/out balance, effort mix, MoSCoW mix...);
   * colored chips for traceable IDs (RF-XX, NFR-XX), priorities (Alta/Media/Baja,
-    S/M/L), MoSCoW buckets and [BLOQUEANTE] markers, both inline and in tables;
+    S/M/L), MoSCoW buckets, [IMPRESCINDIBLE] essential-criterion markers (calm tone)
+    and [BLOQUEANTE] real-impediment markers (alert tone), both inline and in tables;
   * scope "dentro / fuera de esta fase" rendered as side-by-side cards.
 
 Doc-type is auto-detected from the H1 / filename but can be forced with
@@ -112,6 +113,9 @@ RF_ID_RE = re.compile(r"\b(RF-\d+)\b")
 NFR_ID_RE = re.compile(r"\b(NFR-\d+)\b")
 US_ID_RE = re.compile(r"\b(HU-\d+|US-\d+)\b")
 BLOCKING_RE = re.compile(r"\[\s*BLOQUEANTE\s*\]", re.IGNORECASE)
+# Essential acceptance criterion: a must-have, NOT an impediment. Rendered with a
+# calm chip (not the red "block" tone) to avoid an unwarranted sense of alarm.
+ESSENTIAL_RE = re.compile(r"\[\s*(?:IMPRESCINDIBLE|ESENCIAL)\s*\]", re.IGNORECASE)
 
 MOSCOW = {
     "must": ("Must", "chip-must"),
@@ -135,6 +139,7 @@ def decorate_chips(escaped: str) -> str:
     escaped = NFR_ID_RE.sub(r'<span class="chip chip-nfr">\1</span>', escaped)
     escaped = US_ID_RE.sub(r'<span class="chip chip-us">\1</span>', escaped)
     escaped = BLOCKING_RE.sub('<span class="chip chip-block">BLOQUEANTE</span>', escaped)
+    escaped = ESSENTIAL_RE.sub('<span class="chip chip-essential">IMPRESCINDIBLE</span>', escaped)
     return escaped
 
 
@@ -200,6 +205,10 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
     if "fuera de esta fase" in low or "fuera de alcance" in low:
         # Best-effort: count bullet lines within scope-out region.
         kpis.append({"value": _scope_out_count(markdown), "label": "Fuera de alcance", "tone": "muted"})
+
+    essentials = len(ESSENTIAL_RE.findall(markdown))
+    if essentials:
+        kpis.append({"value": essentials, "label": "Imprescindibles", "tone": "us"})
 
     if blockers:
         kpis.append({"value": blockers, "label": "Bloqueantes", "tone": "block"})
@@ -575,6 +584,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .chip-nfr {{ color: var(--nfr); background: color-mix(in srgb, var(--nfr) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-us {{ color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-block {{ color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }}
+    .chip-essential {{ color: var(--us); background: color-mix(in srgb, var(--us) 14%, transparent); text-transform: uppercase; letter-spacing: .04em; }}
     .chip-must {{ color: var(--must); background: color-mix(in srgb, var(--must) 14%, transparent); }}
     .chip-should {{ color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }}
     .chip-could {{ color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }}

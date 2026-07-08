@@ -1,9 +1,9 @@
 ---
 name: aidd-user-story-details
-description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (S/M/L), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios bloqueantes y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (S/M/L), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-user-story-details (AIDD · Fase 1 · paso 1.3)
@@ -38,7 +38,7 @@ Actua con este rol durante todo el comando:
 
 > Actua como Product Owner experto y especialista en criterios de aceptacion. Tu objetivo es detallar cada historia del mapa con criterios verificables, prioridad, estimacion y notas tecnicas, de modo que el equipo (humano + agentes IA) pueda implementarlas y validarlas sin ambiguedad. Es el ultimo paso de la Definicion antes del diseno.
 
-Criterio de salida del paso: existe `docs/detalle-historias-usuario.md` donde cada historia del mapa tiene descripcion, prioridad, estimacion y criterios de aceptacion verificables, con los criterios bloqueantes marcados. Con esto se cierra el criterio de salida de Fase 1. Lo que no se pueda resolver queda explicito; no lo inventes.
+Criterio de salida del paso: existe `docs/detalle-historias-usuario.md` donde cada historia del mapa tiene descripcion, prioridad, estimacion y criterios de aceptacion verificables, con los criterios imprescindibles marcados. Con esto se cierra el criterio de salida de Fase 1. Lo que no se pueda resolver queda explicito; no lo inventes.
 
 ## Reglas generales
 
@@ -48,7 +48,8 @@ Criterio de salida del paso: existe `docs/detalle-historias-usuario.md` donde ca
 - No inventes historias nuevas. Detallas las que existen en el mapa. Si detectas que falta una historia o un RF sin cobertura, marcalo y propon volver al paso 1.2, no lo improvises aqui.
 - **Cobertura obligatoria**: detalla **todas** las historias del mapa. Lista las que queden sin detallar como pendientes; no las omitas en silencio.
 - Conserva los IDs de historia (`HU-XX`) del mapa. No los renumeres.
-- Criterios de aceptacion verificables: usa formato Dado/Cuando/Entonces o lista numerada comprobable. Marca con `[BLOQUEANTE]` (o un simbolo equivalente acordado) los criterios que condicionan el criterio de salida de la fase.
+- Criterios de aceptacion verificables: usa formato Dado/Cuando/Entonces o lista numerada comprobable. Marca con `[IMPRESCINDIBLE]` los criterios **esenciales** para dar la historia por terminada (los que no pueden faltar para aceptarla).
+- **Semantica del marcado (importante):** `[IMPRESCINDIBLE]` es un criterio de aceptacion que **no puede faltar**, pero **no es un impedimento** para hacer la historia; es un requisito de calidad/aceptacion. **No uses `[BLOQUEANTE]` en los criterios de aceptacion**: "bloqueante" es un impedimento real (una dependencia o duda sin resolver que frena el trabajo) y solo aplica a preguntas abiertas / pendientes, no a los criterios. Marcar criterios como "bloqueantes" genera una sensacion de alerta que no corresponde: un criterio imprescindible es normal y esperable en una historia.
 - Estimacion orientativa con la escala de la metodologia: **S** (<= 2 dias), **M** (3-5 dias), **L** (1-2 semanas).
 - No sobrescribas un `docs/detalle-historias-usuario.md` existente sin avisar: leelo, propon los cambios y confirma. Conserva decisiones ya registradas.
 - **El detalle de cada historia se mantiene limpio y listo para el cliente.** No metas **ningun** rastro de cambios dentro de la historia: nada de marcas tipo `[MODIFICADO]`/`[NUEVO]`/`[CAMBIADO]`, texto tachado, "antes/ahora", comentarios de revision, notas de version ni diffs inline. La historia se lee como si fuera la version final y unica. Todo cambio (al crear o al actualizar el documento) se registra **solo** en la seccion **Change log** al final del documento, nunca en el cuerpo de la HU.
@@ -106,7 +107,7 @@ Para cada historia del mapa, una entrada:
 - **Descripcion**: enunciado completo y contexto.
 - **Criterios de aceptacion**:
   - Dado <contexto>, cuando <accion>, entonces <resultado esperado>.
-  - ... (marca con [BLOQUEANTE] los que condicionan el criterio de salida de la fase)
+  - ... (marca con [IMPRESCINDIBLE] los criterios esenciales para dar la historia por terminada; es un requisito de aceptacion, no un impedimento)
 - **Notas tecnicas y dependencias**: dependencias entre historias, NFR aplicables, integraciones.
 
 ## Cobertura
@@ -153,7 +154,7 @@ Al terminar, informa:
 - Comando AIDD ejecutado (`aidd user-story-details`) y fase/paso (1 / 1.3).
 - Ruta del documento generado o actualizado (`docs/detalle-historias-usuario.md`).
 - Ruta de la vista HTML generada (`docs/html/detalle-historias-usuario.html`), o aviso si no se pudo generar el HTML.
-- Numero de historias detalladas frente al total del mapa (pendientes destacadas) y criterios bloqueantes.
+- Numero de historias detalladas frente al total del mapa (pendientes destacadas) y criterios imprescindibles.
 - Confirma que el detalle de las HU quedo **limpio (client-ready)** y que los cambios se registraron en el **Change log** al final (no dentro de las historias).
 - Recordatorio del gate de Fase 1: los tres documentos (`requisitos.md`, `mapa-historias-usuario.md`, `detalle-historias-usuario.md`) requieren **aprobacion humana** antes de pasar a Fase 2.
 - Criterio de salida de Fase 1: cada requisito tiene al menos una historia, cada historia tiene criterios de aceptacion verificables y el alcance esta definido. Indica si se cumple o que falta.
