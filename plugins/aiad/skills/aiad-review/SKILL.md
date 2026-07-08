@@ -1,9 +1,9 @@
 ---
 name: aiad-review
-description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Didactic review of the code the human wrote, via the command `aiad review`. Three focuses. `correctness` checks behavior, edge cases, errors, and coverage of the user story's acceptance criteria. `quality` checks readability, naming, duplication, fit with the architecture and style guide. `perf` proposes performance/refactor improvements demanding measurement first and a test safety net, distinguishing performance from readability and rejecting premature micro-optimizations. It explains the WHY of every finding so the human learns and decides, and by default does NOT apply fixes and does NOT change behavior. As a deliverable it generates a standalone HTML report of the review that embeds the referenced code lines (line-numbered, with the relevant lines highlighted) so the human can follow each recommendation. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "review my code", "take a look at this", "code review of my changes", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
+description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Didactic review of the code the human wrote, via the command `aiad review`. Three focuses. `correctness` checks behavior, edge cases, errors, and coverage of the user story's acceptance criteria. `quality` checks readability, naming, duplication, fit with the architecture and style guide. `perf` proposes performance/refactor improvements demanding measurement first and a test safety net, distinguishing performance from readability and rejecting premature micro-optimizations. It applies a comprehensive review checklist (DRY/KISS, cohesion/coupling, security, cyclomatic complexity, regressions, contract/compat breakage, observability, resource leaks, race conditions, dead code, out-of-scope changes) with per-layer checklists for backend, API and frontend, and can run in merge-readiness mode against a base branch (`aiad review develop`). Every finding is evidence-backed, ordered by criticality, notes whether a new/modified test is needed, and may include a concrete current-code -> suggested-code change. It explains the WHY so the human learns and decides, and by default does NOT apply fixes. As a deliverable it generates a standalone HTML report with the referenced code lines (line-numbered, highlighted) and the recommended before/after changes. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "review my code", "take a look at this", "code review of my changes", "revisar cambios contra develop", "merge readiness", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # aiad-review (AIAD · ia-in-the-loop)
@@ -14,8 +14,9 @@ Use this skill when the human has written code and wants feedback that helps the
 - `aiad review correctness <files-or-us>`
 - `aiad review quality <files>`
 - `aiad review perf <files-or-function>`
+- `aiad review <base-branch>` (merge-readiness mode: diff the current branch against that base, e.g. `aiad review develop`, `aiad review release/x`)
 
-Also when they say "review my code", "take a look at this", "code review of my changes", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
+Also when they say "review my code", "take a look at this", "code review of my changes", "revisar cambios contra develop", "review de la rama actual", "merge readiness", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
 
 Respond and document in the user's language when possible; keep command names, file names, paths, flags, and established technical terms as-is. This SKILL.md is written in English for universal use and uses ASCII only for cross-platform agent compatibility.
 
@@ -35,7 +36,12 @@ Exit criterion: the human has a prioritized list of understood findings, knows w
 
 - **Do not apply fixes by default.** Propose the change and explain why; the human fixes it. Apply something only if explicitly asked, and then narrowly. Never change behavior.
 - **Teach the why:** every finding has (1) what happens, (2) why it matters, (3) a suggested direction. Avoid "this is wrong" without a reason.
-- **Prioritize:** separate blocking (correctness, bug, unmet acceptance criterion, security) from improvement (quality, readability, style) from optional (taste). Do not drown the human in nits.
+- **Prioritize and order by criticality:** separate blocking (correctness, bug, unmet acceptance criterion, security, regression) from improvement (quality, readability, maintainability) from optional (taste). Put the most critical findings first. Do not drown the human in nits.
+- **Evidence-backed, no generic comments:** every finding must be backed by the actual changed code (cite `file:line`). No generic advice without evidence in the code under review. Prioritize findings with real impact over minor stylistic preferences.
+- **Merge-readiness mindset:** for each finding state clearly whether it **must block the merge/close** or is an optional improvement.
+- **Test gap per finding:** for each relevant finding, state explicitly whether it needs a **new or modified test** and which one. In merge-readiness/diff mode, base this **only on the diff**: if the diff changes logic and does not include a covering test, say so ("the diff adds no test for X; add one"); if it does, judge whether it covers the change. Do not assume tests that exist outside the diff.
+- **Recommended change (before/after) when it helps:** for a finding where a concrete change clarifies the fix, show a **current-code -> suggested-code** snippet (practical, at code level). It is a **proposal for the human to apply**, shown for learning — you still do NOT apply it. Prefer a focused snippet over a large rewrite.
+- **Risks to validate:** if a risk cannot be confirmed from the code/diff alone (indirect regression, runtime-only behavior), mark it as a risk to validate and say what to check. Do not invent problems.
 - **Real context:** review against `docs/detalle-historias-usuario.md` (US criteria), `docs/arquitectura-base.md` (patterns), and `docs/guia-estilos.md` (styles) if present.
 - **Acknowledge the good:** also point out what is well solved. Human-first review reinforces, it does not only correct.
 - **For `perf`: require a safety net and measurement** (see focus below).
@@ -56,6 +62,22 @@ Readability, naming, function size, duplication, clarity; fit with architecture 
 - **Heuristics:** algorithm and data structure before micro-tricks (O(n^2) -> O(n log n) beats a thousand low-level tweaks); I/O and network usually dominate (loops of calls, N+1 queries, repeated serialization, hot-path allocations); caching is debt (only with an invalidation strategy); readability is team performance.
 - Declare which axis each proposal improves and at the cost of which; rank by impact/cost; flag large-surface rewrites.
 
+## Review dimensions (comprehensive checklist)
+
+The focus sets the emphasis, but a thorough review scans these dimensions and reports only what the changed code actually evidences (don't pad with generic notes). Adapt to the language/stack.
+
+**Core (always):** DRY; KISS; readability; naming; error handling; basic security; cyclomatic complexity; design critique; cohesion and coupling; logical/structural duplication; consistency with the project's style; correct use of abstractions; separation of responsibilities; testability and test coverage/need; backward compatibility; regression risk; input/output validation; handling of null/empty/unexpected states; observability (logs, traceability, diagnosable errors); medium/long-term maintainability; adequate dependency use; possible memory issues or resource leaks; possible race conditions; unnecessary computational cost; dead/redundant/unreachable code; changes outside the intended scope; risk of breaking existing contracts; impact on CI/CD, config, environments or deployment where applicable.
+
+**Global-impact / regression analysis:** beyond the changed lines, consider whether the change can affect the wider codebase — indirect conflicts, overriding existing behaviors, compatibility breaks, impact on shared modules, changes to public contracts, side effects, cross-cutting dependencies, or altered existing flows.
+
+**If backend (as far as the diff allows to infer):** database efficiency; N+1 queries; potentially needed indexes; correct transaction use; concurrency and locks; idempotency; scalability; correct timeout handling; efficient use of external resources; validation of DTOs/commands/queries/models; API contracts; endpoint versioning/compat; serialization/deserialization; authz and authn; accidental exposure of sensitive data; consistent HTTP responses; domain vs infrastructure error handling; retries, resilience and fault tolerance; separation of domain / application / infrastructure.
+
+**If it exposes or changes APIs:** contract compliance; adequate HTTP codes; consistent response structure; input validation; clear and safe errors; compatibility with existing clients; breaking changes; pagination/filtering/sorting where applicable; security in params/routes/payloads; idempotency in sensitive operations; docs/contract updates where applicable.
+
+**If frontend:** state management; render performance; separation of concerns; adequate componentization; unnecessary re-renders; unreleased subscriptions; correct async handling; correct form usage; UI and defensive validations; basic accessibility; i18n where applicable; visual consistency with the project; correct service usage; avoid excessive business logic in components; lazy loading / bundle impact where applicable; HTTP error handling; loading/empty/error states; basic security against XSS or sensitive-data exposure; clean separation of presentation / state / data access.
+
+If there are no blocking problems, say so clearly.
+
 ## Running as a subagent (context isolation)
 
 This skill ships a companion subagent, **`aiad-reviewer`**, for the heavy reading. Reviewing means reading the diff, the touched files, and the architecture/style docs — that can flood the human's working context while they are coding.
@@ -70,6 +92,14 @@ This skill ships a companion subagent, **`aiad-reviewer`**, for the heavy readin
 ### 1. Scope and pick the focus
 
 - If files/US/focus are given, use them. Otherwise review the working tree (`git status`, `git diff`, `git diff --staged`); if nothing changed, ask what to review. Infer the focus from the request (default `correctness`).
+- **Merge-readiness mode (diff against a base branch):** if the human names a base branch (`aiad review develop`, `aiad review release/x`) or asks to review "against develop/main", review **only that diff**:
+
+  ```bash
+  git fetch origin <base>
+  git --no-pager diff origin/<base>...HEAD
+  ```
+
+  Default base is `develop` if they say "merge readiness" without naming one; if that branch does not exist, tell them and fall back to `main`/`master` or the working tree. Analyze exclusively that diff, apply the comprehensive checklist and the global-impact/regression analysis, and frame findings as merge-readiness (what blocks the merge vs optional). Show the current branch name at the top of the report.
 
 ### 2. Gather the evaluation context
 
@@ -108,8 +138,8 @@ Always produce a **standalone HTML report** of the review so the human can follo
      "findings": [
        {
          "id": "F1",
-         "priority": "blocking",          // blocking | improvement | optional
-         "tag": "correctness",            // free label (correctness/security/quality/perf...)
+         "priority": "blocking",          // blocking | improvement | optional (most critical first)
+         "tag": "N+1",                    // free label (correctness/security/N+1/race/quality...)
          "title": "short finding title",
          "file": "src/foo.ts",            // referenced file (the script reads the real lines)
          "line": 42,                      // or "lines": [40, 46] for a range
@@ -117,8 +147,15 @@ Always produce a **standalone HTML report** of the review so the human can follo
          "context": 3,                    // OPTIONAL context window (default 3)
          "lang": "ts",                    // OPTIONAL language badge
          "what": "what happens",
+         "impact": "concrete impact / risk (OPTIONAL but recommended for blocking)",
          "why": "why it matters (the principle/pattern behind it)",
-         "suggestion": "suggested direction (NOT a full rewrite)"
+         "suggestion": "suggested direction",
+         "change": {                      // OPTIONAL current -> suggested code (a proposal, shown for learning)
+           "before": "for (const o of orders) { o.client = await repo.find(o.clientId) }",
+           "after": "const clients = await repo.findMany(ids); // map in memory",
+           "lang": "ts"
+         },
+         "test_gap": "the diff adds no test for X; add one that verifies Y"  // OPTIONAL
        }
      ]
    }
@@ -126,8 +163,9 @@ Always produce a **standalone HTML report** of the review so the human can follo
 
    - Prefer `file` + `line`/`lines`: the script reads the **actual code from the repo** and shows it line-numbered with the referenced line(s) highlighted. Do **not** transcribe code by hand when the file exists.
    - Use `snippet` (a string) plus optional `snippet_start` (first line number) and `highlight` only when the code is not in a readable file (e.g. a proposed alternative, generated output, or the subagent could not access the file).
-   - Keep `suggestion` as a direction, never a full rewrite — this stays a didactic, propose-don't-apply review.
-   - Fill `labels` in the human's language so the report reads natively; omit it for English.
+   - Use `change` (before/after) when a concrete fix helps the human — practical, at code level, focused; it is a **proposal to apply themselves**, not applied by the review. The HTML renders it as two labelled blocks (current code / suggested code).
+   - Add `test_gap` whenever the change needs a new/modified test (in diff mode, judged only from the diff).
+   - Order `findings` by criticality (blocking first). Fill `labels` in the human's language so the report reads natively; omit it for English.
 
 2. **Render** the HTML with the bundled script (Python 3 standard library only, no dependencies):
 

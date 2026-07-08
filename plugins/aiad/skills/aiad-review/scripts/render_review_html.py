@@ -46,6 +46,11 @@ DEFAULT_LABELS = {
     "scope": "Scope",
     "focus": "Focus",
     "no_code": "Code not available",
+    "change": "Recommended change",
+    "before": "Current code",
+    "after": "Suggested code",
+    "test_gap": "Tests",
+    "impact": "Impact",
 }
 
 PRIORITY_ORDER = ["blocking", "improvement", "optional"]
@@ -137,6 +142,31 @@ def render_code_block(finding: dict, base_dir: Path) -> str:
     )
 
 
+def render_change(finding: dict, labels: dict) -> str:
+    """Optional recommended change: current code -> suggested code (a proposal, not applied)."""
+    ch = finding.get("change")
+    if not isinstance(ch, dict):
+        return ""
+    before, after = ch.get("before"), ch.get("after")
+    cols = []
+    if before:
+        cols.append(
+            f'<div class="diffcol diff-before"><div class="difflabel">{esc(labels["before"])}</div>'
+            f'<pre>{esc(before)}</pre></div>'
+        )
+    if after:
+        cols.append(
+            f'<div class="diffcol diff-after"><div class="difflabel">{esc(labels["after"])}</div>'
+            f'<pre>{esc(after)}</pre></div>'
+        )
+    if not cols:
+        return ""
+    return (
+        f'<div class="fblock"><div class="flabel">{esc(labels["change"])}</div>'
+        f'<div class="diffwrap">{"".join(cols)}</div></div>'
+    )
+
+
 def render_finding(finding: dict, labels: dict, base_dir: Path) -> str:
     prio = (finding.get("priority") or "improvement").lower()
     color, _ = PRIORITY_META.get(prio, PRIORITY_META["improvement"])
@@ -174,8 +204,11 @@ def render_finding(finding: dict, labels: dict, base_dir: Path) -> str:
         f'{floc_html}'
         f'{render_code_block(finding, base_dir)}'
         f'{block("what", finding.get("what"))}'
+        f'{block("impact", finding.get("impact"))}'
         f'{block("why", finding.get("why"))}'
         f'{block("suggestion", finding.get("suggestion"))}'
+        f'{render_change(finding, labels)}'
+        f'{block("test_gap", finding.get("test_gap"))}'
         f'</article>'
     )
 
@@ -328,6 +361,15 @@ h1{font-size:24px;margin:0;flex:1;min-width:220px}
 .fblock{margin-top:12px}
 .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-bottom:2px}
 .ftext{color:var(--ink)}
+.diffwrap{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:640px){.diffwrap{grid-template-columns:1fr}}
+.diffcol{border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.difflabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:4px 10px;border-bottom:1px solid var(--line)}
+.diffcol pre{margin:0;padding:8px 12px;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--code-ink)}
+.diff-before{background:color-mix(in srgb,#e5484d 7%,var(--code-bg))}
+.diff-before .difflabel{color:#e5484d;background:color-mix(in srgb,#e5484d 12%,transparent)}
+.diff-after{background:color-mix(in srgb,#30a46c 8%,var(--code-bg))}
+.diff-after .difflabel{color:#30a46c;background:color-mix(in srgb,#30a46c 12%,transparent)}
 .good{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
 .good ul{margin:8px 0 0;padding-left:20px}
 .good li{margin:4px 0}
