@@ -142,6 +142,16 @@ Reglas de contenido:
 - Marca como provisional todo lo que dependa de una identidad de marca aun no aportada.
 - La seccion 8 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/guia-estilos.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/guia-estilos.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 5. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/guia-estilos.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.

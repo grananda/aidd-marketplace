@@ -206,6 +206,16 @@ Convencion del enlace entre los dos planos (negocio y ejecucion), que este skill
 - **Enlace**: cada change conoce su(s) HU (anotada en `proposal.md` y en `docs/jira-sync.md`); cada HU conoce sus changes (sus sub-tareas). El pegamento operativo es referenciar la clave de la sub-tarea/Story (`ABC-123`) en el PR del change.
 - **Avance**: `implement change` mueve la sub-tarea y su Story a In Progress; `close change` pasa la sub-tarea a Done y la Story a Done **solo cuando todas sus sub-tareas estan Done**. Asi una HU no se marca completada a medias.
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/sprint-plan.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/sprint-plan.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 6. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/sprint-plan.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.

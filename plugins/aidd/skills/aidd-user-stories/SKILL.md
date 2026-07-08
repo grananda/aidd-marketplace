@@ -167,6 +167,16 @@ Reglas de contenido:
 - La seccion 7 sustituye a la auditoria estructurada: deja constancia de decisiones de fasear/priorizar, incluidas las resueltas por default.
 - Manten el documento navegable. Es el mapa, no el detalle de cada historia.
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/mapa-historias-usuario.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/mapa-historias-usuario.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 4. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/mapa-historias-usuario.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.

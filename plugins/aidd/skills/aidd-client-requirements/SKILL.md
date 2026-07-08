@@ -144,6 +144,16 @@ Solo si el usuario lo pide o acepta la propuesta, crea o actualiza `AGENTS.md` e
 - Si `AGENTS.md` no existe, crealo con una cabecera minima y un bloque de contexto del proyecto.
 - Si existe, conserva integro el contenido ajeno y actualiza solo la parte de contexto del proyecto. No dupliques secciones ni toques bloques gestionados por otros skills (por ejemplo el bloque `native-ai-specs commands` si lo hubiera).
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/cliente-requisitos.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/cliente-requisitos.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 5. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/cliente-requisitos.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.

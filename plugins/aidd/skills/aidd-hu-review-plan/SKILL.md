@@ -184,6 +184,16 @@ Reglas del manifiesto:
 - `legend` incluye **un bloque por campo codificado** detectado; valores en blanco si no se conoce el significado.
 - `gantt.year`/`gantt.month` definen el mes que se dibuja (columnas 1..fin de mes). Las fechas son ISO `YYYY-MM-DD`. `kind`: `doc` | `funcional` | `tecnica`. `meetings` lista los dias que son reunion (para marcarlos con F/T).
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/plan-revision-hu.md`, y **antes** de generar el Excel, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/plan-revision-hu.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 6. Generacion del Excel
 
 Ejecuta el script incluido en este skill, que renderiza el manifiesto a `.xlsx` con las cuatro pestañas (Dashboard, Detalle HU, Leyenda, Gantt del mes). El script usa `openpyxl` y **se encarga el mismo de instalarlo** si falta (esta pensado para usuarios no tecnicos): al arrancar, si no encuentra `openpyxl` ejecuta `pip install openpyxl` (y, en entornos restringidos, reintenta con `--user`) y continua. La llamada a `python` es la unica puerta de permisos; no hay que pedir al usuario que instale nada a mano.

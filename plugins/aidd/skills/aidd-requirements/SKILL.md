@@ -129,6 +129,16 @@ Reglas de contenido:
 - La seccion 9 sustituye a la auditoria estructurada: deja constancia de las decisiones de preferencia/confirmacion del pre-flight, incluidas las resueltas por default.
 - Manten el documento navegable y conciso. Es el catalogo de requisitos, no el diseno.
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/requisitos.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/requisitos.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 4. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/requisitos.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.

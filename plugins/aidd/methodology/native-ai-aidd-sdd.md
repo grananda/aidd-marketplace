@@ -194,6 +194,8 @@ Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadm
 
 Cada fase produce documentos que son la entrada de la siguiente. El humano revisa y aprueba cada documento antes del handoff.
 
+> **Versionado y sello temporal (todos los documentos AIDD).** Cada documento generado por un skill `aidd` lleva, justo bajo el título, una línea de sello: `> **Versión N** · **Generado:** YYYY-MM-DD HH:MM TZ`. La **versión se incrementa en cada regeneración** del documento y la **fecha-hora es real**. No la escribe el modelo (no inventa versión ni hora): la estampa el script `${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py`, que cada skill ejecuta tras escribir el `.md` y antes de renderizar la vista HTML/Excel. La versión persiste en el sidecar `docs/.aidd-doc-meta.json` (sobrevive a que el `.md` se reescriba). La vista HTML de `booster-docs` muestra el sello en la cabecera.
+
 ```
 docs/
 ├── cliente-requisitos.md            ← Fase 0 — brief del cliente

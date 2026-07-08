@@ -135,6 +135,16 @@ Reglas de contenido:
 - La seccion de decisiones sustituye a la auditoria estructurada e incluye las decisiones resueltas por default.
 - **Change log**: cada vez que crees o **actualices** el documento, anade una fila por cambio relevante en las historias (criterio ajustado, prioridad/estimacion cambiada, HU anadida/retirada del detalle...). En la **primera** generacion, una sola fila "Version inicial del detalle". Nunca reflejes el cambio dentro de la HU; solo aqui. Es un registro **incremental**: no borres filas antiguas al actualizar.
 
+### Sello de version y fecha-hora (antes de renderizar)
+
+Tras escribir o actualizar `docs/detalle-historias-usuario.md`, y **antes** de generar la vista HTML, sella el documento:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/detalle-historias-usuario.md
+```
+
+Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
+
 ### 4. Generacion de la vista HTML (complementaria)
 
 Una vez escrito y confirmado `docs/detalle-historias-usuario.md`, genera su **vista HTML** complementaria con el skill `booster-docs`. El `.md` es la fuente de verdad; el HTML es solo para consumo humano.
