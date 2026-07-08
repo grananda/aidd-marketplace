@@ -9,8 +9,9 @@ Beyond a faithful Markdown render it adds planning-oriented visual elements:
   * a KPI dashboard auto-computed from the content (RF/NFR counts, blockers,
     open questions, scope in/out balance, effort mix, MoSCoW mix...);
   * colored chips for traceable IDs (RF-XX, NFR-XX), priorities (Alta/Media/Baja,
-    S/M/L), MoSCoW buckets, [IMPRESCINDIBLE] essential-criterion markers (calm tone)
-    and [BLOQUEANTE] real-impediment markers (alert tone), both inline and in tables;
+    S/M/L), MoSCoW buckets, [IMPRESCINDIBLE] essential-criterion markers (prominent
+    red-orange) and [BLOQUEANTE] real-impediment markers (red), both inline, in
+    tables and summarized in the top KPI dashboard;
   * scope "dentro / fuera de esta fase" rendered as side-by-side cards.
 
 Doc-type is auto-detected from the H1 / filename but can be forced with
@@ -113,8 +114,9 @@ RF_ID_RE = re.compile(r"\b(RF-\d+)\b")
 NFR_ID_RE = re.compile(r"\b(NFR-\d+)\b")
 US_ID_RE = re.compile(r"\b(HU-\d+|US-\d+)\b")
 BLOCKING_RE = re.compile(r"\[\s*BLOQUEANTE\s*\]", re.IGNORECASE)
-# Essential acceptance criterion: a must-have, NOT an impediment. Rendered with a
-# calm chip (not the red "block" tone) to avoid an unwarranted sense of alarm.
+# Essential acceptance criterion: a must-have (NOT an impediment). Kept visually
+# prominent -- a red-orange pill and a top-dashboard KPI, as the old [BLOQUEANTE]
+# marker was -- but with a softer word (it is a requirement, not a blocker).
 ESSENTIAL_RE = re.compile(r"\[\s*(?:IMPRESCINDIBLE|ESENCIAL)\s*\]", re.IGNORECASE)
 
 MOSCOW = {
@@ -208,7 +210,7 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
 
     essentials = len(ESSENTIAL_RE.findall(markdown))
     if essentials:
-        kpis.append({"value": essentials, "label": "Imprescindibles", "tone": "us"})
+        kpis.append({"value": essentials, "label": "Imprescindibles", "tone": "essential"})
 
     if blockers:
         kpis.append({"value": blockers, "label": "Bloqueantes", "tone": "block"})
@@ -499,7 +501,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       --code-bg: #eef2f6;
       --shadow: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
       --rf: #0a7d8c; --nfr: #6b5bd6; --us: #0a9396; --must: #c1121f;
-      --block: #b00020; --warn: #b58a25;
+      --block: #b00020; --warn: #b58a25; --essential: #e8590c;
       --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
       --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f;
     }}
@@ -511,7 +513,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
         --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
         --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
         --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
-        --block: #ff7a8a; --warn: #f6d784;
+        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74;
       }}
@@ -574,6 +576,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .kpi-us {{ border-left-color: var(--us); }} .kpi-us .kpi-value {{ color: var(--us); }}
     .kpi-must {{ border-left-color: var(--must); }} .kpi-must .kpi-value {{ color: var(--must); }}
     .kpi-block {{ border-left-color: var(--block); }} .kpi-block .kpi-value {{ color: var(--block); }}
+    .kpi-essential {{ border-left-color: var(--essential); }} .kpi-essential .kpi-value {{ color: var(--essential); }}
     .kpi-warn {{ border-left-color: var(--warn); }} .kpi-warn .kpi-value {{ color: var(--warn); }}
     .kpi-muted {{ border-left-color: var(--line-strong); }} .kpi-muted .kpi-value {{ color: var(--muted); }}
     /* Chips */
@@ -584,7 +587,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .chip-nfr {{ color: var(--nfr); background: color-mix(in srgb, var(--nfr) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-us {{ color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-block {{ color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }}
-    .chip-essential {{ color: var(--us); background: color-mix(in srgb, var(--us) 14%, transparent); text-transform: uppercase; letter-spacing: .04em; }}
+    .chip-essential {{ color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }}
     .chip-must {{ color: var(--must); background: color-mix(in srgb, var(--must) 14%, transparent); }}
     .chip-should {{ color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }}
     .chip-could {{ color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }}
