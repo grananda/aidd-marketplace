@@ -12,6 +12,8 @@ Beyond a faithful Markdown render it adds planning-oriented visual elements:
     S/M/L), MoSCoW buckets, [IMPRESCINDIBLE] essential-criterion markers (prominent
     red-orange) and [BLOQUEANTE] real-impediment markers (red), both inline, in
     tables and summarized in the top KPI dashboard;
+  * a color swatch shown next to any #hex / rgb() / hsl() color code (handy for the
+    style-guide palette and design tokens);
   * scope "dentro / fuera de esta fase" rendered as side-by-side cards.
 
 Doc-type is auto-detected from the H1 / filename but can be forced with
@@ -144,6 +146,13 @@ EFFORT_INLINE_RE = re.compile(
     r"(Estimaci[oó]n(?:\s|:|</strong>){0,6})(XL|S|M|L)\b")
 ESTIM_BREAK_RE = re.compile(r"(\S)[ \t]+(?=(?:<strong>)?Estimaci[oó]n\b)")
 
+# Color codes (style guides / design tokens): show a swatch next to the code so the
+# human sees the actual color beside its value. Matches #hex (3/4/6/8) and rgb()/hsl().
+HEX_COLOR_RE = re.compile(
+    r'(?<![\w"=#])(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3}))\b')
+COLOR_FUNC_RE = re.compile(
+    r'(?<![\w"=(])((?:rgba?|hsla?)\([0-9,.%\s/]*\))', re.IGNORECASE)
+
 
 def decorate_chips(escaped: str) -> str:
     """Wrap traceable IDs and markers in styled chips (input already escaped)."""
@@ -171,6 +180,17 @@ def decorate_meta(escaped: str) -> str:
     return escaped
 
 
+def _swatch(value: str) -> str:
+    return f'<span class="swatch" style="background:{value}"></span>{value}'
+
+
+def decorate_colors(escaped: str) -> str:
+    """Prepend a color swatch to hex/rgb/hsl color codes (input already escaped)."""
+    escaped = HEX_COLOR_RE.sub(lambda m: _swatch(m.group(1)), escaped)
+    escaped = COLOR_FUNC_RE.sub(lambda m: _swatch(m.group(1)), escaped)
+    return escaped
+
+
 def inline_markdown(text: str, chips: bool = True, meta: bool = True) -> str:
     escaped = html.escape(text)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
@@ -183,6 +203,7 @@ def inline_markdown(text: str, chips: bool = True, meta: bool = True) -> str:
     escaped = re.sub(r"(?<!\*)\*(?!\s)([^*\n]+?)(?<!\s)\*(?!\*)", r"<em>\1</em>", escaped)
     if chips:
         escaped = decorate_chips(escaped)
+        escaped = decorate_colors(escaped)
         if meta:
             escaped = decorate_meta(escaped)
     return escaped
@@ -616,6 +637,9 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .chip-us {{ color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-block {{ color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }}
     .chip-essential {{ color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }}
+    .swatch {{ display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
+      vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }}
     .chip-must {{ color: var(--must); background: color-mix(in srgb, var(--must) 14%, transparent); }}
     .chip-should {{ color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }}
     .chip-could {{ color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }}

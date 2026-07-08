@@ -115,7 +115,7 @@ Genera (o actualiza) `docs/guia-estilos.md` con esta estructura:
 - Principios rectores y tono de la interfaz.
 
 ## 2. Paleta de colores
-- Valores hex por rol (primario, secundario, superficie, estados, etc.).
+- Valores hex por rol (primario, secundario, superficie, estados, etc.). Escribe **siempre el codigo del color** (`#RRGGBB`, o `rgb()`/`hsl()`) junto a cada rol; la vista HTML de `booster-docs` pinta automaticamente una **muestra del color al lado de su codigo**, asi que no hace falta describir el color con palabras: basta el codigo.
 
 ## 3. Tipografia, espaciado e iconografia
 - Familias y escalas tipograficas, escala de espaciado, set de iconografia.
