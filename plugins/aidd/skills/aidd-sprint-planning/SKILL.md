@@ -1,9 +1,9 @@
 ---
 name: aidd-sprint-planning
-description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # aidd-sprint-planning (AIDD · Fase 3.5 · paso 3.5.2 · sprints)
@@ -154,6 +154,8 @@ Reglas de contenido:
 
 Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de verdad sigue siendo el documento; Jira es un destino. Crea en Jira los **sprints** del plan y las **historias** (unidades de trabajo) asignadas a cada sprint.
 
+**Se puede volcar mas de una vez de forma segura.** El caso previsto es ejecutarlo **antes** del roadmap (modo degradado, faseando por el mapa+detalle de HU) para arrancar, y **de nuevo despues** con `docs/roadmap.md` para re-fasear por presupuesto de contexto. La re-ejecucion **no rompe la numeracion de issues**: las Stories (HU) nunca se recrean, solo se mueven de sprint. Ver "Re-ejecucion y re-faseado (antes/despues del roadmap)" mas abajo.
+
 **Cuando ofrecerlo.** Al terminar el documento, ofrece volcar el plan a Jira. Ejecuta el volcado solo si el usuario lo confirma. Tambien aplica si el usuario lo pide explicitamente ("crea los sprints en Jira", "vuelcalo a Jira en el proyecto X").
 
 **Prerrequisito — MCP de Atlassian.** Este volcado usa el MCP de Atlassian (Jira). No uses la API REST a mano ni gestiones credenciales desde el skill.
@@ -182,7 +184,16 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 - **No dupliques**: antes de crear, comprueba si ya existen sprints con el mismo nombre o issues con el mismo titulo en el proyecto/board (busca con las tools del MCP). Si existen, no los recrees; reporta y ofrece omitir o renombrar. Re-ejecutar el volcado no debe duplicar el plan.
 - Crea de forma ordenada: primero los sprints (para tener sus ids), luego las issues asignandolas a su sprint.
 - Si una creacion falla, **detente y reporta** lo creado hasta el momento (sprints e issues con sus claves), para que el estado sea reconstruible; no sigas a ciegas.
-- No cambies el estado del tablero ni muevas issues existentes; este paso solo **anade** el plan.
+- **Primer volcado**: solo **anade** (crea sprints + Stories); no cambies el estado del tablero. **Re-ejecucion (re-faseado)**: puedes **mover** Stories existentes de un sprint a otro y crear/limpiar sprints, pero **nunca borrar ni recrear una Story** (ver "Re-ejecucion y re-faseado"). No cambies el estado (workflow) de los issues en ningun caso.
+
+**Re-ejecucion y re-faseado (antes/despues del roadmap).** Este volcado esta pensado para ejecutarse **mas de una vez** sin romper el board — tipicamente una primera vez en **modo degradado** (sin roadmap) y otra **con el roadmap** para re-fasear. La regla de oro: **nunca tocar las claves de issue.**
+
+- **Las Stories (HU) son estables: se crean una sola vez y NO se recrean jamas.** En cada re-ejecucion, localiza la Story existente por su clave en `docs/jira-sync.md` (o, si falta, por id de HU / titulo) y **reutilizala**. Recrear una Story quemaria su clave `ABC-123` (Jira **no reutiliza** numeros) y dejaria huecos en la secuencia: no lo hagas nunca.
+- **Re-fasear = MOVER, no recrear.** Si el nuevo plan cambia a que sprint pertenece una HU, **mueve** la Story a su nuevo sprint (cambia su campo Sprint via MCP); su clave queda intacta. Nunca la borres para recrearla en otro sitio.
+- **Sprints: crea los nuevos y ofrece limpiar los vacios.** Crea solo los sprints que falten. Los que queden **vacios** tras mover las HU son obsoletos; **ofrece borrarlos** (con confirmacion). Borrar un sprint es **seguro para la numeracion**: un sprint es un contenedor **sin issue-key**, a diferencia de un issue.
+- **Distincion clave:** issue != sprint. Los issues queman numeros permanentes; los sprints no. Por eso el re-faseado se hace con **mover HU + gestionar sprints**, jamas con borrar/recrear issues.
+- **Confirmacion previa:** antes de mover Stories o borrar sprints, muestra el **plan de reconciliacion** (que HU se mueven y a que sprint, que sprints se crean, cuales se borran por quedar vacios) y espera el OK. En modo no interactivo: crea y mueve, pero **no borres** sprints; reporta los vacios para revision manual.
+- Tras reconciliar, **actualiza `docs/jira-sync.md`** con el nuevo mapeo HU <-> sprint (conservando las claves de Story ya existentes).
 
 **Persistencia del enlace y la configuracion.** Para que `native-ai open/implement/close change` puedan crear las sub-tareas y mover los tickets despues, deja preparado el puente:
 
