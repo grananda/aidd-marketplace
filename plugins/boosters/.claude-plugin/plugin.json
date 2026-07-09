@@ -1,7 +1,7 @@
 {
   "name": "boosters",
   "displayName": "AIDD Boosters — UX & UML",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Boosters compartidos por AIDD y SDD: booster-ux (disena pantallas/prototipos UX en dos variantes, imagen + HTML navegable), booster-uml (genera HTML con diagramas UML en Mermaid para un change de OpenSpec) y booster-docs (genera una vista HTML dinamica y visual de los documentos de planificacion AIDD/SDD manteniendo el Markdown como fuente de verdad). Dependencia recomendada de los plugins aidd y sdd.",
   "author": {
     "name": "NTT DATA Spain GDN-e"

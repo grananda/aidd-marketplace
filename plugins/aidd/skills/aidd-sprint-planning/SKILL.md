@@ -1,6 +1,6 @@
 ---
 name: aidd-sprint-planning
-description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano S/M/L), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.3.0"
@@ -45,13 +45,13 @@ Criterio de salida del paso: existe `docs/sprint-plan.md` con los sprints defini
 ## Reglas generales
 
 - Trabaja desde la raiz del proyecto del usuario.
-- **Entrada principal**: `docs/roadmap.md` (changes/fases ya ordenados por el AI Lead). **Insumo de recursos**: `docs/planificacion-proyecto.md` (equipo, capacidad, perfiles). **Detalle**: `docs/detalle-historias-usuario.md` (estimaciones S/M/L, dependencias, criterios bloqueantes).
+- **Entrada principal**: `docs/roadmap.md` (changes/fases ya ordenados por el AI Lead). **Insumo de recursos**: `docs/planificacion-proyecto.md` (equipo, capacidad, perfiles). **Detalle**: `docs/detalle-historias-usuario.md` (estimaciones XS/S/M/L/XL, dependencias, criterios bloqueantes).
 - **Insumo de revision de HU (si existe)**: `docs/plan-revision-hu.md` (y su Excel `docs/xlsx/plan-revision-hu.xlsx`), generado por `aidd hu-review-plan`. Es la **antesala** de esta planificacion: recoge el estado de revision de cada HU (cerrada/validada, en revision, bloqueada), su persona/rol y el resultado de las reuniones funcionales (negocio) / tecnicas (TI). **No planifiques por libre**: reconcilia el reparto en sprints con ese plan (ver "Reconciliacion con el plan de revision de HU"). Si no existe, continua solo con roadmap + recursos, pero advierte de que conviene revisar y cerrar las HU antes de comprometerlas en sprint.
 - Si falta `docs/roadmap.md`, avisa: el faseado por contexto lo produce el AI Lead con `native-ai roadmap` (Fase 3). Como alternativa degradada, puedes partir del mapa+detalle de historias, pero advierte de que no se respeta el faseado por contexto del modelo.
 - Si falta `docs/planificacion-proyecto.md`, avisa y propon ejecutar antes `aidd project-plan`; sin recursos no hay capacidad contra la que planificar. Puedes continuar con supuestos de equipo explicitos si el usuario lo pide.
 - Si existen changes de OpenSpec (`openspec/changes/`), usalos como detalle adicional de las unidades de trabajo, pero la unidad de planificacion sigue siendo el change/historia del roadmap.
 - **Respeta dependencias y faseado**: F0 (foundation) antes que F1, F1 antes que F2; respeta prerequisitos entre historias (p. ej. una historia que necesita un habilitador tecnico va despues de el). No partas un change entre sprints.
-- **Las tallas S/M/L son esfuerzo humano clasico, no calendario del sprint**: si el plan de recursos define la IA como recurso (velocity acelerada por IA), estima el **esfuerzo real** comprimido (la IA genera; lo que cuesta es dirigir, revisar y validar) y planifica con el real, no con el bruto.
+- **Las tallas XS/S/M/L/XL son esfuerzo humano clasico, no calendario del sprint**: si el plan de recursos define la IA como recurso (velocity acelerada por IA), estima el **esfuerzo real** comprimido (la IA genera; lo que cuesta es dirigir, revisar y validar) y planifica con el real, no con el bruto.
 - **No rellenes sprints**: dimensiona a la carga real (ver "Dimensionado de sprints"). No asignes "un change = un sprint" por inercia ni estires la duracion para cubrir una talla bruta. Un sprint muy por debajo de capacidad es una senal de relleno; agrupa unidades o acorta la duracion.
 - No inventes unidades de trabajo nuevas. Distribuyes las que ya existen en roadmap/detalle.
 - No sobrescribas un `docs/sprint-plan.md` existente sin avisar: leelo, propon los cambios y confirma.
@@ -62,7 +62,7 @@ Criterio de salida del paso: existe `docs/sprint-plan.md` con los sprints defini
 
 ### 1. Recopilacion de contexto (lectura previa)
 
-Lee y consolida: `roadmap.md` (fases/changes, dependencias, riesgo de contexto), `planificacion-proyecto.md` (equipo, perfiles, capacidad), `detalle-historias-usuario.md` (estimaciones S/M/L, dependencias, criterios bloqueantes), `plan-revision-hu.md` **si existe** (estado de revision de cada HU, persona/rol implicada, resultado funcional/tecnico) y, si existen, los changes de OpenSpec.
+Lee y consolida: `roadmap.md` (fases/changes, dependencias, riesgo de contexto), `planificacion-proyecto.md` (equipo, perfiles, capacidad), `detalle-historias-usuario.md` (estimaciones XS/S/M/L/XL, dependencias, criterios bloqueantes), `plan-revision-hu.md` **si existe** (estado de revision de cada HU, persona/rol implicada, resultado funcional/tecnico) y, si existen, los changes de OpenSpec.
 
 Construye la lista de **unidades de trabajo** (change o historia) con su estimacion y sus dependencias antes de repartir.
 
@@ -91,7 +91,7 @@ Resuelve solo lo imprescindible para distribuir en sprints.
 
 Antes de repartir, dimensiona con criterio. Dos errores frecuentes a evitar:
 
-1. **Tomar las tallas S/M/L como dias de calendario del sprint.** Las tallas de `detalle-historias-usuario.md` son **esfuerzo humano clasico** (p. ej. S <= 2 dias, M 3-5, L 1-2 semanas). Si el plan de recursos define la IA como recurso (velocity acelerada por IA), el **esfuerzo real** se comprime: la IA genera el grueso y lo no comprimible es dirigir, revisar y validar (PR, criterios bloqueantes, e2e, accesibilidad). Estima por tanto **dos cifras por unidad** —el bruto humano (referencia) y el real con IA— y planifica con el real.
+1. **Tomar las tallas XS/S/M/L/XL como dias de calendario del sprint.** Las tallas de `detalle-historias-usuario.md` son **esfuerzo humano clasico** en dias-persona (1 d = jornada de 8 h): **XS = 0,5 d · S = 1,5 d · M = 3 d · L = 5 d · XL = 8 d**. Si el plan de recursos define la IA como recurso (velocity acelerada por IA), el **esfuerzo real** se comprime: la IA genera el grueso y lo no comprimible es dirigir, revisar y validar (PR, criterios bloqueantes, e2e, accesibilidad). Estima por tanto **dos cifras por unidad** —el bruto humano (referencia) y el real con IA— y planifica con el real.
 
 2. **Asignar "un change = un sprint" por inercia.** Eso rellena sprints sin relacion con la carga. Separa dos decisiones **independientes**:
    - **Duracion del sprint** = se deriva de la **carga real** y de la cadena de dependencias (cuanto trabajo de calendario hay por bloque). Si un bloque son ~3-4 dias de calendario, un sprint de 1 semana lo cubre; uno de 2 dejaria capacidad ociosa.
@@ -123,7 +123,7 @@ Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
 - Una nota breve justificando por que esa duracion de sprint (carga real) y ese numero de ciclos (cortes duros: gates, dependencias, riesgo).
 
 ## 2. Unidades de trabajo
-- Tabla: id (change/HU), descripcion breve, fase (F0/F1/F2), **estimacion real con IA y bruto humano de referencia** (S/M/L o puntos), perfil principal.
+- Tabla: id (change/HU), descripcion breve, fase (F0/F1/F2), **estimacion real con IA y bruto humano de referencia** (XS/S/M/L/XL o puntos), perfil principal.
 
 ## 3. Mapa de dependencias y prerequisitos
 - Que debe completarse antes de que. Bloqueos tecnicos y de recursos. Marca [BLOQUEANTE].
@@ -146,7 +146,7 @@ Reglas de contenido:
 - Respeta dependencias y faseado: ninguna unidad antes que sus prerequisitos; F0 antes de F1 antes de F2.
 - No sobrecargues un sprint por encima de la capacidad declarada; si no cabe, abre otro sprint y dilo.
 - **No infres ni rellenes sprints**: dimensiona a la carga real (paso 2.5). La duracion deriva de la carga; el numero de ciclos, de los cortes duros (gates, dependencias, riesgo). Si un sprint queda muy por debajo de capacidad, agrupa o acorta.
-- Planifica con el **esfuerzo real** (comprimido por IA si aplica), no con el bruto S/M/L; muestra ambas cifras para trazabilidad.
+- Planifica con el **esfuerzo real** (comprimido por IA si aplica), no con el bruto XS/S/M/L/XL; muestra ambas cifras para trazabilidad.
 - Las unidades son completas (change/historia); no se parten entre sprints.
 - La seccion 7 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
@@ -171,7 +171,7 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 **Mapeo plan -> Jira.**
 
 - Cada **sprint** del documento (seccion 4) -> un sprint en el board, con: nombre (p. ej. `Sprint 1 — <objetivo breve>`), objetivo (el objetivo del sprint) y fechas de inicio/fin derivadas de la duracion. No actives (start) los sprints salvo que el usuario lo pida; crealos en estado futuro.
-- Cada **HU** (historia de usuario de la seccion 2 que cae en ese sprint) -> una **Story**, con: titulo (id HU + descripcion breve), descripcion (criterios/notas de `docs/detalle-historias-usuario.md` si estan disponibles), y asignacion al sprint correspondiente. Si el board tiene campo de **estimacion/story points**, vuelca el **esfuerzo real con IA** (no el bruto) cuando sea numerico; si la talla es S/M/L, registrala en la descripcion o en una etiqueta.
+- Cada **HU** (historia de usuario de la seccion 2 que cae en ese sprint) -> una **Story**, con: titulo (id HU + descripcion breve), descripcion (criterios/notas de `docs/detalle-historias-usuario.md` si estan disponibles), y asignacion al sprint correspondiente. Si el board tiene campo de **estimacion/story points**, vuelca el **esfuerzo real con IA** (no el bruto) cuando sea numerico; si la talla es XS/S/M/L/XL, registrala en la descripcion o en una etiqueta.
 - **Personas envueltas -> assignee**: si `docs/plan-revision-hu.md` (o `docs/planificacion-proyecto.md`) asocia una persona/perfil responsable a la HU, usala para proponer el **assignee** de la Story. Resuelve el nombre a la cuenta de Jira con las tools del MCP (busqueda de usuario/cuenta) y **confirma con el usuario** antes de asignar; si no hay correspondencia clara, deja la Story sin asignar en lugar de adivinar. Este skill es la antesala de esa planificacion de sprints y personas en Jira.
 - **Los changes NO se crean aqui.** En este paso solo se crean las **Stories (HU)** y los **sprints**. Cada change se creara mas tarde como **sub-tarea** de su HU cuando el AI Lead ejecute `native-ai open change` (ver skill `native-ai-specs`, "Integracion con Jira"). Lo que SI haces aqui es **preparar el enlace** (ver "Persistencia del enlace y la configuracion").
 - **No crees epicas** en este paso (alcance acordado: sprints + historias/changes-como-subtareas). Si el usuario las pide, mapea fase (F0/F1/F2) -> epica como extension.

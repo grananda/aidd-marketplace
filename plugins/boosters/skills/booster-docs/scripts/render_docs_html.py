@@ -134,7 +134,8 @@ PRIORITY = {
     "baja": ("Baja", "chip-prio-low"),
     "critica": ("Critica", "chip-prio-high"),
 }
-EFFORT = {"s": "chip-eff-s", "m": "chip-eff-m", "l": "chip-eff-l", "xl": "chip-eff-l"}
+EFFORT = {"xs": "chip-eff-xs", "s": "chip-eff-s", "m": "chip-eff-m",
+          "l": "chip-eff-l", "xl": "chip-eff-xl"}
 
 # Inline per-story metadata (e.g. "**Prioridad**: Alta   **Estimacion**: M"): turn
 # the priority and effort *values* into pills so the human can scan them at a glance,
@@ -143,7 +144,7 @@ EFFORT = {"s": "chip-eff-s", "m": "chip-eff-m", "l": "chip-eff-l", "xl": "chip-e
 PRIO_INLINE_RE = re.compile(
     r"(Prioridad(?:\s|:|</strong>){0,6})(Alta|Media|Baja|Cr[íi]tica)\b", re.IGNORECASE)
 EFFORT_INLINE_RE = re.compile(
-    r"(Estimaci[oó]n(?:\s|:|</strong>){0,6})(XL|S|M|L)\b")
+    r"(Estimaci[oó]n(?:\s|:|</strong>){0,6})(XS|XL|S|M|L)\b")
 ESTIM_BREAK_RE = re.compile(r"(\S)[ \t]+(?=(?:<strong>)?Estimaci[oó]n\b)")
 
 # Color codes (style guides / design tokens): show a swatch next to the code so the
@@ -552,7 +553,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       --rf: #0a7d8c; --nfr: #6b5bd6; --us: #0a9396; --must: #c1121f;
       --block: #b00020; --warn: #b58a25; --essential: #e8590c;
       --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
-      --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f;
+      --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
     }}
     @media (prefers-color-scheme: dark) {{
       :root {{
@@ -564,7 +565,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
         --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
-        --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74;
+        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
       }}
     }}
     * {{ box-sizing: border-box; }}
@@ -647,9 +648,11 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .chip-prio-high {{ color: var(--prio-high); background: color-mix(in srgb, var(--prio-high) 14%, transparent); }}
     .chip-prio-mid {{ color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }}
     .chip-prio-low {{ color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }}
+    .chip-eff-xs {{ color: var(--eff-xs); background: color-mix(in srgb, var(--eff-xs) 14%, transparent); }}
     .chip-eff-s {{ color: var(--eff-s); background: color-mix(in srgb, var(--eff-s) 14%, transparent); }}
     .chip-eff-m {{ color: var(--eff-m); background: color-mix(in srgb, var(--eff-m) 14%, transparent); }}
     .chip-eff-l {{ color: var(--eff-l); background: color-mix(in srgb, var(--eff-l) 14%, transparent); }}
+    .chip-eff-xl {{ color: var(--eff-xl); background: color-mix(in srgb, var(--eff-xl) 14%, transparent); }}
     /* Sections */
     .doc-section {{ background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
       padding: 24px 26px; margin: 22px 0; box-shadow: var(--shadow); }}

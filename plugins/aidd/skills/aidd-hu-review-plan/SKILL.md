@@ -44,7 +44,7 @@ Criterio de salida: existe `docs/plan-revision-hu.md` (fuente de verdad, con el 
 ## Reglas generales
 
 - Trabaja desde la raiz del proyecto del usuario.
-- **Entradas / fuentes de verdad**: `docs/mapa-historias-usuario.md` (personas/roles, fases F0/F1/F2, MoSCoW, backbone, ref RF) y `docs/detalle-historias-usuario.md` (historia Como/quiero/para, prioridad, estimacion S/M/L, criterios de aceptacion con los imprescindibles marcados, notas/dependencias). Apoyate en `docs/requisitos.md` solo si necesitas desambiguar un RF.
+- **Entradas / fuentes de verdad**: `docs/mapa-historias-usuario.md` (personas/roles, fases F0/F1/F2, MoSCoW, backbone, ref RF) y `docs/detalle-historias-usuario.md` (historia Como/quiero/para, prioridad, estimacion XS/S/M/L/XL, criterios de aceptacion con los imprescindibles marcados, notas/dependencias). Apoyate en `docs/requisitos.md` solo si necesitas desambiguar un RF.
 - Si falta `docs/detalle-historias-usuario.md`, avisa y propon generarlo antes con `aidd user-story-details` (Fase 1.3); sin el detalle no hay HU que consolidar.
 - **Lee primero, pregunta despues.** No preguntes lo que los dos documentos ya resuelven.
 - **No inventes contenido de las HU** ni semantica de campos codificados. Si un documento usa campos propios del cliente (por ejemplo `Persona` con codigos P1/P5, o `GAP`), **detecta los valores distintos** y llevalos a la pestaña Leyenda con el significado **en blanco** para que lo complete el humano, salvo que el significado este escrito en los documentos. Nunca inventes que significa un GAP o una Persona.
@@ -57,7 +57,7 @@ Criterio de salida: existe `docs/plan-revision-hu.md` (fuente de verdad, con el 
 
 ### 1. Recopilacion de contexto (lectura previa)
 
-Lee y consolida `mapa-historias-usuario.md` y `detalle-historias-usuario.md`. Para **cada HU** extrae, en la medida en que exista: id, fase (F0/F1/F2), persona/rol, epica o actividad del backbone, el "Como / quiero / para" desglosado en sus tres partes, prioridad, MoSCoW, estimacion S/M/L, estado (si el documento lo indica; si no, "Pendiente"), marca de bloqueada (una dependencia o decision sin resolver que impide avanzar la HU; un impedimento real, no la mera existencia de criterios imprescindibles), campos codificados propios del cliente (Persona, GAP...), ref RF, criterios de aceptacion (Dado/Cuando/Entonces), notas tecnicas y dependencias.
+Lee y consolida `mapa-historias-usuario.md` y `detalle-historias-usuario.md`. Para **cada HU** extrae, en la medida en que exista: id, fase (F0/F1/F2), persona/rol, epica o actividad del backbone, el "Como / quiero / para" desglosado en sus tres partes, prioridad, MoSCoW, estimacion XS/S/M/L/XL, estado (si el documento lo indica; si no, "Pendiente"), marca de bloqueada (una dependencia o decision sin resolver que impide avanzar la HU; un impedimento real, no la mera existencia de criterios imprescindibles), campos codificados propios del cliente (Persona, GAP...), ref RF, criterios de aceptacion (Dado/Cuando/Entonces), notas tecnicas y dependencias.
 
 Registra los **valores distintos** de los campos codificados (Persona, GAP, Estado y cualquier otro con codigos) para construir la Leyenda.
 
@@ -145,7 +145,7 @@ Escribe `docs/plan-revision-hu.json` — el **manifiesto de build** que consume 
       "para": "controlar accesos",        // solo el beneficio (sin 'para')
       "prioridad": "Alta",                // Alta | Media | Baja | ""
       "moscow": "Must",                   // Must | Should | Could | Won't | ""
-      "estimacion": "M",                  // S | M | L | ""
+      "estimacion": "M",                  // XS | S | M | L | XL | "" (XS=0,5d S=1,5d M=3d L=5d XL=8d)
       "estado": "Pendiente",              // Pendiente | En revision | Cerrada | ""
       "bloqueada": false,
       "gap": "GAP-1",                     // "" si no aplica

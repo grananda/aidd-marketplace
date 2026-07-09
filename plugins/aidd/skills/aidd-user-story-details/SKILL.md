@@ -1,6 +1,6 @@
 ---
 name: aidd-user-story-details
-description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (S/M/L), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (XS/S/M/L/XL), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.2.0"
@@ -50,7 +50,7 @@ Criterio de salida del paso: existe `docs/detalle-historias-usuario.md` donde ca
 - Conserva los IDs de historia (`HU-XX`) del mapa. No los renumeres.
 - Criterios de aceptacion verificables: usa formato Dado/Cuando/Entonces o lista numerada comprobable. Marca con `[IMPRESCINDIBLE]` los criterios **esenciales** para dar la historia por terminada (los que no pueden faltar para aceptarla).
 - **Semantica del marcado (importante):** `[IMPRESCINDIBLE]` es un criterio de aceptacion que **no puede faltar**, pero **no es un impedimento** para hacer la historia; es un requisito de calidad/aceptacion. **No uses `[BLOQUEANTE]` en los criterios de aceptacion**: "bloqueante" es un impedimento real (una dependencia o duda sin resolver que frena el trabajo) y solo aplica a preguntas abiertas / pendientes, no a los criterios. Marcar criterios como "bloqueantes" genera una sensacion de alerta que no corresponde: un criterio imprescindible es normal y esperable en una historia.
-- Estimacion orientativa con la escala de la metodologia: **S** (<= 2 dias), **M** (3-5 dias), **L** (1-2 semanas).
+- Estimacion orientativa con la **escala de tallas** (1 d = jornada laboral de 8 h; puntos fijos, no rangos): **XS** = 0,5 d · **S** = 1,5 d · **M** = 3 d · **L** = 5 d · **XL** = 8 d. Elige la talla mas cercana al esfuerzo humano de la historia. Es la fuente de la doble estimacion (humano vs IA) que calcula `aidd project-plan`.
 - No sobrescribas un `docs/detalle-historias-usuario.md` existente sin avisar: leelo, propon los cambios y confirma. Conserva decisiones ya registradas.
 - **El detalle de cada historia se mantiene limpio y listo para el cliente.** No metas **ningun** rastro de cambios dentro de la historia: nada de marcas tipo `[MODIFICADO]`/`[NUEVO]`/`[CAMBIADO]`, texto tachado, "antes/ahora", comentarios de revision, notas de version ni diffs inline. La historia se lee como si fuera la version final y unica. Todo cambio (al crear o al actualizar el documento) se registra **solo** en la seccion **Change log** al final del documento, nunca en el cuerpo de la HU.
 - Los tres documentos de Fase 1 requieren aprobacion humana. Al terminar, recuerda el gate de aprobacion de la fase completa.
@@ -103,7 +103,7 @@ Para cada historia del mapa, una entrada:
 
 ### HU-XX — <titulo de la historia>
 - **Fase**: <F0 | F1 | ...>   **RF cubierto(s)**: <RF-XX>   **Prioridad**: Alta | Media | Baja
-- **Estimacion**: S (<= 2 dias) | M (3-5 dias) | L (1-2 semanas)
+- **Estimacion**: XS (0,5 d) | S (1,5 d) | M (3 d) | L (5 d) | XL (8 d)
 - **Descripcion**: enunciado completo y contexto.
 - **Criterios de aceptacion**:
   - Dado <contexto>, cuando <accion>, entonces <resultado esperado>.

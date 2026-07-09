@@ -1,6 +1,6 @@
 ---
 name: aidd-project-plan
-description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de S/M/L vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.1.0"
@@ -45,7 +45,7 @@ Criterio de salida del paso: existe `docs/planificacion-proyecto.md` con perfile
 ## Reglas generales
 
 - Trabaja desde la raiz del proyecto del usuario.
-- **Entradas / fuentes de verdad**: `docs/arquitectura-base.md` (stack, capas, despliegue, riesgos), `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` (alcance y estimaciones S/M/L). Apoyate en `docs/requisitos.md` (NFR, restricciones) y `docs/cliente-requisitos.md` (contexto de equipo y negocio).
+- **Entradas / fuentes de verdad**: `docs/arquitectura-base.md` (stack, capas, despliegue, riesgos), `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` (alcance y estimaciones XS/S/M/L/XL). Apoyate en `docs/requisitos.md` (NFR, restricciones) y `docs/cliente-requisitos.md` (contexto de equipo y negocio).
 - Si falta `docs/arquitectura-base.md`, avisa y propon completar antes la Fase 2 (`aidd architecture`); sin la arquitectura no hay base para dimensionar recursos.
 - Antes de preguntar, **lee primero** esos documentos. No preguntes lo que ya este resuelto ahi (p. ej. el stack ya esta decidido en la arquitectura).
 - **No inventes recursos sin soporte**: cada perfil, licencia o pieza de infraestructura debe derivarse de una decision de arquitectura, un NFR o una historia. Si lo recomiendas por buena practica, marcalo como recomendacion, no como necesidad derivada.
@@ -102,11 +102,11 @@ Dos estimaciones **en paralelo** por fase (y por historia si aporta), para poder
 
 | Fase / Historia | Talla | Esfuerzo humano clasico | Esfuerzo estimado con IA | Diferencia |
 |-----------------|-------|-------------------------|--------------------------|-----------|
-| F1 / HU-03 | M | 4 d-persona | 1,5 d-persona | -2,5 (-63%) |
-| ... | ... | ... | ... | ... |
+| F1 / HU-03 | M | 3 d-persona | 1 d-persona | -2 (-67%) |
+| F1 / HU-04 | L | 5 d-persona | 2 d-persona | -3 (-60%) |
 | **Total** | | **X d-persona** | **Y d-persona** | **-(X-Y) (-Z%)** |
 
-- **Esfuerzo humano clasico**: deriva de las tallas S/M/L de `docs/detalle-historias-usuario.md` con la escala de la metodologia (S <= 2 dias, M 3-5, L 1-2 semanas). Es volumen de trabajo, no calendario.
+- **Esfuerzo humano clasico**: deriva de las tallas de `docs/detalle-historias-usuario.md` con la **escala de tallas** (1 d = jornada de 8 h; puntos fijos): **XS = 0,5 d · S = 1,5 d · M = 3 d · L = 5 d · XL = 8 d**. Suma los puntos por fase/historia; es volumen de trabajo, no calendario. Al ser puntos fijos, el total es exacto (no hay rangos ni punto medio que elegir).
 - **Esfuerzo estimado con IA**: el mismo trabajo asumiendo la IA como recurso (p. ej. Claude Code). La IA genera el grueso; **lo no comprimible es dirigir, revisar y validar** (PR, criterios de aceptacion, e2e, accesibilidad, seguridad). Aplica una **compresion por naturaleza de la tarea**, no un % plano: boilerplate/CRUD/scaffolding comprime mucho; logica de dominio compleja, decisiones de diseno, integraciones delicadas o trabajo exploratorio comprimen poco. Es una **estimacion con supuestos**; marcalo como tal.
 
 ## 6. KPIs de esfuerzo (diferencia humano vs IA)

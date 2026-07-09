@@ -1,2 +1,6 @@
 .DS_Store
 node_modules/
+
+# Python bytecode (compilado, artefacto derivado; se regenera solo)
+__pycache__/
+*.pyc
