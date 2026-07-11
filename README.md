@@ -179,6 +179,31 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 }
 ```
 
+## MCP recomendados
+
+Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales**: sin ellos todo funciona igual y el paso correspondiente se omite con aviso (los skills nunca caen a llamadas REST manuales ni gestionan credenciales). Los skills localizan las tools **por función**, no por nombre, así que cualquier variante de MCP equivalente sirve.
+
+| MCP | Quién lo usa | Para qué |
+|-----|--------------|----------|
+| **Atlassian (Jira)** | `aidd-sprint-planning` · `aisdd-specs` | Volcado del sprint-plan (sprints + Stories), sub-tareas por change, transiciones In Progress/Done, re-faseado y reconstrucción del enlace |
+| **Figma** | `aidd-style-guide` | Extraer la identidad visual real de un diseño (paleta, tipografía, espaciado, tokens) en vez de inferirla |
+
+**Atlassian.** Opción recomendada: el MCP remoto oficial de Atlassian (autenticación OAuth en el navegador):
+
+```bash
+claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
+```
+
+También vale cualquier MCP de Atlassian de la comunidad (p. ej. `mcp-atlassian` con API token, útil en entornos headless/CI). Requisitos en Jira: un proyecto con **board Scrum** (los sprints viven en el board) y permisos para crear issues y sprints. Nota: los nombres de issue types varían por tipo de proyecto (*team-managed* usa `Subtask`; *company-managed*, `Sub-task`) — los skills los descubren y verifican solos antes de crear nada.
+
+**Figma.** El skill propone `figma-developer-mcp` (requiere un token personal de Figma):
+
+```bash
+claude mcp add figma -- npx -y figma-developer-mcp --figma-api-key=<TU_TOKEN> --stdio
+```
+
+Si no hay MCP, `aidd style-guide` ofrece alternativas: API REST de Figma o un export de design tokens a JSON.
+
 ## Metodología
 
 La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
