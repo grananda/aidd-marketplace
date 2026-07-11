@@ -6,7 +6,7 @@
 > **Terminología (importante).** Tres conceptos que conviven y NO son lo mismo:
 > - **SDD** (*Spec-Driven Development*) — la **metodología**: proceso, roles y fases. El "cómo se trabaja" (este documento).
 > - **AIDD** (*AI Driven Development*) — el **skill set** que automatiza la **planificación, el diseño y la entrega** (Fases 0-2 y 3.5). Comandos `aidd *`. Cada comando aplica el prompt del paso; ejecutarlo equivale a lanzar ese prompt a mano.
-> - **aisdd-specs** — el **skill set** de **ejecución** sobre OpenSpec (Fases 3 y 4+). Comandos `native-ai *`.
+> - **aisdd-specs** — el **skill set** de **ejecución** sobre OpenSpec (Fases 3 y 4+). Comandos `aisdd *` (alias legacy `native-ai *`).
 >
 > **Novedad v4.** (1) Las Fases 0-2, antes descritas como prompts manuales del AI Architect, ahora se ejecutan con los comandos `aidd` (mismo proceso, empaquetado en skills). (2) Se añade un quinto rol, **AI Delivery Manager**, y la **Fase 3.5**, que traduce el roadmap en un **plan de recursos** (`aidd project-plan` → `docs/planificacion-proyecto.md`) y un **plan de sprints** (`aidd sprint-planning` → `docs/sprint-plan.md`), consumible por un equipo Scrum. Ver Fase 3.5 y registro #008.
 
@@ -38,7 +38,7 @@ En esta versión, toda la operación sobre especificaciones se canaliza a travé
 | **Validación antes de implementar** | Siempre se valida con cliente (prototipo) antes de construir la arquitectura real |
 | **Iteración y refinamiento continuo** | Cada ciclo optimiza progresivamente especificaciones, código y arquitectura |
 | **Idempotencia documental** | Cualquier IA que arranque con los mismos documentos debe llegar a conclusiones compatibles |
-| **Trazabilidad auditable** | Cada comando `native-ai` registra qué se ejecutó, sobre qué input, con qué modelo y qué decidió el humano |
+| **Trazabilidad auditable** | Cada comando `aisdd` registra qué se ejecutó, sobre qué input, con qué modelo y qué decidió el humano |
 
 ---
 
@@ -111,7 +111,7 @@ VALIDATION PHASE ─────────────────────
 
 ## 3. Roles y responsabilidades
 
-La metodología define cinco roles con responsabilidades diferenciadas. Cada uno opera con contexto acotado a su fase. La columna de comandos indica qué comandos ejecuta cada rol (`native-ai` para AI Lead/Developer/Outcome Validator; `aidd` para el AI Delivery Manager de la capa de planificación de entrega).
+La metodología define cinco roles con responsabilidades diferenciadas. Cada uno opera con contexto acotado a su fase. La columna de comandos indica qué comandos ejecuta cada rol (`aisdd` — alias legacy `native-ai` — para AI Lead/Developer/Outcome Validator; `aidd` para el AI Delivery Manager de la capa de planificación de entrega).
 
 ### AI Architect
 
@@ -211,7 +211,8 @@ docs/
 ├── roadmap.md                       ← aisdd roadmap (AI Lead) / Fase 3
 ├── prompts-roadmap-native-ai.md     ← aisdd roadmap (AI Lead) / Fase 3
 ├── planificacion-proyecto.md        ← AI Delivery Manager / Fase 3.5 (aidd project-plan)
-└── sprint-plan.md                   ← AI Delivery Manager / Fase 3.5 (aidd sprint-planning)
+├── sprint-plan.md                   ← AI Delivery Manager / Fase 3.5 (aidd sprint-planning)
+└── jira-sync.md                     ← integración Jira (opcional) — mapeo HU ↔ change ↔ issue
 
 AGENTS.md                            ← aisdd init — registro de comandos del skill
 
@@ -426,6 +427,8 @@ El comando genera, sin tocar todavía ningún change de OpenSpec:
 
 > `aisdd roadmap` **no** ejecuta `openspec new change`, **no** archiva cambios y **no** edita otros artefactos de `openspec/` aparte de `config.yaml`.
 
+**Alineación con el sprint-plan.** Si existe `docs/sprint-plan.md` (Paso 3.5.2, que puede haberse ejecutado antes en modo degradado), `aisdd roadmap` lo lee y **fasea alineado a los sprints**: respeta su orden, corta las fases en fronteras de sprint, mantiene los changes de una HU dentro de la ventana de su sprint y no fasea HU no validadas; anota el sprint, las HU y el esfuerzo (humano e IA) en cada fase y documenta las discrepancias en una sección de **conflictos de alineación roadmap↔sprint**. Sin `sprint-plan.md`, fasea solo por presupuesto de contexto.
+
 **Criterio de salida de Fase 3 (parcial):** Roadmap aprobado por el equipo técnico. Cada fase es abrible como uno o pocos changes con contexto acotado. `config.yaml` actualizado.
 
 #### Paso 3.4 — Apertura del change `foundation` y del primer change funcional
@@ -487,7 +490,7 @@ Puede ejecutarse en cuanto la Fase 2 está aprobada (no requiere el roadmap). El
 
 #### Paso 3.5.2 — `aidd sprint-planning` (plan de sprints)
 
-Requiere `docs/roadmap.md` (Paso 3.3) y `docs/planificacion-proyecto.md`. El AI Delivery Manager distribuye los changes/fases del roadmap en sprints, respetando dependencias y prerequisitos (F0 → F1 → F2) y la capacidad del equipo, y produce `docs/sprint-plan.md` con objetivo por sprint, unidades de trabajo completas (sin partir changes), asignación de perfiles, hitos y riesgos de planificación.
+El AI Delivery Manager distribuye el trabajo en sprints, respetando dependencias y prerequisitos (F0 → F1 → F2) y la capacidad del equipo, y produce `docs/sprint-plan.md` con objetivo por sprint, unidades de trabajo completas (sin partir changes), asignación de perfiles, hitos y riesgos de planificación. Necesita `docs/planificacion-proyecto.md`; con `docs/roadmap.md` (Paso 3.3) planifica sobre los changes/fases del roadmap, pero **puede ejecutarse antes del roadmap en modo degradado** (planificando sobre las historias del mapa) y **re-ejecutarse después** para re-fasear con el roadmap ya hecho — sin recrear Stories en Jira: el re-faseado **mueve** HU entre sprints y gestiona sprints, jamás borra/recrea issues (las claves son permanentes).
 
 **Criterio de salida de Fase 3.5:** Plan de recursos y plan de sprints aprobados por el equipo. El trabajo del roadmap queda repartido en iteraciones ejecutables por un equipo humano, con dependencias respetadas. La ejecución (Fase 4) sigue el orden de los sprints: el AI Lead abre cada change con `aisdd open change` según ese orden.
 
@@ -758,7 +761,7 @@ La IA no tiene memoria entre sesiones. Para garantizar coherencia:
 3. **Los documentos son la memoria** — si algo no está documentado, no existe
 4. **El AGENTS.md** es el ancla de contexto persistente en cada sesión: aporta el contexto del proyecto y publica los comandos del skill
 5. **Respeta el presupuesto de contexto** del roadmap — no arrastres documentos de fases futuras a la fase actual
-6. **Ante cualquier duda**, el pre-flight de `native-ai` la captura y la persiste en `decisions.md`; el AI Developer no improvisa ni escala directamente al Lead
+6. **Ante cualquier duda**, el pre-flight de `aisdd` la captura y la persiste en `decisions.md`; el AI Developer no improvisa ni escala directamente al Lead
 
 ---
 
@@ -772,12 +775,17 @@ proyecto/
 │   ├── requisitos.md                  # requisitos formales (Fase 1)
 │   ├── mapa-historias-usuario.md      # mapa de historias (Fase 1)
 │   ├── detalle-historias-usuario.md   # criterios de aceptación (Fase 1)
+│   ├── plan-revision-hu.md            # revisión de HU, opcional (Paso 1.4 · aidd hu-review-plan)
+│   ├── xlsx/plan-revision-hu.xlsx     # Excel de revisión de HU (Paso 1.4)
 │   ├── arquitectura-base-prototipo.md # arquitectura demo (Fase 2)
 │   ├── guia-estilos.md                # design system (Fase 2)
 │   ├── propuesta-arquitectura-base.md # propuesta técnica (Fase 2)
 │   ├── arquitectura-base.md           # arquitectura definitiva (Fase 2)
 │   ├── roadmap.md                     # fases del desarrollo (Fase 3 · aisdd roadmap)
-│   └── prompts-roadmap-native-ai.md   # prompts por fase (Fase 3 · aisdd roadmap)
+│   ├── prompts-roadmap-native-ai.md   # prompts por fase (Fase 3 · aisdd roadmap)
+│   ├── planificacion-proyecto.md      # plan de recursos (Fase 3.5 · aidd project-plan)
+│   ├── sprint-plan.md                 # plan de sprints (Fase 3.5 · aidd sprint-planning)
+│   └── jira-sync.md                   # mapeo HU ↔ change ↔ issue Jira (opcional)
 ├── frontend/
 ├── backend/
 └── openspec/                          # generado por OpenSpec
@@ -797,7 +805,7 @@ proyecto/
 
 ## 8. Auditoría y trazabilidad
 
-Cada comando `native-ai` escribe una entrada estructurada en `openspec/audit/YYYY-MM.jsonl` (un fichero por mes, append-only, JSON Lines). El objetivo es trazar **quién** ejecutó **qué** comando, sobre **qué input**, con **qué prompt y modelo**, y **qué decisión humana** se produjo.
+Cada comando `aisdd` escribe una entrada estructurada en `openspec/audit/YYYY-MM.jsonl` (un fichero por mes, append-only, JSON Lines). El objetivo es trazar **quién** ejecutó **qué** comando, sobre **qué input**, con **qué prompt y modelo**, y **qué decisión humana** se produjo.
 
 **Qué se registra (por entrada):**
 - `id`, `timestamp` (UTC ISO 8601), `command`, `change_id`
@@ -876,7 +884,7 @@ Cada comando `native-ai` escribe una entrada estructurada en `openspec/audit/YYY
 | El AI Lead no desdobla Front/Back | El proyecto tiene complejidad en ambas capas | Separar en Front AI Lead + Back AI Lead con changes independientes |
 | Un change arrastra demasiado contexto y se atasca | Fase demasiado grande para el presupuesto de contexto | Re-fasear con `aisdd roadmap` aumentando el número de fases / partiendo la fase en varios changes |
 | El pre-flight pregunta lo que ya está documentado | No leyó `docs/`, specs previas o `decisions.md` | Asegurar que el contexto del rol está accesible; las dudas resueltas no se repreguntan |
-| Falta la entrada de auditoría de un change | El comando falló al escribir o se ejecutó OpenSpec a mano | Revisar `openspec/audit/`; usar siempre los comandos `native-ai`, no OpenSpec directo |
+| Falta la entrada de auditoría de un change | El comando falló al escribir o se ejecutó OpenSpec a mano | Revisar `openspec/audit/`; usar siempre los comandos `aisdd`, no OpenSpec directo |
 
 ---
 

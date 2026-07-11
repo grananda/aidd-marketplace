@@ -2,6 +2,8 @@
 
 Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar la generacion de diagramas y prototipos con los skills `booster-uml` y `booster-ux`.
 
+> **Alias legacy**: todo comando `aisdd <cmd>` tiene un alias equivalente `native-ai <cmd>` (herencia del antiguo plugin `sdd`). Los proyectos ya iniciados con `native-ai ...` siguen funcionando sin cambios; el prefijo primario y recomendado es `aisdd`.
+
 ## Resumen comandos
 
 1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
@@ -32,7 +34,7 @@ npm install -g @fission-ai/openspec@latest
   - `%USERPROFILE%\.agents\skills\booster-uml`
   - `%USERPROFILE%\.codex\skills\booster-uml`
 
-Si falta alguno, Codex debe avisar e indicar donde copiarlo o instalarlo.
+Si falta alguno, el agente debe avisar e indicar donde copiarlo o instalarlo.
 
 ## Comandos disponibles
 
@@ -45,14 +47,15 @@ Inicializa Native AI Specs en el proyecto:
 3. Ejecuta `openspec init`.
 4. Comprueba la disponibilidad de `booster-ux` y `booster-uml`.
 5. Pregunta si el proyecto es un desarrollo nuevo o un desarrollo ya existente.
-6. Si es existente, solicita las rutas de los markdowns con documentacion funcional, tecnica y de arquitectura, y actualiza `config.yaml` de OpenSpec con ese contexto inicial.
-7. Registra los comandos del skill en el `AGENTS.md` del proyecto (lo crea si no existe) dentro de un bloque delimitado por marcadores `<!-- BEGIN/END aisdd-specs commands -->`, que se reemplaza de forma idempotente en cada ejecucion sin tocar el resto del fichero.
+6. Si es existente, solicita las rutas de los markdowns con documentacion funcional, tecnica y de arquitectura, y actualiza `config.yaml` de OpenSpec con ese contexto inicial (`project_context.design_docs`).
+7. Detecta ademas la **capa de entrega de AIDD** si existe (`docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/plan-revision-hu.md`, `docs/jira-sync.md`) y la registra en `config.yaml` (`project_context.delivery_docs`), avisando de forma no bloqueante si falta alguna pieza esperable. Comprueba tambien la disponibilidad de `booster-docs`.
+8. Registra los comandos del skill en el `AGENTS.md` del proyecto (lo crea si no existe) dentro de un bloque delimitado por marcadores `<!-- BEGIN/END aisdd-specs commands -->`, que se reemplaza de forma idempotente en cada ejecucion sin tocar el resto del fichero.
 
 ### `aisdd roadmap`
 
 Fasea el desarrollo a partir de los requisitos y la arquitectura del proyecto antes de crear cambios OpenSpec.
 
-Si el usuario no ha pasado requisitos o arquitectura, o Codex no tiene claro donde estan, debe solicitarlos antes de continuar.
+Si el usuario no ha pasado requisitos o arquitectura, o el agente no tiene claro donde estan, debe solicitarlos antes de continuar.
 
 La granularidad del roadmap debe adaptarse al presupuesto de contexto del modelo usado:
 
@@ -66,6 +69,8 @@ El comando genera:
 
 - `docs/roadmap.md`: division del desarrollo por fases, alcance de cada fase, dependencias, entregables OpenSpec esperados y criterios de cierre.
 - `docs/prompts-roadmap-native-ai.md`: prompts para ejecutar el roadmap hasta el final usando los comandos del skill `aisdd-specs`.
+
+**Alineacion con el sprint-plan**: si existe `docs/sprint-plan.md` (generado por `aidd sprint-planning`), el roadmap **se pliega a los sprints**: respeta su orden, corta las fases en fronteras de sprint, mantiene los changes de una HU dentro de la ventana de su sprint y no fasea HU no validadas; anota en cada fase el sprint, las HU cubiertas y el esfuerzo (humano e IA), y documenta las discrepancias en una seccion de conflictos de alineacion roadmap↔sprint. Sin `sprint-plan.md`, fasea solo por presupuesto de contexto.
 
 Tras generar esos documentos, el comando actualiza `openspec/config.yaml` con una seccion `roadmap` (presupuesto de contexto, complejidad, rutas de los documentos y la lista ordenada de fases con su objetivo, riesgo de contexto y slug sugerido), para que los comandos posteriores dispongan de un indice navegable del roadmap.
 
@@ -83,16 +88,16 @@ Los prompts deben incluir el contexto minimo necesario para cada fase y evitar a
 
 Crea un cambio OpenSpec en dos fases:
 
-1. **Pre-flight de dudas**: antes de generar los specs, Codex revisa el contexto disponible (objetivo del usuario, `docs/`, `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`, roadmap si existe y cambios OpenSpec previos) y plantea al usuario las dudas reales que afecten al alcance y al diseño del cambio, con un presupuesto máximo de `7` preguntas. Las respuestas se persisten en `openspec/changes/<change>/decisions.md` para alimentar `design.md`, `proposal.md` y los `spec.md`.
+1. **Pre-flight de dudas**: antes de generar los specs, el agente revisa el contexto disponible (objetivo del usuario, `docs/`, `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`, roadmap si existe y cambios OpenSpec previos) y plantea al usuario las dudas reales que afecten al alcance y al diseño del cambio, con un presupuesto máximo de `7` preguntas. Las respuestas se persisten en `openspec/changes/<change>/decisions.md` para alimentar `design.md`, `proposal.md` y los `spec.md`.
 2. **Creación del cambio**:
 
    ```bash
    openspec new change <what-you-want-to-build>
    ```
 
-El argumento es opcional. Si no se indica, Codex debe crear un identificador razonable a partir del objetivo del usuario.
+El argumento es opcional. Si no se indica, el agente debe crear un identificador razonable a partir del objetivo del usuario.
 
-Tras crear el cambio, Codex debe pasar `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml` para generar el HTML con diagramas.
+Tras crear el cambio, el agente debe pasar `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml` para generar el HTML con diagramas.
 
 Comportamientos clave del pre-flight:
 
@@ -130,7 +135,7 @@ Archiva un cambio:
 openspec archive <what-you-want-to-build>
 ```
 
-El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, Codex debe preguntar cual desea archivar.
+El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea archivar.
 
 ### `aisdd prototype-ux <what-you-want-to-build>`
 
@@ -210,7 +215,7 @@ El JSONL es plano y sin transformaciones, listo para ingestar en Splunk, ELK o B
 
 ## Resultado esperado
 
-Codex debe informar siempre de:
+El agente debe informar siempre de:
 
 - comando Native AI solicitado
 - comando OpenSpec ejecutado

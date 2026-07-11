@@ -136,7 +136,7 @@ Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (c
 
 ```text
 aidd project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
-aidd sprint-planning   # docs/sprint-plan.md             (necesita docs/roadmap.md)
+aidd sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)
 ```
 
 Útil cuando un equipo Scrum va a ejecutar el desarrollo. No sustituye al roadmap: reparte sus changes en sprints respetando dependencias y **sin partir ningún change**.
@@ -224,7 +224,7 @@ openspec/
 | Un change se atasca arrastrando demasiado contexto | Fase demasiado grande | Re-fasea con `aisdd roadmap` (más fases, más pequeñas) |
 | El pre-flight pregunta lo obvio | No leyó `docs/` / `AGENTS.md` / specs previas | Asegura que el contexto del rol está accesible |
 | "La IA recuerda" decisiones no escritas | Se usa el historial como memoria | Todo va a `decisions.md` o `docs/`; si no está escrito, no existe |
-| No hay entrada de auditoría | Se ejecutó OpenSpec a mano | Usa siempre los comandos `native-ai`, no OpenSpec directo |
+| No hay entrada de auditoría | Se ejecutó OpenSpec a mano | Usa siempre los comandos `aisdd`, no OpenSpec directo |
 
 ---
 

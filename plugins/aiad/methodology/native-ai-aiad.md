@@ -116,7 +116,7 @@ The overlap between near-identical skills is collapsed into a single skill with 
 | | `aiad-rubber-duck` | — | Reason out loud; the AI asks questions until you find your own answer |
 | **Build** (the AI writes tests only) | `aiad-tdd` | — | Writes failing tests from the acceptance criteria; you implement to green |
 | | `aiad-test` | `unit` · `e2e` | Fills missing unit or end-to-end tests over code you already wrote |
-| **Improve** (feedback on your code; proposes, you apply) | `aiad-review` | `correctness` · `quality` · `perf` | Reviews your code teaching the why, or proposes refactors/perf with trade-offs |
+| **Improve** (feedback on your code; proposes, you apply) | `aiad-review` | `correctness` · `quality` · `perf` · `<base-branch>` | Reviews your code teaching the why, or proposes refactors/perf with trade-offs; `aiad review <base-branch>` (e.g. `develop`) runs a merge-readiness review of the whole branch diff. Emits a self-contained HTML report with numbered code fragments and proposed before/after changes |
 | **Flow & control** | `aiad-pair` | — | Sustained driver/navigator session; orchestrates the other skills |
 | | `aiad-bridge` | `to-sdd` · `to-aiad` | Wraps/reclaims the US as an OpenSpec change to switch AIAD <-> SDD |
 | | `aiad-unblock` | — | Hub / triage when you are stuck and do not even know what to ask for |
@@ -182,7 +182,7 @@ This respects *free will over guardrails*: it is a measurement, not a gate.
 
 ### The review subagent (context isolation)
 
-`aiad-review` ships a companion subagent, `aiad-reviewer` (`agents/aiad-reviewer.md`), with **read-only tools** (Read, Grep, Glob, Bash — no edit tools, so it structurally cannot apply fixes). The skill delegates the heavy reading (diff, files, architecture/style docs) to it so the human's working context stays clean, and relays back only the findings report. The same isolation pattern can later be applied to `aiad-test` and the generation burst of `aiad-tdd`; it must **not** be applied to `aiad-pair` (continuous collaboration) or the conversational skills.
+`aiad-review` ships a companion subagent, `aiad-reviewer` (`agents/aiad-reviewer.md`), with **read-only tools** (Read, Grep, Glob, Bash — no edit tools, so it structurally cannot apply fixes). The skill delegates the heavy reading (diff, files, architecture/style docs) to it so the human's working context stays clean, and relays back only the findings report, which the skill renders as a **self-contained HTML report** (numbered code fragments, impact and why per finding, proposed before/after changes, test gaps) alongside the terminal summary. The same isolation pattern can later be applied to `aiad-test` and the generation burst of `aiad-tdd`; it must **not** be applied to `aiad-pair` (continuous collaboration) or the conversational skills.
 
 ### What stays a plain skill, and why hooks are otherwise wrong
 

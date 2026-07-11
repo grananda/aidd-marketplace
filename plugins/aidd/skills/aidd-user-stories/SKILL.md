@@ -101,7 +101,7 @@ F0 foundation es la fase de **habilitadores** (walking skeleton): el trabajo tec
 - Las pantallas que resuelven la necesidad del usuario.
 - Cualquier historia que un usuario final "usaria" para lograr su objetivo.
 
-**Aclaracion de nombres (importante):** la fase **F0 del mapa de HU NO es el change `foundation`** del roadmap. El change `foundation` (Fase 3, `native-ai`) es **scaffolding puro** (arbol de carpetas, configuracion, archivos iniciales) derivado de `docs/arquitectura-base.md`, sin funcionalidad, y es la primera unidad de **ejecucion**. La fase F0 del mapa es de **producto**: agrupa las **historias habilitadoras**. Estan alineadas (ambas "preparan la base") pero **no son un mapeo 1:1**: el roadmap re-fasea por presupuesto de contexto y el change `foundation` sale de la arquitectura, no de esta fase.
+**Aclaracion de nombres (importante):** la fase **F0 del mapa de HU NO es el change `foundation`** del roadmap. El change `foundation` (Fase 3, `aisdd`) es **scaffolding puro** (arbol de carpetas, configuracion, archivos iniciales) derivado de `docs/arquitectura-base.md`, sin funcionalidad, y es la primera unidad de **ejecucion**. La fase F0 del mapa es de **producto**: agrupa las **historias habilitadoras**. Estan alineadas (ambas "preparan la base") pero **no son un mapeo 1:1**: el roadmap re-fasea por presupuesto de contexto y el change `foundation` sale de la arquitectura, no de esta fase.
 
 Si detectas historias de **nucleo funcional colocadas en F0, reubicalas en F1+** y registra el motivo en la seccion 7. Ante la duda entre F0 y F1, aplica la prueba del valor: si aporta valor al usuario, es F1.
 

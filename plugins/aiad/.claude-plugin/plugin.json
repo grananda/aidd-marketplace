@@ -1,7 +1,7 @@
 {
   "name": "aiad",
   "displayName": "AIAD — AI-Augmented Development (ia-in-the-loop)",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "On-demand augmentation skills for human-first development: the human is the engine that writes the code and the AI augments it when invoked (ia-in-the-loop). Covers design advice and option exploration, rubber duck, didactic code review and refactor/perf (comprehensive per-layer checklist for backend/API/frontend, merge-readiness mode against a base branch, evidence-backed findings ordered by criticality, per-finding test gaps, and a standalone HTML report with the referenced code lines and recommended before/after changes), test generation (TDD, unit, e2e), pairing, unblocking when you are stuck, an authorship journal, and the user-story <-> OpenSpec change bridge to switch between AIAD and SDD. Complements AIDD/SDD without modifying them.",
   "author": {
     "name": "Julio Fernández"
