@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -322,7 +322,7 @@ Antes de generar los specs del cambio, revisa el contexto disponible y resuelve 
    - convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`).
    - elecciones triviales y facilmente reversibles (nombres internos, formato de log).
    - puntos ya cubiertos por specs OpenSpec previas o por cambios OpenSpec relacionados ya cerrados.
-4. Presupuesto de preguntas: maximo `7` dudas por cambio. Si detectas mas, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
+4. Presupuesto de preguntas: maximo `7` dudas por cambio — **es un techo, no una cuota**. Pregunta solo las dudas **reales**: si hay una, pregunta una; si no hay ninguna, no preguntes nada y continua (deja constancia de que el pre-flight no detecto dudas). **Nunca rellenes el presupuesto** con preguntas sobre asuntos ya decididos (faseado, docs, specs previas, decisiones del usuario) ni confirmaciones triviales: entorpecen sin aportar. Si detectas mas de 7, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
 5. Formato de las preguntas:
    - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), usalo con 2-4 opciones y marca una como `(Recomendada)` cuando tengas criterio para sugerirla.
    - En caso contrario, presenta las dudas como lista numerada en texto plano, con opciones etiquetadas `a)`, `b)`, `c)` y una recomendacion explicita.
@@ -393,7 +393,7 @@ Antes de aplicar las instrucciones de OpenSpec, revisa la documentacion del camb
    - convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`)
    - elecciones triviales y facilmente reversibles (nombres internos, formato de log)
    - puntos ya cubiertos por entradas previas de `decisions.md`
-4. Presupuesto de preguntas: maximo `7` dudas por cambio. Si detectas mas, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
+4. Presupuesto de preguntas: maximo `7` dudas por cambio — **es un techo, no una cuota**. Pregunta solo las dudas **reales**: si hay una, pregunta una; si no hay ninguna, no preguntes nada y continua (deja constancia de que el pre-flight no detecto dudas). **Nunca rellenes el presupuesto** con preguntas sobre asuntos ya decididos (faseado, docs, specs previas, decisiones del usuario) ni confirmaciones triviales: entorpecen sin aportar. Si detectas mas de 7, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
 5. Formato de las preguntas:
    - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), usalo con 2-4 opciones y marca una como `(Recomendada)` cuando tengas criterio para sugerirla.
    - En caso contrario, presenta las dudas como lista numerada en texto plano, con opciones etiquetadas `a)`, `b)`, `c)` y una recomendacion explicita.
