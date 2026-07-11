@@ -1,9 +1,9 @@
 ---
 name: aisdd-specs
-description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian): `open change` crea la sub-tarea del change bajo la Story de su HU, `implement change` mueve sus tickets a In Progress, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian): `open change` crea la sub-tarea del change bajo la Story de su HU, `implement change` mueve sus tickets a In Progress, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -115,7 +115,7 @@ Inicializa AISDD (OpenSpec) en el proyecto.
        - docs/jira-sync.md
    ```
    Si ya existe un `project_context` plano (formato antiguo), conserva su contenido y reorganizalo en estas dos sub-listas sin perder rutas.
-9. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; o (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints. Son avisos, no errores: continua igualmente.
+9. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido"). Son avisos, no errores: continua igualmente.
 10. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 ### Registro de comandos en `AGENTS.md`
@@ -473,6 +473,8 @@ Este bloque solo actua si se cumplen **las dos** condiciones:
 
 Si falta cualquiera de las dos, **omite la sincronizacion sin error**: anota una linea en el resumen del comando ("Jira no configurado o MCP no disponible: sincronizacion omitida") y continua. Nunca caigas a llamadas REST manuales ni gestiones credenciales desde el skill.
 
+**Excepcion — enlace perdido (no omitas en silencio).** Si falta la configuracion o el registro pero hay **evidencia de un volcado previo** — `docs/sprint-plan.md` menciona un volcado o claves de Story ya creadas, existe `docs/jira-sync.md` sin seccion `jira:`, o el usuario afirma que las Stories ya existen en el board — **no** trates el caso como "sin configurar": avisa explicitamente de que el enlace HU<->Jira se perdio (las sub-tareas de los changes no se crearan y las Stories no se moveran) y ofrece **reconstruirlo** (ver "Reconstruccion del enlace perdido"). El humano decide; si declina, entonces si, omite con el aviso estandar.
+
 ### Modelo de datos en Jira (acordado)
 
 - Cada **HU** es una **Story** (la crea `aidd sprint-planning`).
@@ -504,6 +506,17 @@ Fuente de verdad del mapeo HU <-> change <-> issue de Jira. Lo inicializa `aidd 
 | HU-03 | ABC-12 | back-auth | ABC-45 | in_progress |
 
 Regla de oro: **lee el registro antes de crear o transicionar nada y no dupliques**. Re-ejecutar un comando no debe crear sub-tareas repetidas ni revertir estados de forma incoherente.
+
+### Reconstruccion del enlace perdido
+
+Si las Stories ya existen en Jira pero falta `docs/jira-sync.md` y/o la seccion `jira:` (p. ej. un volcado antiguo que no persistio el enlace), el registro se puede **reconstruir sin tocar Jira** — las claves de issue son permanentes, asi que la operacion es de solo lectura contra Jira y de escritura solo local:
+
+1. **Confirma con el humano** antes de empezar (que proyecto/board y que volcado se esta recuperando).
+2. **Completa la configuracion**: pregunta los valores que falten de la seccion `jira:` (site, project_key, board_id...) y persistela en `openspec/config.yaml` (o en la cabecera de `docs/jira-sync.md` si no existe `openspec/`).
+3. **Lee las Stories desde Jira** via MCP (issues del proyecto/board con el `story_issue_type` configurado) y las sub-tareas que ya cuelguen de ellas.
+4. **Mapea HU <-> Story** cruzando el id/titulo de la HU (de `docs/mapa-historias-usuario.md` / `docs/sprint-plan.md`) con el summary de cada Story. **No adivines**: si un mapeo no es deducible con confianza, presenta la tabla propuesta y pide confirmacion antes de escribirla; nunca te fies solo de rangos de claves.
+5. **Escribe `docs/jira-sync.md`** con una fila por HU (clave de Story real, changes previstos si el roadmap existe, sub-tareas encontradas y su estado actual leido de Jira).
+6. **Nunca crees ni recrees issues durante la reconstruccion** (las claves quemadas no vuelven); registra la operacion en la auditoria (`openspec/audit/`).
 
 ### Resolucion del usuario asignado
 

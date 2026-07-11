@@ -48,7 +48,7 @@ Inicializa Native AI Specs en el proyecto:
 4. Comprueba la disponibilidad de `booster-ux` y `booster-uml`.
 5. Pregunta si el proyecto es un desarrollo nuevo o un desarrollo ya existente.
 6. Si es existente, solicita las rutas de los markdowns con documentacion funcional, tecnica y de arquitectura, y actualiza `config.yaml` de OpenSpec con ese contexto inicial (`project_context.design_docs`).
-7. Detecta ademas la **capa de entrega de AIDD** si existe (`docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/plan-revision-hu.md`, `docs/jira-sync.md`) y la registra en `config.yaml` (`project_context.delivery_docs`), avisando de forma no bloqueante si falta alguna pieza esperable. Comprueba tambien la disponibilidad de `booster-docs`.
+7. Detecta ademas la **capa de entrega de AIDD** si existe (`docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/plan-revision-hu.md`, `docs/jira-sync.md`) y la registra en `config.yaml` (`project_context.delivery_docs`), avisando de forma no bloqueante si falta alguna pieza esperable. En particular, si el `sprint-plan.md` refleja un volcado a Jira pero falta `docs/jira-sync.md` o la seccion `jira:` (enlace perdido), avisa y ofrece **reconstruir el registro** leyendo las Stories existentes desde Jira (solo lectura contra Jira; jamas recrea issues). Comprueba tambien la disponibilidad de `booster-docs`.
 8. Registra los comandos del skill en el `AGENTS.md` del proyecto (lo crea si no existe) dentro de un bloque delimitado por marcadores `<!-- BEGIN/END aisdd-specs commands -->`, que se reemplaza de forma idempotente en cada ejecucion sin tocar el resto del fichero.
 
 ### `aisdd roadmap`
