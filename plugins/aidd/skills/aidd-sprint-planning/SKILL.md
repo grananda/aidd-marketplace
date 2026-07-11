@@ -3,7 +3,7 @@ name: aidd-sprint-planning
 description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.3"
+  version: "1.4.4"
 ---
 
 # aidd-sprint-planning (AIDD · Fase 3.5 · paso 3.5.2 · sprints)
@@ -161,7 +161,8 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 **Prerrequisito — MCP de Atlassian.** Este volcado usa el MCP de Atlassian (Jira). No uses la API REST a mano ni gestiones credenciales desde el skill.
 
 1. Comprueba que hay tools del MCP de Atlassian disponibles (descubrelas con la busqueda de herramientas; los nombres pueden variar entre versiones, p. ej. buscar/crear issue, metadata de tipos de issue del proyecto, proyectos visibles, recursos accesibles). No asumas nombres concretos: localiza las tools por su funcion.
-2. Si **no** hay MCP de Atlassian conectado, **no inventes el volcado**: informa de que falta el MCP, deja `docs/sprint-plan.md` como entregable y explica brevemente que hay que conectar el MCP de Atlassian (Jira) para habilitar este paso. No caigas a llamadas REST manuales.
+2. **Verifica que el MCP expone las operaciones Agile de sprints** (crear sprint, anadir issues a un sprint, listar sprints del board). Ojo: el **MCP remoto oficial de Atlassian no las expone** — cubre issues y transiciones pero no sprints; hace falta un MCP con la API Agile (p. ej. el `mcp-atlassian` de la comunidad). Si el MCP conectado **no** tiene tools de sprint, avisa de la limitacion y ofrece dos salidas: (a) volcado **degradado** creando solo las Stories (sin asignarlas a sprint, para asignarlas a mano o tras instalar el MCP adecuado), o (b) detener el volcado hasta conectar un MCP con soporte Agile. Nunca simules la asignacion a sprint.
+3. Si **no** hay MCP de Atlassian conectado, **no inventes el volcado**: informa de que falta el MCP, deja `docs/sprint-plan.md` como entregable y explica brevemente que hay que conectar el MCP de Atlassian (Jira) para habilitar este paso. No caigas a llamadas REST manuales.
 
 **Datos que necesitas del usuario (preguntar antes de escribir, agrupado).**
 

@@ -188,13 +188,12 @@ Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales*
 | **Atlassian (Jira)** | `aidd-sprint-planning` · `aisdd-specs` | Volcado del sprint-plan (sprints + Stories), sub-tareas por change, transiciones In Progress/Done, re-faseado y reconstrucción del enlace |
 | **Figma** | `aidd-style-guide` | Extraer la identidad visual real de un diseño (paleta, tipografía, espaciado, tokens) en vez de inferirla |
 
-**Atlassian.** Opción recomendada: el MCP remoto oficial de Atlassian (autenticación OAuth en el navegador):
+**Atlassian.** ⚠️ **El MCP remoto oficial de Atlassian NO expone las operaciones Agile** (crear sprints, añadir/mover issues de sprint): cubre issues y transiciones, pero **no basta para el volcado de `aidd sprint-planning`** — lo comprobamos en un proyecto real y hubo que instalar otro. Recomendación según lo que necesites:
 
-```bash
-claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
-```
+- **Flujo completo (volcado de sprints incluido)** — un MCP de la comunidad que exponga la API Agile de Jira, p. ej. [`mcp-atlassian`](https://github.com/sooperset/mcp-atlassian) con API token (tools `jira_create_sprint`, `jira_add_issues_to_sprint`, `jira_get_sprints_from_board`, …). Es el que usamos.
+- **Solo ciclo de changes de aisdd** (sub-tareas, transiciones — sin crear sprints): también vale el MCP remoto oficial (OAuth): `claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse`.
 
-También vale cualquier MCP de Atlassian de la comunidad (p. ej. `mcp-atlassian` con API token, útil en entornos headless/CI). Requisitos en Jira: un proyecto con **board Scrum** (los sprints viven en el board) y permisos para crear issues y sprints. Nota: los nombres de issue types varían por tipo de proyecto (*team-managed* usa `Subtask`; *company-managed*, `Sub-task`) — los skills los descubren y verifican solos antes de crear nada.
+Requisitos en Jira: un proyecto con **board Scrum** (los sprints viven en el board) y permisos para crear issues y sprints. Nota: los nombres de issue types varían por tipo de proyecto (*team-managed* usa `Subtask`; *company-managed*, `Sub-task`) — los skills los descubren y verifican solos antes de crear nada.
 
 **Figma.** El skill propone `figma-developer-mcp` (requiere un token personal de Figma):
 
