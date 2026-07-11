@@ -3,7 +3,7 @@ name: booster-docs
 description: Genera una vista HTML autocontenida, dinamica y visual a partir de un documento de planificacion AIDD/SDD en Markdown (por ejemplo `docs/cliente-requisitos.md`, `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/roadmap.md`, `docs/sprint-plan.md`). Usar cuando un skill AIDD/SDD necesite entregar la vista HTML complementaria al final de su comando, o cuando el usuario pida "genera el HTML de este documento", "vista HTML de los requisitos", "renderiza el roadmap a HTML" o equivalentes. El Markdown sigue siendo la unica fuente de verdad; este booster produce un HTML complementario para consumo humano y NO modifica el Markdown.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.6.0"
 ---
 
 # booster-docs
@@ -21,10 +21,12 @@ Responder y documentar en espanol siempre que sea posible; conservar en ingles c
 
 Un unico fichero `.html` autocontenido (HTML + CSS + JS inline, sin dependencias ni build, abrible con doble clic), con:
 
-- **Dashboard de KPIs** auto-calculado del contenido (numero de RF/NFR, historias, must-have, elementos fuera de alcance, bloqueantes, preguntas abiertas...).
-- **Chips de color** para IDs trazables (`RF-XX`, `NFR-XX`, `HU-XX`/`US-XX`), prioridad (`Alta`/`Media`/`Baja`), MoSCoW (`Must`/`Should`/`Could`/`Won't`), esfuerzo (`S`/`M`/`L`) y marcadores `[BLOQUEANTE]`, tanto inline como en tablas.
-- **Alcance dentro/fuera** con estilo diferenciado, tablas con formato, blockquotes de metadatos y bloques Mermaid renderizados si el documento los incluye.
-- **Indice lateral (TOC) sticky con scroll-spy**, modo claro/oscuro automatico y estilos de impresion.
+- **Dashboard de KPIs** auto-calculado del contenido: numero de RF/NFR, historias, must-have, elementos fuera de alcance, **imprescindibles**, bloqueantes, preguntas abiertas y **esfuerzo estimado total en jornadas** (a partir de las tallas `XS/S/M/L/XL` con la escala AIDD: XS=0,5d · S=1,5d · M=3d · L=5d · XL=8d).
+- **Chips de color** para IDs trazables (`RF-XX`, `NFR-XX`, `HU-XX`/`US-XX`), prioridad (`Alta`/`Media`/`Baja`/`Critica`), MoSCoW (`Must`/`Should`/`Could`/`Won't`), esfuerzo (`XS`/`S`/`M`/`L`/`XL`), el marcador `[IMPRESCINDIBLE]` (pill rojo-anaranjado prominente, criterio esencial) y `[BLOQUEANTE]` (rojo, impedimento real), tanto inline como en tablas. Los valores inline de `Prioridad:` y `Estimacion:` tambien se convierten en pills (la estimacion salta a su propia linea).
+- **Swatch de color** junto a cualquier codigo `#hex` / `rgb()` / `hsl()` (util para la guia de estilos y design tokens).
+- **Sello de version en cabecera**: la linea `> **Version N** - **Generado:** ...` que estampa `stamp_doc.py` se integra en la cabecera del documento, junto a los badges, en lugar de quedar como cita suelta.
+- **Alcance dentro/fuera** con estilo diferenciado, tablas con formato, blockquotes, separadores `---` como `<hr>`, **listas anidadas**, **checkboxes de tareas** (`- [ ]` / `- [x]`), enlaces relativos y bloques Mermaid renderizados si el documento los incluye (si no hay red para el CDN de Mermaid, el codigo fuente del diagrama queda visible con un aviso y el resto de la pagina funciona igual).
+- **Indice lateral (TOC) sticky con scroll-spy**, modo claro/oscuro automatico con **boton de tema** (auto/claro/oscuro, persistido en el navegador) y estilos de impresion.
 
 El tipo de documento se **auto-detecta** por el nombre del fichero o el `# H1`; los tipos desconocidos se renderizan igual con KPIs genericos. Se puede forzar con `--doc-type`.
 

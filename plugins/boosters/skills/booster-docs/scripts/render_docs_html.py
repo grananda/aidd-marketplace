@@ -136,6 +136,8 @@ PRIORITY = {
 }
 EFFORT = {"xs": "chip-eff-xs", "s": "chip-eff-s", "m": "chip-eff-m",
           "l": "chip-eff-l", "xl": "chip-eff-xl"}
+# Person-days per size (1 d = 8 h working day) -- the AIDD estimation scale.
+EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 
 # Inline per-story metadata (e.g. "**Prioridad**: Alta   **Estimacion**: M"): turn
 # the priority and effort *values* into pills so the human can scan them at a glance,
@@ -195,8 +197,10 @@ def decorate_colors(escaped: str) -> str:
 def inline_markdown(text: str, chips: bool = True, meta: bool = True) -> str:
     escaped = html.escape(text)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
+    # Targets: http(s)/mailto, in-page anchors, and relative paths (any target
+    # without a scheme colon, e.g. "otro-doc.md" or "docs/x.md#seccion").
     escaped = re.sub(
-        r"\[([^\]]+)\]\((https?:[^\s)]+|mailto:[^\s)]+|#[^\s)]+|\.{0,2}/[^\s)]+)\)",
+        r"\[([^\]]+)\]\((https?:[^\s)]+|mailto:[^\s)]+|#[^\s)]+|[^:\s)]+)\)",
         r'<a href="\2">\1</a>',
         escaped,
     )
@@ -245,9 +249,11 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
     if us:
         kpis.append({"value": len(us), "label": "Historias de usuario", "tone": "us"})
 
+    # Capitalized-only matching: MoSCoW buckets are written "Must"/"Should"/... in
+    # the docs; lowercase matches would overcount English prose ("it should...").
     moscow = Counter()
     for key, (label, _) in MOSCOW.items():
-        n = len(re.findall(rf"\b{re.escape(key)}\b", markdown, re.IGNORECASE))
+        n = len(re.findall(rf"\b{re.escape(label)}\b", markdown))
         if n:
             moscow[label] += n
     if moscow.get("Must"):
@@ -255,8 +261,27 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
 
     low = markdown.lower()
     if "fuera de esta fase" in low or "fuera de alcance" in low:
-        # Best-effort: count bullet lines within scope-out region.
-        kpis.append({"value": _scope_out_count(markdown), "label": "Fuera de alcance", "tone": "muted"})
+        # Best-effort: count bullet lines within scope-out region (skip if none found).
+        scope_out = _scope_out_count(markdown)
+        if scope_out:
+            kpis.append({"value": scope_out, "label": "Fuera de alcance", "tone": "muted"})
+
+    # Estimated effort in person-days from the fixed size scale (1 d = 8 h):
+    # XS=0.5 · S=1.5 · M=3 · L=5 · XL=8. Counts "Estimacion: <talla>" inline labels
+    # when present; otherwise standalone size cells in tables. Never both (a story's
+    # inline size often reappears in a summary table and would double-count).
+    sizes = [m.group(2).upper() for m in EFFORT_INLINE_RE.finditer(markdown)]
+    if not sizes:
+        for tline in markdown.splitlines():
+            t = tline.strip()
+            if t.startswith("|") and t.endswith("|"):
+                for cell in t.strip("|").split("|"):
+                    if cell.strip() in EFFORT_DAYS:
+                        sizes.append(cell.strip())
+    if len(sizes) >= 2:
+        total = sum(EFFORT_DAYS[s] for s in sizes)
+        value = f"{total:g} d"
+        kpis.append({"value": value, "label": f"Esfuerzo estimado ({len(sizes)} items)", "tone": "eff"})
 
     essentials = len(ESSENTIAL_RE.findall(markdown))
     if essentials:
@@ -357,23 +382,54 @@ def render_table(lines: list[str]) -> str:
     )
 
 
+LIST_ITEM_RE = re.compile(r"^(\s*)(?:([-*])|(\d+)\.)\s+(.+)$")
+TASK_RE = re.compile(r"^\[( |x|X)\]\s+(.*)$")
+HR_RE = re.compile(r"^(-{3,}|\*{3,}|_{3,})$")
+
+
+def render_list_block(lines: list[str]) -> str:
+    """Render consecutive list lines supporting nesting (indent) and task checkboxes."""
+    out: list[str] = []
+    stack: list[tuple[int, str]] = []  # (indent, tag)
+    for raw in lines:
+        m = LIST_ITEM_RE.match(raw)
+        if not m:
+            continue
+        indent = len(m.group(1).replace("\t", "  "))
+        tag = "ul" if m.group(2) else "ol"
+        content = m.group(4).strip()
+        while stack and indent < stack[-1][0]:
+            out.append(f"</li></{stack.pop()[1]}>")
+        if stack and indent == stack[-1][0] and tag != stack[-1][1]:
+            out.append(f"</li></{stack.pop()[1]}>")
+        if not stack or indent > stack[-1][0]:
+            out.append(f"<{tag}>")  # nested list stays inside the open <li>
+            stack.append((indent, tag))
+        else:
+            out.append("</li>")
+        task = TASK_RE.match(content)
+        if task:
+            checked = " checked" if task.group(1).lower() == "x" else ""
+            out.append(
+                f'<li class="task"><input type="checkbox" disabled{checked}> '
+                + inline_markdown(task.group(2))
+            )
+        else:
+            out.append("<li>" + inline_markdown(content))
+    while stack:
+        out.append(f"</li></{stack.pop()[1]}>")
+    return "".join(out)
+
+
 def markdown_to_html(markdown: str) -> tuple[str, list[dict]]:
     output: list[str] = []
     toc: list[dict] = []
     lines = markdown.splitlines()
     i = 0
-    in_ul = False
-    in_ol = False
     section_open = False
 
-    def close_lists() -> None:
-        nonlocal in_ul, in_ol
-        if in_ul:
-            output.append("</ul>")
-            in_ul = False
-        if in_ol:
-            output.append("</ol>")
-            in_ol = False
+    def close_lists() -> None:  # lists are now rendered as whole blocks; nothing pending
+        return
 
     def close_section() -> None:
         nonlocal section_open
@@ -464,27 +520,17 @@ def markdown_to_html(markdown: str) -> tuple[str, list[dict]]:
             i += 1
             continue
 
-        ol_match = re.match(r"^(\d+)\.\s+(.+)$", stripped)
-        if ol_match:
-            if in_ul:
-                output.append("</ul>")
-                in_ul = False
-            if not in_ol:
-                output.append("<ol>")
-                in_ol = True
-            output.append(f"<li>{inline_markdown(ol_match.group(2).strip())}</li>")
+        if HR_RE.match(stripped):
+            output.append("<hr>")
             i += 1
             continue
 
-        if stripped.startswith("- ") or stripped.startswith("* "):
-            if in_ol:
-                output.append("</ol>")
-                in_ol = False
-            if not in_ul:
-                output.append("<ul>")
-                in_ul = True
-            output.append(f"<li>{inline_markdown(stripped[2:].strip())}</li>")
-            i += 1
+        if LIST_ITEM_RE.match(line):
+            list_lines = []
+            while i < len(lines) and LIST_ITEM_RE.match(lines[i]):
+                list_lines.append(lines[i])
+                i += 1
+            output.append(render_list_block(list_lines))
             continue
 
         if not stripped:
@@ -515,7 +561,36 @@ def build_toc(toc: list[dict]) -> str:
     )
 
 
+STAMP_LINE_RE = re.compile(r"^>\s*(\*\*Versi[oó]n\s+\d+\*\*.*?Generado.*)$", re.MULTILINE)
+
+# Dark palette, shared by the OS preference (auto) and the manual [data-theme="dark"]
+# override set by the theme-toggle button.
+DARK_VARS = """
+        --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
+        --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
+        --line: #28324a; --line-strong: #364260;
+        --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+        --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
+        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
+        --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
+        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+"""
+
+
 def build_html(title: str, doc_type: str, markdown: str) -> str:
+    # The stamp_doc.py version/timestamp line ("> **Version N** - **Generado:** ...")
+    # belongs in the header, next to the doc badges -- not as a stray blockquote.
+    stamp_html = ""
+    stamp_match = STAMP_LINE_RE.search(markdown)
+    if stamp_match:
+        stamp_html = (
+            '<span class="dot">&middot;</span> <span class="stamp">'
+            + inline_markdown(stamp_match.group(1).strip(), chips=False)
+            + "</span> "
+        )
+        markdown = STAMP_LINE_RE.sub("", markdown, count=1)
+
     body, toc = markdown_to_html(markdown)
     toc_html = build_toc(toc)
     kpi_html = build_kpi_html(build_kpis(markdown, doc_type))
@@ -524,6 +599,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     subtitle = (
         f'<p class="doc-meta"><span class="badge">{html.escape(meta["label"])}</span> '
         + (f'<span class="badge badge-soft">{html.escape(meta["phase"])}</span> ' if meta["phase"] else "")
+        + stamp_html
         + f'<span class="dot">&middot;</span> Vista generada el {generated} '
         '<span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p>'
     )
@@ -556,18 +632,9 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
     }}
     @media (prefers-color-scheme: dark) {{
-      :root {{
-        --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
-        --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
-        --line: #28324a; --line-strong: #364260;
-        --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
-        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
-        --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
-        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
-        --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
-        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
-      }}
+      :root:not([data-theme="light"]) {{ {DARK_VARS} }}
     }}
+    :root[data-theme="dark"] {{ {DARK_VARS} }}
     * {{ box-sizing: border-box; }}
     html {{ scroll-behavior: smooth; }}
     body {{
@@ -615,6 +682,17 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .doc-meta {{ margin: 0; color: var(--muted); font-size: .92rem; }}
     .doc-meta .dot {{ margin: 0 6px; color: var(--line-strong); }}
     .doc-meta .sot {{ font-style: italic; }}
+    .doc-meta .stamp strong {{ color: var(--accent); }}
+    hr {{ border: 0; border-top: 1px solid var(--line); margin: 28px 0; }}
+    li.task {{ list-style: none; margin-left: -20px; }}
+    li.task input {{ accent-color: var(--accent); margin-right: 6px; vertical-align: -.1em; }}
+    .theme-toggle {{ position: fixed; top: 14px; right: 16px; z-index: 10;
+      width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line-strong);
+      background: var(--panel); color: var(--text-soft); font-size: 1rem; cursor: pointer;
+      box-shadow: var(--shadow); line-height: 1; }}
+    .theme-toggle:hover {{ color: var(--accent); border-color: var(--accent); }}
+    .diagram.offline::after {{ content: "Diagrama Mermaid sin renderizar (CDN no disponible; el codigo fuente se muestra arriba)";
+      display: block; margin-top: 10px; font-size: .8rem; color: var(--warn); }}
     /* KPI dashboard */
     .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }}
     .kpi {{ background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
@@ -629,6 +707,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .kpi-essential {{ border-left-color: var(--essential); }} .kpi-essential .kpi-value {{ color: var(--essential); }}
     .kpi-warn {{ border-left-color: var(--warn); }} .kpi-warn .kpi-value {{ color: var(--warn); }}
     .kpi-muted {{ border-left-color: var(--line-strong); }} .kpi-muted .kpi-value {{ color: var(--muted); }}
+    .kpi-eff {{ border-left-color: var(--eff-m); }} .kpi-eff .kpi-value {{ color: var(--eff-m); }}
     /* Chips */
     .chip {{ display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
       vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
@@ -688,30 +767,68 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
   </style>
 </head>
 <body>
+  <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">&#9681;</button>
   <div class="layout">
     {toc_html}
     <main>
 {body}
     </main>
   </div>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    mermaid.initialize({{ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' }});
+  <script>
+    // Theme toggle (auto -> claro -> oscuro), persisted per browser. Classic script:
+    // must keep working even without network (the Mermaid CDN import lives apart).
+    (function () {{
+      const KEY = 'booster-docs-theme';
+      const btn = document.getElementById('themeToggle');
+      const modes = ['auto', 'light', 'dark'];
+      const icons = {{ auto: '\\u25D1', light: '\\u2600', dark: '\\u263E' }};
+      let mode = localStorage.getItem(KEY);
+      if (!modes.includes(mode)) mode = 'auto';
+      function apply() {{
+        if (mode === 'auto') delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = mode;
+        btn.textContent = icons[mode];
+        btn.title = 'Tema: ' + mode;
+      }}
+      btn.addEventListener('click', () => {{
+        mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+        localStorage.setItem(KEY, mode);
+        apply();
+      }});
+      apply();
+    }})();
 
     // Scroll-spy: highlight the current section in the TOC.
-    const links = [...document.querySelectorAll('.toc a')];
-    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
-    const obs = new IntersectionObserver(entries => {{
-      entries.forEach(e => {{
-        if (e.isIntersecting) {{
-          links.forEach(a => a.classList.remove('active'));
-          const a = map.get(e.target.id);
-          if (a) a.classList.add('active');
-        }}
-      }});
-    }}, {{ rootMargin: '-10% 0px -80% 0px' }});
-    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+    (function () {{
+      const links = [...document.querySelectorAll('.toc a')];
+      if (!links.length) return;
+      const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+      const obs = new IntersectionObserver(entries => {{
+        entries.forEach(e => {{
+          if (e.isIntersecting) {{
+            links.forEach(a => a.classList.remove('active'));
+            const a = map.get(e.target.id);
+            if (a) a.classList.add('active');
+          }}
+        }});
+      }}, {{ rootMargin: '-10% 0px -80% 0px' }});
+      document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+    }})();
+  </script>
+  <script type="module">
+    // Mermaid via CDN, best-effort: offline the diagrams stay as readable source
+    // with a notice instead of silently breaking the page's other scripts.
+    if (document.querySelector('.mermaid')) {{
+      try {{
+        const {{ default: mermaid }} = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+        const dark = document.documentElement.dataset.theme === 'dark'
+          || (document.documentElement.dataset.theme !== 'light'
+              && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        mermaid.initialize({{ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' }});
+      }} catch (e) {{
+        document.querySelectorAll('.diagram').forEach(d => d.classList.add('offline'));
+      }}
+    }}
   </script>
 </body>
 </html>

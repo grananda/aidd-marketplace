@@ -19,7 +19,7 @@
       --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) { 
         --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
         --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
         --line: #28324a; --line-strong: #364260;
@@ -29,8 +29,19 @@
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
-      }
+ }
     }
+    :root[data-theme="dark"] { 
+        --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
+        --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
+        --line: #28324a; --line-strong: #364260;
+        --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+        --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
+        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
+        --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
+        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+ }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
@@ -78,6 +89,17 @@
     .doc-meta { margin: 0; color: var(--muted); font-size: .92rem; }
     .doc-meta .dot { margin: 0 6px; color: var(--line-strong); }
     .doc-meta .sot { font-style: italic; }
+    .doc-meta .stamp strong { color: var(--accent); }
+    hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+    li.task { list-style: none; margin-left: -20px; }
+    li.task input { accent-color: var(--accent); margin-right: 6px; vertical-align: -.1em; }
+    .theme-toggle { position: fixed; top: 14px; right: 16px; z-index: 10;
+      width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--line-strong);
+      background: var(--panel); color: var(--text-soft); font-size: 1rem; cursor: pointer;
+      box-shadow: var(--shadow); line-height: 1; }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .diagram.offline::after { content: "Diagrama Mermaid sin renderizar (CDN no disponible; el codigo fuente se muestra arriba)";
+      display: block; margin-top: 10px; font-size: .8rem; color: var(--warn); }
     /* KPI dashboard */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
     .kpi { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
@@ -92,6 +114,7 @@
     .kpi-essential { border-left-color: var(--essential); } .kpi-essential .kpi-value { color: var(--essential); }
     .kpi-warn { border-left-color: var(--warn); } .kpi-warn .kpi-value { color: var(--warn); }
     .kpi-muted { border-left-color: var(--line-strong); } .kpi-muted .kpi-value { color: var(--muted); }
+    .kpi-eff { border-left-color: var(--eff-m); } .kpi-eff .kpi-value { color: var(--eff-m); }
     /* Chips */
     .chip { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
       vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
@@ -151,6 +174,7 @@
   </style>
 </head>
 <body>
+  <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">&#9681;</button>
   <div class="layout">
     <nav class="toc" aria-label="Indice"><p class="toc-title">En esta pagina</p><ol><li><a href="#1-filosof-a">1. Filosofía</a></li><li><a href="#2-macro-fases">2. Macro-fases</a></li><li><a href="#3-roles-y-responsabilidades">3. Roles y responsabilidades</a></li><li><a href="#4-documentos-del-proyecto">4. Documentos del proyecto</a></li><li><a href="#5-fases-en-detalle">5. Fases en detalle</a></li><li><a href="#6-configuraci-n-del-entorno-de-trabajo">6. Configuración del entorno de trabajo</a></li><li><a href="#7-estructura-de-carpetas-recomendada">7. Estructura de carpetas recomendada</a></li><li><a href="#8-auditor-a-y-trazabilidad">8. Auditoría y trazabilidad</a></li><li><a href="#9-checklist-de-calidad-por-fase">9. Checklist de calidad por fase</a></li><li><a href="#10-se-ales-de-alerta">10. Señales de alerta</a></li><li><a href="#11-equivalencia-con-la-versi-n-openspec-directa">11. Equivalencia con la versión OpenSpec directa</a></li><li><a href="#12-registro-de-decisiones-sobre-el-framework">12. Registro de decisiones sobre el framework</a></li></ol></nav>
     <main>
@@ -159,21 +183,17 @@
 <p><strong>Fecha:</strong> 2026-06-22</p>
 <p><strong>Base de tooling:</strong> skills <strong>AIDD</strong> (<code>aidd-*</code> — planificación, diseño y entrega) + skill <strong>aisdd-specs</strong> (OpenSpec — ejecución) + <strong>boosters</strong> compartidos (<code>booster-ux</code> prototipos, <code>booster-uml</code> diagramas, <code>booster-docs</code> vistas HTML de los documentos de planificación).</p>
 <blockquote><strong>Terminología (importante).</strong> Tres conceptos que conviven y NO son lo mismo:<br>- <strong>SDD</strong> (<em>Spec-Driven Development</em>) — la <strong>metodología</strong>: proceso, roles y fases. El &quot;cómo se trabaja&quot; (este documento).<br>- <strong>AIDD</strong> (<em>AI Driven Development</em>) — el <strong>skill set</strong> que automatiza la <strong>planificación, el diseño y la entrega</strong> (Fases 0-2 y 3.5). Comandos <code>aidd *</code>. Cada comando aplica el prompt del paso; ejecutarlo equivale a lanzar ese prompt a mano.<br>- <strong>aisdd-specs</strong> — el <strong>skill set</strong> de <strong>ejecución</strong> sobre OpenSpec (Fases 3 y 4+). Comandos <code>aisdd *</code> (alias legacy <code>native-ai *</code>).<br><br><strong>Novedad v4.</strong> (1) Las Fases 0-2, antes descritas como prompts manuales del AI Architect, ahora se ejecutan con los comandos <code>aidd</code> (mismo proceso, empaquetado en skills). (2) Se añade un quinto rol, <strong>AI Delivery Manager</strong>, y la <strong>Fase 3.5</strong>, que traduce el roadmap en un <strong>plan de recursos</strong> (<code>aidd project-plan</code> → <code>docs/planificacion-proyecto.md</code>) y un <strong>plan de sprints</strong> (<code>aidd sprint-planning</code> → <code>docs/sprint-plan.md</code>), consumible por un equipo Scrum. Ver Fase 3.5 y registro <span class="swatch" style="background:#008"></span>#008.</blockquote>
-<p>---</p>
+<hr>
 <section class="doc-section" id="1-filosof-a">
 <h2><a class="anchor" href="#1-filosof-a" aria-label="Enlace">#</a>1. Filosofía</h2>
 <p>AI-Native Development no es usar la IA como un asistente que escribe código más rápido. Es un modelo de trabajo donde <strong>la IA generativa es parte estructural del proceso</strong>, no una herramienta auxiliar, y el humano actúa como <strong>director de orquesta</strong>: aprueba, decide y valida en cada transición.</p>
 <blockquote><strong>La especificación como motor del desarrollo:</strong> transformamos los requisitos del cliente en contexto estructurado que los agentes IA pueden procesar de forma consistente. Sin especificación, no hay implementación.</blockquote>
 <p>El objetivo es garantizar <strong>coherencia</strong> entre lo que se define, lo que se diseña y lo que se implementa, evitando la deriva habitual donde el código se aleja de los requisitos con el paso de los sprints.</p>
 <p>En esta versión, toda la operación sobre especificaciones se canaliza a través del skill <strong><code>aisdd-specs</code></strong>, que envuelve OpenSpec con tres capas adicionales:</p>
-<ol>
-<li><strong>Pre-flight de dudas</strong> — antes de abrir o implementar un change, el agente resuelve ambigüedades reales con el humano (máximo 7 preguntas) y las persiste en <code>decisions.md</code>. El <em>human-in-the-loop</em> deja de ser una recomendación: es un paso ejecutable del comando.</li>
-<li><strong>Roadmap consciente del contexto</strong> — la planificación se adapta al <strong>presupuesto de contexto</strong> del modelo (bajo/medio/alto): a menor ventana útil, más fases y más estrechas.</li>
-<li><strong>Auditoría obligatoria</strong> — cada comando deja una entrada estructurada con hashes de entrada/salida, versión de prompt, modelo y decisiones humanas en <code>openspec/audit/</code>.</li>
-</ol>
+<ol><li><strong>Pre-flight de dudas</strong> — antes de abrir o implementar un change, el agente resuelve ambigüedades reales con el humano (máximo 7 preguntas) y las persiste en <code>decisions.md</code>. El <em>human-in-the-loop</em> deja de ser una recomendación: es un paso ejecutable del comando.</li><li><strong>Roadmap consciente del contexto</strong> — la planificación se adapta al <strong>presupuesto de contexto</strong> del modelo (bajo/medio/alto): a menor ventana útil, más fases y más estrechas.</li><li><strong>Auditoría obligatoria</strong> — cada comando deja una entrada estructurada con hashes de entrada/salida, versión de prompt, modelo y decisiones humanas en <code>openspec/audit/</code>.</li></ol>
 <p><strong>Principios fundacionales:</strong></p>
 <div class="table-wrap"><table><thead><tr><th>Principio</th><th>Descripción</th></tr></thead><tbody><tr><td><strong>IA como motor, no como herramienta</strong></td><td>La IA generativa es parte estructural del proceso de desarrollo en todos sus roles</td></tr><tr><td><strong>Human-in-the-loop obligatorio</strong></td><td>El humano supervisa, valida y aprueba en cada transición. El pre-flight de dudas lo hace explícito y trazable</td></tr><tr><td><strong>Documentos como fuente de verdad</strong></td><td>Toda decisión queda en un fichero (<code>docs/</code>, specs OpenSpec, <code>decisions.md</code>). El código se genera a partir de los documentos, no al revés</td></tr><tr><td><strong>Roles separados, contextos limpios</strong></td><td>Cada rol de IA arranca con los documentos de su fase, sin el historial completo. El presupuesto de contexto regula cuánto se carga por change</td></tr><tr><td><strong>Handoff explícito</strong></td><td>El paso de un rol al siguiente se hace entregando documentos revisados y aprobados por el humano</td></tr><tr><td><strong>Validación antes de implementar</strong></td><td>Siempre se valida con cliente (prototipo) antes de construir la arquitectura real</td></tr><tr><td><strong>Iteración y refinamiento continuo</strong></td><td>Cada ciclo optimiza progresivamente especificaciones, código y arquitectura</td></tr><tr><td><strong>Idempotencia documental</strong></td><td>Cualquier IA que arranque con los mismos documentos debe llegar a conclusiones compatibles</td></tr><tr><td><strong>Trazabilidad auditable</strong></td><td>Cada comando <code>aisdd</code> registra qué se ejecutó, sobre qué input, con qué modelo y qué decidió el humano</td></tr></tbody></table></div>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="2-macro-fases">
 <h2><a class="anchor" href="#2-macro-fases" aria-label="Enlace">#</a>2. Macro-fases</h2>
@@ -228,7 +248,7 @@ VALIDATION PHASE ─────────────────────
       │
       ▼ (OK)
   Siguiente change ──► AI Lead (aisdd open change) ──► AI Dev</code></pre>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="3-roles-y-responsabilidades">
 <h2><a class="anchor" href="#3-roles-y-responsabilidades" aria-label="Enlace">#</a>3. Roles y responsabilidades</h2>
@@ -250,7 +270,7 @@ VALIDATION PHASE ─────────────────────
 <p>Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadmap a un plan ejecutable por un equipo (humano + agentes): <strong>recursos</strong> y <strong>calendario</strong>. <strong>No implementa código ni toma decisiones de arquitectura.</strong> Opera con los skills <code>aidd</code> de la capa de planificación, <strong>autónomos de OpenSpec</strong>.</p>
 <div class="table-wrap"><table><thead><tr><th>Responsabilidad</th><th>Comandos / Detalle</th></tr></thead><tbody><tr><td><strong>Genera el plan de recursos</strong></td><td>Ejecuta <code>aidd project-plan</code> en cuanto el diseño (Fase 2) está aprobado: produce <code>docs/planificacion-proyecto.md</code> con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias, infraestructura/entornos, esfuerzo agregado con <strong>doble estimación humano clásico vs IA</strong> (a partir de XS/S/M/L/XL) y <strong>KPIs de la diferencia</strong> (ahorro en jornadas, % de reducción y factor de aceleración), dependencias y riesgos de recursos, derivados de <code>arquitectura-base.md</code> y las historias</td></tr><tr><td><strong>Distribuye el trabajo en sprints</strong></td><td>Ejecuta <code>aidd sprint-planning</code> cuando existe <code>docs/roadmap.md</code>: produce <code>docs/sprint-plan.md</code> agrupando los changes/fases en sprints con objetivo, capacidad, asignación de perfiles y dependencias respetadas</td></tr><tr><td><strong>Respeta el faseado por contexto</strong></td><td>No parte un change para encajarlo en un sprint; un sprint contiene changes/historias completos. El roadmap (presupuesto de contexto) manda sobre el calendario</td></tr><tr><td><strong>Hace consumible el plan por un equipo Scrum</strong></td><td>Traduce la planificación AI-native a recursos y calendario que un equipo humano gestiona en su día a día</td></tr></tbody></table></div>
 <blockquote>Capa <strong>autónoma de OpenSpec</strong>: parte de los documentos (<code>arquitectura-base.md</code>, <code>roadmap.md</code>, detalle de historias). Si existen changes de OpenSpec, los usa como detalle adicional, pero la unidad de planificación sigue siendo el change/historia del roadmap. En equipos pequeños, el AI Delivery Manager puede ser el mismo humano que actúa de AI Lead.</blockquote>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="4-documentos-del-proyecto">
 <h2><a class="anchor" href="#4-documentos-del-proyecto" aria-label="Enlace">#</a>4. Documentos del proyecto</h2>
@@ -287,26 +307,19 @@ openspec/
 └── audit/
     └── YYYY-MM.jsonl                ← auditoría append-only (todos los comandos)</code></pre>
 <blockquote><strong>Cambios respecto a la versión OpenSpec directa:</strong> <code>sprints-desarrollo.md</code> se sustituye por <code>docs/roadmap.md</code>, y <code>prompts_a_ejecutar.md</code> por <code>docs/prompts-roadmap-native-ai.md</code> (ambos generados por <code>aisdd roadmap</code>). Aparecen tres artefactos nuevos: <code>decisions.md</code> por change, <code>AGENTS.md</code> y la auditoría <code>openspec/audit/</code>.</blockquote>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="5-fases-en-detalle">
 <h2><a class="anchor" href="#5-fases-en-detalle" aria-label="Enlace">#</a>5. Fases en detalle</h2>
 <h3 id="fase-0-inicializaci-n-del-proyecto">Fase 0 — Inicialización del proyecto</h3>
 <p><strong>Propósito:</strong> Preparar el entorno antes de que ningún rol de IA produzca contenido. La ejecuta el humano de forma colaborativa con la IA.</p>
 <p><strong>Tareas:</strong></p>
-<ul>
-<li>Recopilar toda la documentación, código y modelos de datos del cliente</li>
-<li>Inicializar repositorio git con estructura de carpetas base</li>
-<li>Crear <code>AGENTS.md</code> con contexto, stack y convenciones del proyecto (fichero de contexto genérico para cualquier agente IA)</li>
-<li>Definir el stack tecnológico y las restricciones no negociables</li>
-<li>Capturar el brief en <code>docs/cliente-requisitos.md</code></li>
-<li>Verificar disponibilidad de Node.js/npm y de los skills <code>aidd-*</code> (planificación/diseño), <code>aisdd-specs</code>, <code>booster-ux</code> y <code>booster-uml</code></li>
-</ul>
+<ul><li>Recopilar toda la documentación, código y modelos de datos del cliente</li><li>Inicializar repositorio git con estructura de carpetas base</li><li>Crear <code>AGENTS.md</code> con contexto, stack y convenciones del proyecto (fichero de contexto genérico para cualquier agente IA)</li><li>Definir el stack tecnológico y las restricciones no negociables</li><li>Capturar el brief en <code>docs/cliente-requisitos.md</code></li><li>Verificar disponibilidad de Node.js/npm y de los skills <code>aidd-*</code> (planificación/diseño), <code>aisdd-specs</code>, <code>booster-ux</code> y <code>booster-uml</code></li></ul>
 <p><strong>Criterio de salida:</strong> Existe <code>cliente-requisitos.md</code> con suficiente contexto para que el AI Architect arranque sin preguntas. Los skills auxiliares están instalados o se conoce dónde instalarlos.</p>
 <p><strong>Comando AIDD:</strong></p>
 <pre><code>aidd client-requirements</code></pre>
 <p><code>aidd client-requirements</code> actúa como consultor técnico experto: recopila contexto, stack, restricciones y documentación aportada, ejecuta un <strong>pre-flight de dudas</strong> (máx. 7) con las preguntas clave, identifica riesgos y ambigüedades, y genera <code>docs/cliente-requisitos.md</code> con suficiente contexto para que la Fase 1 arranque sin preguntas. Opcionalmente crea/actualiza <code>AGENTS.md</code> con contexto, stack y convenciones del proyecto.</p>
-<p>---</p>
+<hr>
 <h3 id="fase-1-definici-n-ai-architect-definition">Fase 1 — Definición (AI Architect) · DEFINITION</h3>
 <p><strong>Propósito:</strong> Transformar el brief del cliente en documentos formales que sirvan de contexto estructurado para todos los agentes IA del proyecto. Sin esta fase completa y aprobada, no se puede diseñar ni implementar nada.</p>
 <p><strong>Entradas:</strong> <code>cliente-requisitos.md</code> + documentación/código/datos del cliente</p>
@@ -330,7 +343,7 @@ openspec/
 <pre><code>aidd hu-review-plan</code></pre>
 <p><code>aidd hu-review-plan</code> consolida <code>docs/mapa-historias-usuario.md</code> y <code>docs/detalle-historias-usuario.md</code> en un <strong>Excel de planificación</strong> (<code>docs/xlsx/plan-revision-hu.xlsx</code>) con cuatro pestañas: <strong>Detalle HU</strong> (todas las HU combinadas, con las palabras <em>Como/quiero/para</em> en negrita), <strong>Dashboard</strong> (KPIs y gráficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), <strong>Leyenda</strong> (significado de campos codificados como <code>Persona</code> P1/P5 o <code>GAP</code>) y <strong>Gantt</strong> (planificación de la revisión: kickoff, semana 1 de revisión de la documentación del cliente y resto del periodo con reuniones <strong>funcionales</strong> con negocio y <strong>técnicas</strong> con TI, con detalle por HU). El <code>docs/plan-revision-hu.md</code> es la fuente de verdad; el Excel es el entregable rico.</p>
 <p>Es la <strong>antesala de la Fase 3.5</strong>: <code>aidd sprint-planning</code> lee <code>plan-revision-hu.md</code> para no planificar por libre — solo compromete en sprint las HU que la revisión ha dejado cerradas/validadas y reutiliza las personas implicadas en la revisión para asignar el sprint y, al volcar a Jira, el <em>assignee</em> de cada Story. Skill autónomo (openpyxl se autoinstala si falta).</p>
-<p>---</p>
+<hr>
 <h3 id="fase-2-dise-o-ai-architect-definition">Fase 2 — Diseño (AI Architect) · DEFINITION</h3>
 <p><strong>Propósito:</strong> Traducir las historias en arquitectura visual y técnica validable. Incluye la construcción del prototipo para validación con cliente, la guía de estilos, la propuesta de arquitectura y la arquitectura técnica definitiva, que será el insumo principal del roadmap.</p>
 <p><strong>Entradas:</strong> <code>requisitos.md</code>, <code>mapa-historias-usuario.md</code>, <code>detalle-historias-usuario.md</code></p>
@@ -358,7 +371,7 @@ aidd architecture-proposal</code></pre>
 <p><code>aidd architecture</code> actúa como arquitecto de software senior con enfoque de implementación: analiza como fuentes de verdad <code>docs/detalle-historias-usuario.md</code>, <code>docs/propuesta-arquitectura-base.md</code> y <code>docs/guia-estilos.md</code> (señalando y resolviendo cualquier conflicto entre ellas) y genera <code>docs/arquitectura-base.md</code> —implementable, sin contradicciones, con cada decisión explícita— con: objetivo y alcance; principios y decisiones arquitectónicas; estructura de la solución (árbol de carpetas real); descomposición por módulos/dominios; capas y responsabilidades; componentes base y relaciones; flujos de información; gestión de estado; navegación y endpoints; integraciones; seguridad, accesibilidad, observabilidad y rendimiento; escalabilidad, mantenibilidad y extensibilidad; y riesgos, supuestos y decisiones pendientes. Es el <strong>insumo principal de <code>aisdd roadmap</code></strong>.</p>
 <p><strong>Criterio de salida de Fase 2:</strong> Prototipo validado por el cliente. Guía de estilos, propuesta de arquitectura y arquitectura técnica definitiva aprobadas. Requisitos y arquitectura en estado consumible por <code>aisdd roadmap</code>.</p>
 <blockquote><strong>Nota sobre el framework de prompting:</strong> A diferencia de la versión OpenSpec directa, aquí el Architect <strong>no</strong> escribe a mano un borrador de <code>prompts_a_ejecutar.md</code>. El framework de prompting (<code>docs/prompts-roadmap-native-ai.md</code>) lo genera <code>aisdd roadmap</code> en la Fase 3 a partir de estos documentos.</blockquote>
-<p>---</p>
+<hr>
 <h3 id="fase-3-inicializaci-n-y-roadmap-ai-lead-definition-execution">Fase 3 — Inicialización y Roadmap (AI Lead) · DEFINITION → EXECUTION</h3>
 <p><strong>Propósito:</strong> El AI Lead toma los documentos del AI Architect, inicializa Native AI Specs y fasea la ejecución con <code>aisdd roadmap</code>, ajustando la granularidad al presupuesto de contexto. Esta fase cierra DEFINITION y abre EXECUTION.</p>
 <p><strong>Entradas:</strong> <code>mapa-historias-usuario.md</code>, <code>detalle-historias-usuario.md</code>, <code>arquitectura-base.md</code>, <code>guia-estilos.md</code></p>
@@ -366,39 +379,20 @@ aidd architecture-proposal</code></pre>
 <h4 id="paso-3-1-aisdd-init">Paso 3.1 — <code>aisdd init</code></h4>
 <pre><code>aisdd init</code></pre>
 <p>El comando:</p>
-<ol>
-<li>Comprueba si <code>openspec</code> está instalado; si no, instala <code>@fission-ai/openspec@latest</code>.</li>
-<li>Ejecuta <code>openspec init</code>.</li>
-<li>Comprueba la disponibilidad de <code>booster-ux</code> y <code>booster-uml</code>.</li>
-<li>Pregunta si el proyecto es <strong>nuevo</strong> o <strong>existente</strong> (para existente, ver Fase 5).</li>
-<li>Para proyecto existente, solicita las rutas de los markdowns funcionales/técnicos/de arquitectura y los vuelca a <code>openspec/config.yaml</code> (<code>project_context</code>).</li>
-<li>Registra los comandos del skill en <code>AGENTS.md</code> dentro de un bloque idempotente <code>&lt;!-- BEGIN/END aisdd-specs commands --&gt;</code>.</li>
-</ol>
+<ol><li>Comprueba si <code>openspec</code> está instalado; si no, instala <code>@fission-ai/openspec@latest</code>.</li><li>Ejecuta <code>openspec init</code>.</li><li>Comprueba la disponibilidad de <code>booster-ux</code> y <code>booster-uml</code>.</li><li>Pregunta si el proyecto es <strong>nuevo</strong> o <strong>existente</strong> (para existente, ver Fase 5).</li><li>Para proyecto existente, solicita las rutas de los markdowns funcionales/técnicos/de arquitectura y los vuelca a <code>openspec/config.yaml</code> (<code>project_context</code>).</li><li>Registra los comandos del skill en <code>AGENTS.md</code> dentro de un bloque idempotente <code>&lt;!-- BEGIN/END aisdd-specs commands --&gt;</code>.</li></ol>
 <p><strong>Criterio:</strong> OpenSpec inicializado, dependencias verificadas, <code>AGENTS.md</code> actualizado.</p>
 <h4 id="paso-3-2-presupuesto-de-contexto">Paso 3.2 — Presupuesto de contexto</h4>
 <p>Antes de fasear, el AI Lead resuelve el <strong>presupuesto de contexto</strong>, que determina cuántas fases tendrá el roadmap:</p>
 <div class="table-wrap"><table><thead><tr><th>Presupuesto</th><th>Contexto útil</th><th>Granularidad recomendada</th></tr></thead><tbody><tr><td><code>bajo</code></td><td>hasta 64k tokens</td><td><strong>6-12</strong> fases pequeñas y estrechas</td></tr><tr><td><code>medio</code></td><td>64k – 200k tokens</td><td><strong>4-8</strong> fases equilibradas</td></tr><tr><td><code>alto</code></td><td>más de 200k tokens</td><td><strong>3-6</strong> fases más amplias (sin mezclar objetivos no relacionados)</td></tr></tbody></table></div>
 <p>Reglas de resolución:</p>
-<ol>
-<li>Si el usuario indica el modelo o el límite de tokens, se usa.</li>
-<li>Si la plataforma expone el modelo, sirve de pista.</li>
-<li>Si no hay dato fiable, se asume <code>medio</code>.</li>
-</ol>
+<ol><li>Si el usuario indica el modelo o el límite de tokens, se usa.</li><li>Si la plataforma expone el modelo, sirve de pista.</li><li>Si no hay dato fiable, se asume <code>medio</code>.</li></ol>
 <p>Y se <strong>suman fases</strong> (aunque el modelo sea <code>alto</code>) cuando hay mucho volumen documental, migraciones, seguridad/permisos, integraciones externas o refactor transversal.</p>
 <h4 id="paso-3-3-aisdd-roadmap">Paso 3.3 — <code>aisdd roadmap</code></h4>
 <pre><code>aisdd roadmap</code></pre>
 <p>El comando genera, sin tocar todavía ningún change de OpenSpec:</p>
-<ul>
-<li><strong><code>docs/roadmap.md</code></strong> — presupuesto de contexto asumido y justificación, complejidad estimada, fases ordenadas con objetivo, alcance/exclusiones, dependencias, entregables OpenSpec esperados, criterios de cierre y riesgo de contexto por fase.</li>
-<li><strong><code>docs/prompts-roadmap-native-ai.md</code></strong> — los prompts a ejecutar hasta finalizar el desarrollo, <strong>usando exclusivamente</strong> los comandos del skill:</li>
-<li><code>aisdd open change &lt;what-you-want-to-build&gt;</code></li>
-<li><code>aisdd implement change &lt;what-you-want-to-build&gt;</code></li>
-<li><code>aisdd close change &lt;what-you-want-to-build&gt;</code></li>
-</ul>
+<ul><li><strong><code>docs/roadmap.md</code></strong> — presupuesto de contexto asumido y justificación, complejidad estimada, fases ordenadas con objetivo, alcance/exclusiones, dependencias, entregables OpenSpec esperados, criterios de cierre y riesgo de contexto por fase.</li><li><strong><code>docs/prompts-roadmap-native-ai.md</code></strong> — los prompts a ejecutar hasta finalizar el desarrollo, <strong>usando exclusivamente</strong> los comandos del skill:<ul><li><code>aisdd open change &lt;what-you-want-to-build&gt;</code></li><li><code>aisdd implement change &lt;what-you-want-to-build&gt;</code></li><li><code>aisdd close change &lt;what-you-want-to-build&gt;</code></li></ul></li></ul>
 <p>Para cada fase, el documento indica qué documentos/secciones pasar al modelo, qué partes del código son relevantes, qué <strong>no</strong> incluir todavía para no contaminar contexto, y cuándo conviene dividir una fase en varios changes.</p>
-<ul>
-<li><strong>Sección <code>roadmap</code> en <code>openspec/config.yaml</code></strong> — índice navegable: <code>context_budget</code>, <code>complexity</code>, rutas de docs y lista ordenada de fases con <code>id</code>, <code>name</code>, <code>objective</code>, <code>context_risk</code> y <code>change_hint</code> (slug sugerido para <code>aisdd open change</code>).</li>
-</ul>
+<ul><li><strong>Sección <code>roadmap</code> en <code>openspec/config.yaml</code></strong> — índice navegable: <code>context_budget</code>, <code>complexity</code>, rutas de docs y lista ordenada de fases con <code>id</code>, <code>name</code>, <code>objective</code>, <code>context_risk</code> y <code>change_hint</code> (slug sugerido para <code>aisdd open change</code>).</li></ul>
 <blockquote><code>aisdd roadmap</code> <strong>no</strong> ejecuta <code>openspec new change</code>, <strong>no</strong> archiva cambios y <strong>no</strong> edita otros artefactos de <code>openspec/</code> aparte de <code>config.yaml</code>.</blockquote>
 <p><strong>Alineación con el sprint-plan.</strong> Si existe <code>docs/sprint-plan.md</code> (Paso 3.5.2, que puede haberse ejecutado antes en modo degradado), <code>aisdd roadmap</code> lo lee y <strong>fasea alineado a los sprints</strong>: respeta su orden, corta las fases en fronteras de sprint, mantiene los changes de una HU dentro de la ventana de su sprint y no fasea HU no validadas; anota el sprint, las HU y el esfuerzo (humano e IA) en cada fase y documenta las discrepancias en una sección de <strong>conflictos de alineación roadmap↔sprint</strong>. Sin <code>sprint-plan.md</code>, fasea solo por presupuesto de contexto.</p>
 <p><strong>Criterio de salida de Fase 3 (parcial):</strong> Roadmap aprobado por el equipo técnico. Cada fase es abrible como uno o pocos changes con contexto acotado. <code>config.yaml</code> actualizado.</p>
@@ -408,25 +402,15 @@ aidd architecture-proposal</code></pre>
 <div class="table-wrap"><table><thead><tr><th>Comando</th><th>Quién lo ejecuta</th><th>Qué hace</th></tr></thead><tbody><tr><td><code>aisdd open change &lt;slug&gt;</code></td><td><strong>AI Lead</strong> (todos los changes)</td><td><strong>Pre-flight de dudas</strong> (máx. 7) → <code>openspec new change</code> → genera <code>proposal.md</code>, <code>design.md</code> y <code>spec.md</code>, y persiste <code>decisions.md</code>. El Lead <strong>valida</strong> los specs antes de entregarlos. Opcionalmente dispara <code>booster-uml</code>.</td></tr><tr><td><code>aisdd implement change &lt;slug&gt;</code></td><td>AI Developer</td><td><strong>Pre-flight de dudas</strong> (máx. 7) → <code>openspec instructions apply --change &lt;slug&gt;</code> → produce el código.</td></tr><tr><td><code>aisdd close change &lt;slug&gt;</code></td><td>Outcome Validator</td><td><code>openspec archive &lt;slug&gt;</code> → cierra y archiva el change validado.</td></tr><tr><td><code>aisdd uml &lt;slug&gt;</code></td><td>Cualquier rol</td><td>Genera HTML de diagramas del change con <code>booster-uml</code> (entrada: <code>design.md</code>, <code>proposal.md</code>, <code>spec.md</code>).</td></tr><tr><td><code>aisdd prototype-ux [&lt;slug&gt;]</code></td><td>AI Architect / Developer</td><td>Genera prototipos UX con <code>booster-ux</code>, una vez por pantalla nueva del change.</td></tr></tbody></table></div>
 <blockquote><strong>Decisión de proceso (ver <span class="swatch" style="background:#007"></span>#007):</strong> el <code>open change</code> (propose) de <strong>todos</strong> los changes lo ejecuta el <strong>AI Lead</strong>, no el Developer. El Lead actúa como control de calidad de la especificación: abre el change, responde el pre-flight, valida los artefactos y solo entonces entrega specs validados al Developer. El Developer se limita a <code>implement change</code> + verificación + corrección de bugs.</blockquote>
 <p><strong>Diferencia clave respecto a OpenSpec directo:</strong> <code>open change</code> e <code>implement change</code> ejecutan un <strong>pre-flight de dudas</strong> antes de actuar. El agente lee el contexto disponible, detecta ambigüedades reales (clasificadas como <code>bloqueante</code>, <code>preferencia</code> o <code>confirmacion</code>), pregunta al humano (máximo 7, priorizando bloqueantes) y persiste las respuestas en <code>openspec/changes/&lt;slug&gt;/decisions.md</code>. En modo no interactivo toma el default recomendado para no bloqueantes y se detiene ante bloqueantes sin default seguro.</p>
-<p>---</p>
+<hr>
 <p><strong>Change <code>foundation</code></strong> — siempre el primero, siempre especial. No implementa funcionalidad: establece la estructura base del proyecto (árbol de carpetas, configuración, archivos iniciales). Sin él, los changes funcionales no tienen base sobre la que operar. El AI Lead lo ejecuta completo:</p>
 <blockquote><strong>No confundir con la fase F0 del mapa de HU.</strong> Este change <code>foundation</code> es <em>scaffolding puro</em> derivado de <code>docs/arquitectura-base.md</code> (estructura y configuración, sin comportamiento). La <strong>fase F0 foundation</strong> del mapa de historias (Paso 1.2) es una agrupación de <em>producto</em> con las <strong>historias habilitadoras</strong> (auth base, modelo de datos, shell de navegación…). Este change materializa la estructura base; las historias habilitadoras de F0 se ejecutan como sus propios changes. El roadmap re-fasea todo por presupuesto de contexto, así que no hay correspondencia 1:1 entre fases del mapa y changes.</blockquote>
-<ol>
-<li><code>aisdd open change foundation</code> — responde el pre-flight (verifica que la estructura propuesta coincide con <code>arquitectura-base.md</code>)</li>
-<li>Revisar y ajustar los artefactos generados (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>)</li>
-<li><code>aisdd implement change foundation</code></li>
-<li>Verificar el resultado: árbol de carpetas, archivos de configuración y estructura base correctos</li>
-<li><code>aisdd close change foundation</code></li>
-</ol>
+<ol><li><code>aisdd open change foundation</code> — responde el pre-flight (verifica que la estructura propuesta coincide con <code>arquitectura-base.md</code>)</li><li>Revisar y ajustar los artefactos generados (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>)</li><li><code>aisdd implement change foundation</code></li><li>Verificar el resultado: árbol de carpetas, archivos de configuración y estructura base correctos</li><li><code>aisdd close change foundation</code></li></ol>
 <p><strong>Primer change funcional</strong> — el AI Lead abre y valida el primer change real (según <code>docs/roadmap.md</code> / <code>docs/prompts-roadmap-native-ai.md</code>) y entrega los specs validados al equipo:</p>
-<ol>
-<li><code>aisdd open change &lt;primer-change&gt;</code> usando el prompt de su fase en <code>docs/prompts-roadmap-native-ai.md</code>; responde el pre-flight de dudas</li>
-<li>Revisar y validar los artefactos generados y <code>decisions.md</code> — son el material que recibirán los AI Developers</li>
-<li>Handoff a AI Developers: el desarrollo puede comenzar (el Developer ejecutará <code>aisdd implement change</code>)</li>
-</ol>
+<ol><li><code>aisdd open change &lt;primer-change&gt;</code> usando el prompt de su fase en <code>docs/prompts-roadmap-native-ai.md</code>; responde el pre-flight de dudas</li><li>Revisar y validar los artefactos generados y <code>decisions.md</code> — son el material que recibirán los AI Developers</li><li>Handoff a AI Developers: el desarrollo puede comenzar (el Developer ejecutará <code>aisdd implement change</code>)</li></ol>
 <blockquote>A partir de aquí, el AI Lead repite el <code>open change</code> + validación para <strong>cada</strong> change del roadmap, normalmente cuando el Outcome Validator archiva el anterior y lanza el siguiente.</blockquote>
 <p><strong>Criterio de salida de Fase 3:</strong> Roadmap aprobado. OpenSpec inicializado y configurado. <code>AGENTS.md</code> registrado. Change <code>foundation</code> abierto, implementado y archivado. Primer change funcional abierto, validado y entregado a los AI Developers.</p>
-<p>---</p>
+<hr>
 <h3 id="fase-3-5-planificaci-n-de-entrega-ai-delivery-manager-definition-execution">Fase 3.5 — Planificación de entrega (AI Delivery Manager) · DEFINITION → EXECUTION</h3>
 <p><strong>Propósito:</strong> Traducir el diseño aprobado y el roadmap consciente de contexto en un plan ejecutable por un equipo (humano + agentes): qué <strong>recursos</strong> hacen falta y en qué <strong>orden temporal</strong> se aborda el trabajo. Cubre la dimensión de gestión de proyecto/recursos que el SDD v3 no contemplaba. Es <strong>opcional</strong> pero recomendada cuando el desarrollo lo ejecuta un equipo humano que necesita planificar recursos y sprints (p. ej. un equipo Scrum).</p>
 <p><strong>Entradas:</strong> <code>arquitectura-base.md</code>, <code>mapa-historias-usuario.md</code>, <code>detalle-historias-usuario.md</code> (para recursos); <code>roadmap.md</code> + <code>planificacion-proyecto.md</code> + <code>detalle-historias-usuario.md</code> (para sprints)</p>
@@ -438,7 +422,7 @@ aidd architecture-proposal</code></pre>
 <h4 id="paso-3-5-2-aidd-sprint-planning-plan-de-sprints">Paso 3.5.2 — <code>aidd sprint-planning</code> (plan de sprints)</h4>
 <p>El AI Delivery Manager distribuye el trabajo en sprints, respetando dependencias y prerequisitos (F0 → F1 → F2) y la capacidad del equipo, y produce <code>docs/sprint-plan.md</code> con objetivo por sprint, unidades de trabajo completas (sin partir changes), asignación de perfiles, hitos y riesgos de planificación. Necesita <code>docs/planificacion-proyecto.md</code>; con <code>docs/roadmap.md</code> (Paso 3.3) planifica sobre los changes/fases del roadmap, pero <strong>puede ejecutarse antes del roadmap en modo degradado</strong> (planificando sobre las historias del mapa) y <strong>re-ejecutarse después</strong> para re-fasear con el roadmap ya hecho — sin recrear Stories en Jira: el re-faseado <strong>mueve</strong> HU entre sprints y gestiona sprints, jamás borra/recrea issues (las claves son permanentes).</p>
 <p><strong>Criterio de salida de Fase 3.5:</strong> Plan de recursos y plan de sprints aprobados por el equipo. El trabajo del roadmap queda repartido en iteraciones ejecutables por un equipo humano, con dependencias respetadas. La ejecución (Fase 4) sigue el orden de los sprints: el AI Lead abre cada change con <code>aisdd open change</code> según ese orden.</p>
-<p>---</p>
+<hr>
 <h3 id="fase-4-apertura-implementaci-n-y-validaci-n-por-change-execution">Fase 4 — Apertura, Implementación y Validación por change · EXECUTION</h3>
 <p><strong>Propósito:</strong> Producir el código de cada change de forma controlada y trazable. El <strong>AI Lead</strong> abre y valida los specs (<code>open change</code>); el <strong>AI Developer</strong> los implementa, verifica y corrige bugs (<code>implement change</code>); el <strong>Outcome Validator</strong> valida y archiva (<code>close change</code>). El Developer no improvisa decisiones de arquitectura ni abre changes.</p>
 <p><strong>Entradas:</strong> <code>docs/prompts-roadmap-native-ai.md</code>, <code>docs/roadmap.md</code>, <code>arquitectura-base.md</code>, <code>detalle-historias-usuario.md</code>, change activo en OpenSpec</p>
@@ -509,20 +493,10 @@ ENTREGABLES
 CRITERIOS DE ACEPTACIÓN BLOQUEANTES
 [Criterios mínimos verificables para cerrar el change]</code></pre>
 <p><strong>Reparto de responsabilidades en el ciclo:</strong></p>
-<ul>
-<li><strong>AI Lead</strong> — ejecuta <code>aisdd open change &lt;slug&gt;</code>, responde el pre-flight, revisa y <strong>valida</strong> los artefactos (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>, <code>decisions.md</code>) y entrega specs validados al Developer.</li>
-<li><strong>AI Developer</strong> — recibe los specs validados, ejecuta <code>aisdd implement change &lt;slug&gt;</code> (responde su pre-flight antes de que se aplique el código), prueba end-to-end y <strong>corrige los bugs de implementación que identifique</strong>. No abre el change.</li>
-<li><strong>Outcome Validator</strong> — valida (técnico + funcional + trazabilidad), aprueba el MR, ejecuta <code>aisdd close change &lt;slug&gt;</code> y habilita al AI Lead para abrir el siguiente change.</li>
-</ul>
+<ul><li><strong>AI Lead</strong> — ejecuta <code>aisdd open change &lt;slug&gt;</code>, responde el pre-flight, revisa y <strong>valida</strong> los artefactos (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>, <code>decisions.md</code>) y entrega specs validados al Developer.</li><li><strong>AI Developer</strong> — recibe los specs validados, ejecuta <code>aisdd implement change &lt;slug&gt;</code> (responde su pre-flight antes de que se aplique el código), prueba end-to-end y <strong>corrige los bugs de implementación que identifique</strong>. No abre el change.</li><li><strong>Outcome Validator</strong> — valida (técnico + funcional + trazabilidad), aprueba el MR, ejecuta <code>aisdd close change &lt;slug&gt;</code> y habilita al AI Lead para abrir el siguiente change.</li></ul>
 <h4 id="enlace-con-jira-opcional-hu-vs-change">Enlace con Jira (opcional): HU vs change</h4>
 <p>Cuando la integración con Jira está configurada (sección <code>jira:</code> en <code>openspec/config.yaml</code> + MCP de Atlassian disponible), el ciclo por change mantiene sincronizados dos planos sin duplicar el seguimiento:</p>
-<ul>
-<li><strong>La HU es la unidad de entrega rastreable</strong> → una <strong>Story</strong> en Jira (la crea <code>aidd sprint-planning</code>). Es lo estable: tiene criterios de aceptación y la valida el cliente.</li>
-<li><strong>El change es la unidad de ejecución</strong> → una <strong>sub-tarea</strong> de la Story de su HU (la crea <code>aisdd open change</code>). Es lo volátil: lo fasea el presupuesto de contexto y <strong>no es 1:1</strong> con la HU (una HU puede necesitar varios changes).</li>
-<li><strong>Transiciones automáticas</strong>: <code>implement change</code> mueve la sub-tarea <strong>y su Story padre</strong> a <em>In Progress</em> y las <strong>asigna</strong> al usuario autenticado en el MCP (o al <code>assignee_override</code> si el MCP usa cuenta de servicio); <code>close change</code> pasa la sub-tarea a <em>Done</em> y la Story a <em>Done</em> <strong>solo cuando todas sus sub-tareas están Done</strong> (una HU no se cierra a medias).</li>
-<li><strong>Registro del enlace</strong>: <code>docs/jira-sync.md</code> (mapa HU ↔ change ↔ claves de Jira) es la fuente de verdad operativa; cada change anota su(s) HU en <code>proposal.md</code> y el PR del change referencia la clave Jira (<code>ABC-123</code>). Detalle de comportamiento en el skill <code>aisdd-specs</code>, sección &quot;Integración con Jira&quot;.</li>
-<li><strong>No intrusivo</strong>: si no está configurada, todos los comandos funcionan igual y la sincronización se omite.</li>
-</ul>
+<ul><li><strong>La HU es la unidad de entrega rastreable</strong> → una <strong>Story</strong> en Jira (la crea <code>aidd sprint-planning</code>). Es lo estable: tiene criterios de aceptación y la valida el cliente.</li><li><strong>El change es la unidad de ejecución</strong> → una <strong>sub-tarea</strong> de la Story de su HU (la crea <code>aisdd open change</code>). Es lo volátil: lo fasea el presupuesto de contexto y <strong>no es 1:1</strong> con la HU (una HU puede necesitar varios changes).</li><li><strong>Transiciones automáticas</strong>: <code>implement change</code> mueve la sub-tarea <strong>y su Story padre</strong> a <em>In Progress</em> y las <strong>asigna</strong> al usuario autenticado en el MCP (o al <code>assignee_override</code> si el MCP usa cuenta de servicio); <code>close change</code> pasa la sub-tarea a <em>Done</em> y la Story a <em>Done</em> <strong>solo cuando todas sus sub-tareas están Done</strong> (una HU no se cierra a medias).</li><li><strong>Registro del enlace</strong>: <code>docs/jira-sync.md</code> (mapa HU ↔ change ↔ claves de Jira) es la fuente de verdad operativa; cada change anota su(s) HU en <code>proposal.md</code> y el PR del change referencia la clave Jira (<code>ABC-123</code>). Detalle de comportamiento en el skill <code>aisdd-specs</code>, sección &quot;Integración con Jira&quot;.</li><li><strong>No intrusivo</strong>: si no está configurada, todos los comandos funcionan igual y la sincronización se omite.</li></ul>
 <p><strong>Prompt de validación (Outcome Validator):</strong></p>
 <pre><code>Actúa como QA técnico y funcional senior con capacidad de diagnóstico arquitectónico.
 
@@ -562,7 +536,7 @@ Si todo está correcto:
 - Aprueba el Merge Request
 - Ejecuta: aisdd close change &lt;SLUG&gt;
 - Lanza el siguiente change — habilita al AI Developer para el siguiente bloque</code></pre>
-<p>---</p>
+<hr>
 <h3 id="fase-5-onboarding-de-proyectos-existentes">Fase 5 — Onboarding de proyectos existentes</h3>
 <p><strong>Propósito:</strong> Incorporar la metodología AI-Native en un proyecto que ya está en marcha. El reto es generar los documentos de contexto a partir del código existente sin interrumpir el desarrollo.</p>
 <h4 id="estrategia">Estrategia</h4>
@@ -606,17 +580,14 @@ Para cada documento:
 
 Objetivo: fotografía fiel del estado actual, no del estado ideal.</code></pre>
 <p>Tras la reconciliación humana, el AI Lead ejecuta <code>aisdd init</code> (indicando proyecto existente y las rutas de estos documentos) y <code>aisdd roadmap</code> para fasear lo pendiente.</p>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="6-configuraci-n-del-entorno-de-trabajo">
 <h2><a class="anchor" href="#6-configuraci-n-del-entorno-de-trabajo" aria-label="Enlace">#</a>6. Configuración del entorno de trabajo</h2>
 <h3 id="agents-md">AGENTS.md</h3>
 <p><code>AGENTS.md</code> es el <strong>ancla de contexto permanente</strong> del proyecto y el fichero genérico que cualquier agente IA (Claude Code, Codex u otros) lee al abrir el repositorio. Sustituye al antiguo <code>CLAUDE.md</code> específico de un cliente para no atar la metodología a una herramienta concreta.</p>
 <p>Tiene dos partes:</p>
-<ol>
-<li><strong>Bloque manual</strong> — contexto, stack, convenciones, roles y documentos clave. Lo redacta el humano en la Fase 0 y se mantiene a mano.</li>
-<li><strong>Bloque auto-generado</strong> — <code>aisdd init</code> registra los comandos del skill dentro de un bloque idempotente <code>&lt;!-- BEGIN/END aisdd-specs commands --&gt;</code>. No se edita a mano: se regenera en cada <code>aisdd init</code> sin tocar el resto del fichero.</li>
-</ol>
+<ol><li><strong>Bloque manual</strong> — contexto, stack, convenciones, roles y documentos clave. Lo redacta el humano en la Fase 0 y se mantiene a mano.</li><li><strong>Bloque auto-generado</strong> — <code>aisdd init</code> registra los comandos del skill dentro de un bloque idempotente <code>&lt;!-- BEGIN/END aisdd-specs commands --&gt;</code>. No se edita a mano: se regenera en cada <code>aisdd init</code> sin tocar el resto del fichero.</li></ol>
 <pre><code># [NOMBRE DEL PROYECTO] — AGENTS.md
 
 ## Contexto del proyecto
@@ -664,15 +635,8 @@ Objetivo: fotografía fiel del estado actual, no del estado ideal.</code></pre>
 <blockquote><strong>Compatibilidad con Claude Code:</strong> si el equipo trabaja con Claude Code y quiere conservar <code>CLAUDE.md</code>, basta con que <code>CLAUDE.md</code> sea un alias que importe <code>AGENTS.md</code> (<code>@AGENTS.md</code>) o un fichero mínimo que apunte a él. El contenido vive en <code>AGENTS.md</code>; <code>CLAUDE.md</code> es opcional.</blockquote>
 <h3 id="gesti-n-de-contexto-entre-sesiones">Gestión de contexto entre sesiones</h3>
 <p>La IA no tiene memoria entre sesiones. Para garantizar coherencia:</p>
-<ol>
-<li><strong>Iniciar cada sesión</strong> referenciando los documentos del rol activo</li>
-<li><strong>Nunca asumir</strong> que la IA recuerda decisiones anteriores — incluirlas en el prompt o consultarlas en <code>decisions.md</code></li>
-<li><strong>Los documentos son la memoria</strong> — si algo no está documentado, no existe</li>
-<li><strong>El AGENTS.md</strong> es el ancla de contexto persistente en cada sesión: aporta el contexto del proyecto y publica los comandos del skill</li>
-<li><strong>Respeta el presupuesto de contexto</strong> del roadmap — no arrastres documentos de fases futuras a la fase actual</li>
-<li><strong>Ante cualquier duda</strong>, el pre-flight de <code>aisdd</code> la captura y la persiste en <code>decisions.md</code>; el AI Developer no improvisa ni escala directamente al Lead</li>
-</ol>
-<p>---</p>
+<ol><li><strong>Iniciar cada sesión</strong> referenciando los documentos del rol activo</li><li><strong>Nunca asumir</strong> que la IA recuerda decisiones anteriores — incluirlas en el prompt o consultarlas en <code>decisions.md</code></li><li><strong>Los documentos son la memoria</strong> — si algo no está documentado, no existe</li><li><strong>El AGENTS.md</strong> es el ancla de contexto persistente en cada sesión: aporta el contexto del proyecto y publica los comandos del skill</li><li><strong>Respeta el presupuesto de contexto</strong> del roadmap — no arrastres documentos de fases futuras a la fase actual</li><li><strong>Ante cualquier duda</strong>, el pre-flight de <code>aisdd</code> la captura y la persiste en <code>decisions.md</code>; el AI Developer no improvisa ni escala directamente al Lead</li></ol>
+<hr>
 </section>
 <section class="doc-section" id="7-estructura-de-carpetas-recomendada">
 <h2><a class="anchor" href="#7-estructura-de-carpetas-recomendada" aria-label="Enlace">#</a>7. Estructura de carpetas recomendada</h2>
@@ -707,85 +671,40 @@ Objetivo: fotografía fiel del estado actual, no del estado ideal.</code></pre>
     │       └── decisions.md           # decisiones del pre-flight
     └── audit/
         └── YYYY-MM.jsonl              # auditoría append-only</code></pre>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="8-auditor-a-y-trazabilidad">
 <h2><a class="anchor" href="#8-auditor-a-y-trazabilidad" aria-label="Enlace">#</a>8. Auditoría y trazabilidad</h2>
 <p>Cada comando <code>aisdd</code> escribe una entrada estructurada en <code>openspec/audit/YYYY-MM.jsonl</code> (un fichero por mes, append-only, JSON Lines). El objetivo es trazar <strong>quién</strong> ejecutó <strong>qué</strong> comando, sobre <strong>qué input</strong>, con <strong>qué prompt y modelo</strong>, y <strong>qué decisión humana</strong> se produjo.</p>
 <p><strong>Qué se registra (por entrada):</strong></p>
-<ul>
-<li><code>id</code>, <code>timestamp</code> (UTC ISO 8601), <code>command</code>, <code>change_id</code></li>
-<li><code>skill_version</code>, <code>prompt_version</code> (<code>&lt;skill_version&gt;:&lt;command-slug&gt;</code>)</li>
-<li><code>model</code>, <code>platform</code>, <code>user</code> (email si la plataforma lo expone, si no <code>null</code>)</li>
-<li><code>input_hash</code> + <code>input_files[]</code> con SHA-256 por fichero</li>
-<li><code>output_hash</code> + <code>output_files[]</code> con SHA-256 por fichero</li>
-<li><code>decisions[]</code> (solo para comandos con pre-flight): <code>slug</code>, <code>type</code>, <code>origen</code>, <code>decision</code></li>
-<li><code>status</code> (<code>ok | partial | aborted</code>), <code>errors[]</code></li>
-</ul>
+<ul><li><code>id</code>, <code>timestamp</code> (UTC ISO 8601), <code>command</code>, <code>change_id</code></li><li><code>skill_version</code>, <code>prompt_version</code> (<code>&lt;skill_version&gt;:&lt;command-slug&gt;</code>)</li><li><code>model</code>, <code>platform</code>, <code>user</code> (email si la plataforma lo expone, si no <code>null</code>)</li><li><code>input_hash</code> + <code>input_files[]</code> con SHA-256 por fichero</li><li><code>output_hash</code> + <code>output_files[]</code> con SHA-256 por fichero</li><li><code>decisions[]</code> (solo para comandos con pre-flight): <code>slug</code>, <code>type</code>, <code>origen</code>, <code>decision</code></li><li><code>status</code> (<code>ok | partial | aborted</code>), <code>errors[]</code></li></ul>
 <p><strong>Qué NO se registra:</strong> contenido literal de ficheros (solo hashes), texto libre de las dudas (vive en <code>decisions.md</code>), secretos/tokens/credenciales, diffs de código.</p>
 <p><strong>Retención:</strong> por defecto <code>365</code> días. Sobreescribible por proyecto, en este orden: <code>audit.retention_days</code> en <code>config.yaml</code> → <code>openspec/audit/.retention</code> → default <code>365</code>. La purga es por meses completos y nunca baja de <code>30</code> días. El JSONL es plano, listo para ingestar en Splunk, ELK o BigQuery.</p>
 <blockquote>La auditoría es <strong>obligatoria</strong> y no bloqueante: si la escritura falla (disco/permisos), el comando reporta el fallo pero no anula el resultado funcional.</blockquote>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="9-checklist-de-calidad-por-fase">
 <h2><a class="anchor" href="#9-checklist-de-calidad-por-fase" aria-label="Enlace">#</a>9. Checklist de calidad por fase</h2>
 <h3 id="fase-1-definici-n">Fase 1 — Definición</h3>
-<ul>
-<li>[ ] Todos los requisitos tienen ID trazable (RF-XX, NFR-XX)</li>
-<li>[ ] Cada RF tiene al menos una historia de usuario</li>
-<li>[ ] Cada historia tiene criterios de aceptación verificables</li>
-<li>[ ] El alcance (dentro/fuera) está explícitamente definido</li>
-<li>[ ] Humano ha aprobado los tres documentos</li>
-</ul>
+<ul><li class="task"><input type="checkbox" disabled> Todos los requisitos tienen ID trazable (RF-XX, NFR-XX)</li><li class="task"><input type="checkbox" disabled> Cada RF tiene al menos una historia de usuario</li><li class="task"><input type="checkbox" disabled> Cada historia tiene criterios de aceptación verificables</li><li class="task"><input type="checkbox" disabled> El alcance (dentro/fuera) está explícitamente definido</li><li class="task"><input type="checkbox" disabled> Humano ha aprobado los tres documentos</li></ul>
 <h3 id="fase-2-dise-o">Fase 2 — Diseño</h3>
-<ul>
-<li>[ ] El prototipo ha sido presentado y validado por el cliente</li>
-<li>[ ] El feedback del cliente está incorporado en <code>cliente-requisitos.md</code></li>
-<li>[ ] La guía de estilos define design tokens CSS concretos</li>
-<li>[ ] La propuesta de arquitectura justifica cada decisión de stack</li>
-<li>[ ] <code>arquitectura-base.md</code> está completo y es consumible por <code>aisdd roadmap</code></li>
-<li>[ ] Humano ha aprobado todos los documentos</li>
-</ul>
+<ul><li class="task"><input type="checkbox" disabled> El prototipo ha sido presentado y validado por el cliente</li><li class="task"><input type="checkbox" disabled> El feedback del cliente está incorporado en <code>cliente-requisitos.md</code></li><li class="task"><input type="checkbox" disabled> La guía de estilos define design tokens CSS concretos</li><li class="task"><input type="checkbox" disabled> La propuesta de arquitectura justifica cada decisión de stack</li><li class="task"><input type="checkbox" disabled> <code>arquitectura-base.md</code> está completo y es consumible por <code>aisdd roadmap</code></li><li class="task"><input type="checkbox" disabled> Humano ha aprobado todos los documentos</li></ul>
 <h3 id="fase-3-inicializaci-n-y-roadmap">Fase 3 — Inicialización y Roadmap</h3>
-<ul>
-<li>[ ] <code>aisdd init</code> ejecutado: OpenSpec inicializado, <code>booster-ux</code>/<code>booster-uml</code> verificados, <code>AGENTS.md</code> registrado</li>
-<li>[ ] Presupuesto de contexto resuelto y justificado (bajo/medio/alto)</li>
-<li>[ ] <code>aisdd roadmap</code> ejecutado: <code>docs/roadmap.md</code> y <code>docs/prompts-roadmap-native-ai.md</code> generados</li>
-<li>[ ] Sección <code>roadmap</code> en <code>openspec/config.yaml</code> con una entrada por fase</li>
-<li>[ ] Cada fase tiene criterio de cierre verificable y riesgo de contexto asignado</li>
-<li>[ ] Cada fase es abrible como uno o pocos changes con contexto acotado</li>
-<li>[ ] Change <code>foundation</code> abierto, implementado y archivado</li>
-<li>[ ] Primer change funcional abierto, validado por el AI Lead y entregado a AI Developers</li>
-</ul>
+<ul><li class="task"><input type="checkbox" disabled> <code>aisdd init</code> ejecutado: OpenSpec inicializado, <code>booster-ux</code>/<code>booster-uml</code> verificados, <code>AGENTS.md</code> registrado</li><li class="task"><input type="checkbox" disabled> Presupuesto de contexto resuelto y justificado (bajo/medio/alto)</li><li class="task"><input type="checkbox" disabled> <code>aisdd roadmap</code> ejecutado: <code>docs/roadmap.md</code> y <code>docs/prompts-roadmap-native-ai.md</code> generados</li><li class="task"><input type="checkbox" disabled> Sección <code>roadmap</code> en <code>openspec/config.yaml</code> con una entrada por fase</li><li class="task"><input type="checkbox" disabled> Cada fase tiene criterio de cierre verificable y riesgo de contexto asignado</li><li class="task"><input type="checkbox" disabled> Cada fase es abrible como uno o pocos changes con contexto acotado</li><li class="task"><input type="checkbox" disabled> Change <code>foundation</code> abierto, implementado y archivado</li><li class="task"><input type="checkbox" disabled> Primer change funcional abierto, validado por el AI Lead y entregado a AI Developers</li></ul>
 <h3 id="por-cada-change-fase-4">Por cada change (Fase 4)</h3>
-<ul>
-<li>[ ] <strong>[AI Lead]</strong> Copia el prompt de la fase de <code>prompts-roadmap-native-ai.md</code> y ejecuta <code>aisdd open change &lt;slug&gt;</code></li>
-<li>[ ] <strong>[AI Lead]</strong> Responde el pre-flight de dudas; las decisiones quedan en <code>decisions.md</code></li>
-<li>[ ] <strong>[AI Lead]</strong> Revisa y <strong>valida</strong> los artefactos generados (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>) antes del handoff</li>
-<li>[ ] <strong>[AI Lead]</strong> Entrega los specs validados al AI Developer</li>
-<li>[ ] <strong>[AI Developer]</strong> Revisa los specs recibidos (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>, <code>decisions.md</code>)</li>
-<li>[ ] <strong>[AI Developer]</strong> Ejecuta <code>aisdd implement change &lt;slug&gt;</code> (responde su pre-flight) sin errores</li>
-<li>[ ] <strong>[AI Developer]</strong> Prueba manualmente end-to-end y corrige los bugs de implementación que identifique</li>
-<li>[ ] <strong>[AI Developer]</strong> Prepara la feature para integración — branch actualizado, sin conflictos, MR listo</li>
-<li>[ ] <strong>[Outcome Validator]</strong> Verifica todos los criterios de aceptación (funcional + técnico)</li>
-<li>[ ] <strong>[Outcome Validator]</strong> Verifica trazabilidad (<code>decisions.md</code> + entrada de auditoría)</li>
-<li>[ ] <strong>[Outcome Validator]</strong> Diagnostica y escala cualquier problema de spec o arquitectónico al AI Lead</li>
-<li>[ ] <strong>[Outcome Validator]</strong> Aprueba el Merge Request</li>
-<li>[ ] <strong>[Outcome Validator]</strong> Ejecuta <code>aisdd close change &lt;slug&gt;</code></li>
-<li>[ ] <strong>[Outcome Validator]</strong> Lanza el siguiente change — habilita al <strong>AI Lead</strong> para abrir y validar el próximo change</li>
-</ul>
-<p>---</p>
+<ul><li class="task"><input type="checkbox" disabled> <strong>[AI Lead]</strong> Copia el prompt de la fase de <code>prompts-roadmap-native-ai.md</code> y ejecuta <code>aisdd open change &lt;slug&gt;</code></li><li class="task"><input type="checkbox" disabled> <strong>[AI Lead]</strong> Responde el pre-flight de dudas; las decisiones quedan en <code>decisions.md</code></li><li class="task"><input type="checkbox" disabled> <strong>[AI Lead]</strong> Revisa y <strong>valida</strong> los artefactos generados (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>) antes del handoff</li><li class="task"><input type="checkbox" disabled> <strong>[AI Lead]</strong> Entrega los specs validados al AI Developer</li><li class="task"><input type="checkbox" disabled> <strong>[AI Developer]</strong> Revisa los specs recibidos (<code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code>, <code>decisions.md</code>)</li><li class="task"><input type="checkbox" disabled> <strong>[AI Developer]</strong> Ejecuta <code>aisdd implement change &lt;slug&gt;</code> (responde su pre-flight) sin errores</li><li class="task"><input type="checkbox" disabled> <strong>[AI Developer]</strong> Prueba manualmente end-to-end y corrige los bugs de implementación que identifique</li><li class="task"><input type="checkbox" disabled> <strong>[AI Developer]</strong> Prepara la feature para integración — branch actualizado, sin conflictos, MR listo</li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Verifica todos los criterios de aceptación (funcional + técnico)</li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Verifica trazabilidad (<code>decisions.md</code> + entrada de auditoría)</li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Diagnostica y escala cualquier problema de spec o arquitectónico al AI Lead</li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Aprueba el Merge Request</li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Ejecuta <code>aisdd close change &lt;slug&gt;</code></li><li class="task"><input type="checkbox" disabled> <strong>[Outcome Validator]</strong> Lanza el siguiente change — habilita al <strong>AI Lead</strong> para abrir y validar el próximo change</li></ul>
+<hr>
 </section>
 <section class="doc-section" id="10-se-ales-de-alerta">
 <h2><a class="anchor" href="#10-se-ales-de-alerta" aria-label="Enlace">#</a>10. Señales de alerta</h2>
 <div class="table-wrap"><table><thead><tr><th>Señal</th><th>Causa probable</th><th>Acción</th></tr></thead><tbody><tr><td>El código no refleja lo definido en los documentos</td><td>El AI Developer no leyó los documentos del change</td><td>Revisar el prompt de la fase en <code>prompts-roadmap-native-ai.md</code> y re-implementar</td></tr><tr><td>Los documentos se contradicen entre sí</td><td>No se hizo handoff explícito entre fases</td><td>Reconciliar documentos antes de continuar</td></tr><tr><td>El AI Developer toma decisiones de arquitectura</td><td><code>arquitectura-base.md</code> tiene lagunas o ambigüedades</td><td>El AI Architect completa <code>arquitectura-base.md</code>; el AI Lead regenera el roadmap/prompts afectados</td></tr><tr><td>El cliente rechaza algo en demo avanzada</td><td>Se saltó la validación del prototipo</td><td>Volver a Fase 2 con el feedback recibido</td></tr><tr><td>La IA &quot;recuerda&quot; decisiones sin documentar</td><td>Se está usando el historial como memoria</td><td>Documentar la decisión en <code>decisions.md</code> y referenciarla en el prompt</td></tr><tr><td>Los changes se acumulan sin validar</td><td>El Outcome Validator no está activo</td><td>No avanzar al siguiente change hasta cerrar el actual con <code>aisdd close change</code></td></tr><tr><td>El AI Developer improvisa componentes o patrones</td><td>Los prompts del roadmap son ambiguos</td><td>El AI Lead regenera <code>prompts-roadmap-native-ai.md</code> con <code>aisdd roadmap</code></td></tr><tr><td>El Outcome Validator aprueba sin revisar el código</td><td>El rol está siendo ejecutado superficialmente</td><td>El Outcome Validator debe hacer revisión técnica real, no solo funcional</td></tr><tr><td>El AI Lead no desdobla Front/Back</td><td>El proyecto tiene complejidad en ambas capas</td><td>Separar en Front AI Lead + Back AI Lead con changes independientes</td></tr><tr><td>Un change arrastra demasiado contexto y se atasca</td><td>Fase demasiado grande para el presupuesto de contexto</td><td>Re-fasear con <code>aisdd roadmap</code> aumentando el número de fases / partiendo la fase en varios changes</td></tr><tr><td>El pre-flight pregunta lo que ya está documentado</td><td>No leyó <code>docs/</code>, specs previas o <code>decisions.md</code></td><td>Asegurar que el contexto del rol está accesible; las dudas resueltas no se repreguntan</td></tr><tr><td>Falta la entrada de auditoría de un change</td><td>El comando falló al escribir o se ejecutó OpenSpec a mano</td><td>Revisar <code>openspec/audit/</code>; usar siempre los comandos <code>aisdd</code>, no OpenSpec directo</td></tr></tbody></table></div>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="11-equivalencia-con-la-versi-n-openspec-directa">
 <h2><a class="anchor" href="#11-equivalencia-con-la-versi-n-openspec-directa" aria-label="Enlace">#</a>11. Equivalencia con la versión OpenSpec directa</h2>
 <p>Para equipos que vienen de la metodología v2.0 (OpenSpec a pelo):</p>
 <div class="table-wrap"><table><thead><tr><th>Concepto v2.0 (OpenSpec directo)</th><th>Equivalente v3.0 (<code>aisdd-specs</code>)</th></tr></thead><tbody><tr><td><code>openspec init</code></td><td><code>aisdd init</code> (+ comprobación de boosters + registro en <code>AGENTS.md</code>)</td></tr><tr><td>Planificación de sprints (<code>sprints-desarrollo.md</code>)</td><td><code>aisdd roadmap</code> → <code>docs/roadmap.md</code> (faseado por presupuesto de contexto)</td></tr><tr><td>— (planificación de recursos no existía)</td><td><strong><code>aidd project-plan</code></strong> → <code>docs/planificacion-proyecto.md</code> (capa Delivery, v4)</td></tr><tr><td>Sprints calendarizados para equipo humano</td><td><strong><code>aidd sprint-planning</code></strong> → <code>docs/sprint-plan.md</code> sobre el roadmap (capa Delivery, v4)</td></tr><tr><td>Framework de prompting (<code>prompts_a_ejecutar.md</code>)</td><td><code>docs/prompts-roadmap-native-ai.md</code> (generado por <code>aisdd roadmap</code>)</td></tr><tr><td><code>/opsx:propose [name]</code></td><td><code>aisdd open change &lt;slug&gt;</code> (<strong>+ pre-flight de dudas</strong> → <code>decisions.md</code>)</td></tr><tr><td><code>/opsx:apply [name]</code></td><td><code>aisdd implement change &lt;slug&gt;</code> (<strong>+ pre-flight de dudas</strong>)</td></tr><tr><td><code>/opsx:archive [name]</code></td><td><code>aisdd close change &lt;slug&gt;</code></td></tr><tr><td><code>/opsx:explore</code> (checklist go-live)</td><td>Revisión del roadmap (<code>docs/roadmap.md</code>) y criterios de cierre por fase</td></tr><tr><td>Artefactos del change (<code>proposal/design/tasks</code>)</td><td><code>proposal.md</code>, <code>design.md</code>, <code>spec.md</code> + <code>decisions.md</code></td></tr><tr><td>Diagramas (manual)</td><td><code>aisdd uml &lt;slug&gt;</code> (booster-uml)</td></tr><tr><td>Prototipo (manual)</td><td><code>aisdd prototype-ux [&lt;slug&gt;]</code> (booster-ux)</td></tr><tr><td>— (no existía)</td><td><strong>Auditoría</strong> obligatoria en <code>openspec/audit/*.jsonl</code></td></tr><tr><td>— (no existía)</td><td><strong>Pre-flight de dudas</strong> (máx. 7) integrado en open/implement</td></tr><tr><td>— (no existía)</td><td><strong>Presupuesto de contexto</strong> (bajo/medio/alto) que regula el faseado</td></tr></tbody></table></div>
-<p>---</p>
+<hr>
 </section>
 <section class="doc-section" id="12-registro-de-decisiones-sobre-el-framework">
 <h2><a class="anchor" href="#12-registro-de-decisiones-sobre-el-framework" aria-label="Enlace">#</a>12. Registro de decisiones sobre el framework</h2>
@@ -794,24 +713,61 @@ Objetivo: fotografía fiel del estado actual, no del estado ideal.</code></pre>
 </section>
     </main>
   </div>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+  <script>
+    // Theme toggle (auto -> claro -> oscuro), persisted per browser. Classic script:
+    // must keep working even without network (the Mermaid CDN import lives apart).
+    (function () {
+      const KEY = 'booster-docs-theme';
+      const btn = document.getElementById('themeToggle');
+      const modes = ['auto', 'light', 'dark'];
+      const icons = { auto: '\u25D1', light: '\u2600', dark: '\u263E' };
+      let mode = localStorage.getItem(KEY);
+      if (!modes.includes(mode)) mode = 'auto';
+      function apply() {
+        if (mode === 'auto') delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = mode;
+        btn.textContent = icons[mode];
+        btn.title = 'Tema: ' + mode;
+      }
+      btn.addEventListener('click', () => {
+        mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+        localStorage.setItem(KEY, mode);
+        apply();
+      });
+      apply();
+    })();
 
     // Scroll-spy: highlight the current section in the TOC.
-    const links = [...document.querySelectorAll('.toc a')];
-    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          links.forEach(a => a.classList.remove('active'));
-          const a = map.get(e.target.id);
-          if (a) a.classList.add('active');
-        }
-      });
-    }, { rootMargin: '-10% 0px -80% 0px' });
-    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+    (function () {
+      const links = [...document.querySelectorAll('.toc a')];
+      if (!links.length) return;
+      const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            links.forEach(a => a.classList.remove('active'));
+            const a = map.get(e.target.id);
+            if (a) a.classList.add('active');
+          }
+        });
+      }, { rootMargin: '-10% 0px -80% 0px' });
+      document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+    })();
+  </script>
+  <script type="module">
+    // Mermaid via CDN, best-effort: offline the diagrams stay as readable source
+    // with a notice instead of silently breaking the page's other scripts.
+    if (document.querySelector('.mermaid')) {
+      try {
+        const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+        const dark = document.documentElement.dataset.theme === 'dark'
+          || (document.documentElement.dataset.theme !== 'light'
+              && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+      } catch (e) {
+        document.querySelectorAll('.diagram').forEach(d => d.classList.add('offline'));
+      }
+    }
   </script>
 </body>
 </html>
