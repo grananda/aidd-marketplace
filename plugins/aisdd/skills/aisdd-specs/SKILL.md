@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian): `open change` crea la sub-tarea del change bajo la Story de su HU, `implement change` mueve sus tickets a In Progress, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.1"
+  version: "1.2.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -290,14 +290,17 @@ Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase p
    openspec new change <what-you-want-to-build>
    ```
 5. Localiza los artefactos generados del cambio: `design.md`, `proposal.md` y ficheros `spec.md`. Alimentalos con las decisiones recogidas en el pre-flight (alcance, dominios, integraciones, modelo de datos, criterios de aceptacion).
-6. Pasa esa documentacion al skill `booster-uml` para generar HTML con diagramas.
+6. **Diagramas UML solo si el change lo amerita.** Evalua el contenido de `proposal.md`/`design.md`/`spec.md` y lanza `booster-uml` unicamente cuando los diagramas aporten comprension real:
+   - **Si lo amerita** (basta con cumplir uno): interaccion entre varios componentes/actores/sistemas (secuencia), entidades de dominio nuevas o relaciones que cambian (clases/ER), ciclo de vida o maquina de estados, flujo con ramificaciones o decisiones no triviales (actividad), o una integracion externa nueva.
+   - **No lo amerita**: scaffolding/foundation puro, cambios de configuracion o dependencias, textos/estilos, docs-only, un bugfix puntual o renombrados — en estos casos **omite** la generacion con una linea en el resumen ("Diagramas UML omitidos: el change no los amerita") y recuerda que `aisdd uml <slug>` los genera bajo demanda en cualquier momento.
+   - **En caso de duda, genera** (el coste es bajo y el humano puede ignorarlos). Si el usuario pide explicitamente diagramas siempre o nunca, su preferencia manda sobre este criterio.
 7. **Enlace con Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)"):
    - Identifica la(s) **HU** que realiza este change a partir de `docs/roadmap.md`, `docs/mapa-historias-usuario.md` y `docs/jira-sync.md`. Si no es deducible con confianza, preguntalo (cuenta dentro del presupuesto de pre-flight).
    - Anota la(s) HU en `proposal.md` (p. ej. una linea "Historias: HU-03").
    - Lee `docs/jira-sync.md`; si la(s) HU ya tienen Story en Jira y el change **no** tiene aun sub-tarea, crea la **sub-tarea** bajo la Story de la HU principal (tipo `subtask_issue_type`), referenciando las HU secundarias en la descripcion. No la dupliques si ya existe.
    - Registra en `docs/jira-sync.md` la fila/celda con la clave de la sub-tarea y estado `to_do`. No muevas de columna aqui (eso es `implement`/`close`).
    - Si la HU no tiene Story todavia (aun no se volco el plan), no crees la sub-tarea: anota el change en el registro como pendiente de Story y avisa en el resumen.
-8. Reporta el identificador del cambio, rutas creadas, decisiones del pre-flight grabadas en `openspec/changes/<change>/decisions.md`, ruta del HTML de diagramas si se genero y, si aplico, la sub-tarea de Jira creada y enlazada.
+8. Reporta el identificador del cambio, rutas creadas, decisiones del pre-flight grabadas en `openspec/changes/<change>/decisions.md`, la decision sobre los diagramas UML (ruta del HTML si se generaron; motivo de la omision si no) y, si aplico, la sub-tarea de Jira creada y enlazada.
 
 ### Pre-flight de dudas para apertura
 

@@ -8,7 +8,7 @@ Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar l
 
 1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
 2. `aisdd roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
-3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y dispara la generacion de diagramas UML.
+3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
 4. `aisdd implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
 5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado.
 6. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
@@ -97,7 +97,7 @@ Crea un cambio OpenSpec en dos fases:
 
 El argumento es opcional. Si no se indica, el agente debe crear un identificador razonable a partir del objetivo del usuario.
 
-Tras crear el cambio, el agente debe pasar `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml` para generar el HTML con diagramas.
+Tras crear el cambio, el agente evalua si los diagramas aportan comprension real (interaccion multi-componente, entidades o relaciones nuevas, maquina de estados, flujo con ramificaciones, integracion externa) y solo entonces pasa `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml`. En changes triviales (scaffolding, config, textos, bugfix puntual) se omite con aviso; `aisdd uml <slug>` los genera bajo demanda. En caso de duda, se generan.
 
 Comportamientos clave del pre-flight:
 
