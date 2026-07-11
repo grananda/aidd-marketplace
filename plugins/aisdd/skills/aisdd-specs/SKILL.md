@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian): `open change` crea la sub-tarea del change bajo la Story de su HU, `implement change` mueve sus tickets a In Progress, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -496,6 +496,8 @@ jira:
 ```
 
 No inventes valores: si falta una clave necesaria, preguntala una vez y persistela en `config.yaml`.
+
+**Issue types: descubrir, no asumir.** Los nombres `Story`/`Sub-task` del ejemplo son solo orientativos y **varian segun el tipo de proyecto Jira**: en proyectos *team-managed* la sub-tarea se llama `Subtask` y en *company-managed* `Sub-task`. Antes de crear el primer issue, lee los issue types reales del proyecto (tool del MCP de tipos de issue del proyecto), elige como `subtask_issue_type` el tipo con `subtask: true` y verifica que `story_issue_type` existe; si el valor configurado no coincide con ninguno real, corrigelo en `config.yaml` (pregunta si hay mas de un candidato) en lugar de dejar que la creacion falle.
 
 ### Registro de enlace (`docs/jira-sync.md`)
 
