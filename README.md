@@ -1,6 +1,6 @@
-# AIDD + SDD + AIAD — Marketplace de skills para Claude Code
+# AIDD + AISDD + AIAD — Marketplace de skills para Claude Code
 
-Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — planificación y arquitectura asistida por IA), **SDD** (Native AI Specs sobre OpenSpec) y **AIAD** (AI-Augmented Development — ejecución human-first *ia-in-the-loop*) desde cualquier instancia de Claude Code.
+Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — planificación y arquitectura asistida por IA), **AISDD** (AI Spec-Driven Development sobre OpenSpec; *fork mantenido del antiguo `sdd`*) y **AIAD** (AI-Augmented Development — ejecución human-first *ia-in-the-loop*) desde cualquier instancia de Claude Code.
 
 - Repositorio: `grananda/aidd-marketplace` — **privado**.
 - Nombre del marketplace: `aidd-sdd`.
