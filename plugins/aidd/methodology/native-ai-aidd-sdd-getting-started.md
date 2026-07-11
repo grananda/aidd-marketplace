@@ -1,6 +1,6 @@
 # Native AI · AIDD-SDD — Getting Started
 
-**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (planificación, diseño y entrega) sobre el proceso *Spec-Driven Development*, y el skill `native-ai-specs` (ejecución sobre OpenSpec).
+**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (planificación, diseño y entrega) sobre el proceso *Spec-Driven Development*, y el skill `aisdd-specs` (ejecución sobre OpenSpec).
 
 > Documento de referencia completo: [native-ai-aidd-sdd.md](native-ai-aidd-sdd.md). Esta guía es el camino corto para ponerte en marcha en una tarde.
 
@@ -8,24 +8,24 @@
 
 ## 1. ¿Qué es esto en una frase?
 
-Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** → generas specs por *change* con `native-ai-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
+Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** → generas specs por *change* con `aisdd-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
 
 **Los cinco roles:**
 
 | Rol | Hace | Comandos clave |
 | --- | --- | --- |
 | **AI Architect** | Requisitos, historias, arquitectura, prototipo | `aidd requirements`, `aidd user-stories`, `aidd user-story-details`, `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture` |
-| **AI Lead** | Inicializa, fasea, **abre y valida los specs de todos los changes** | `native-ai init`, `native-ai roadmap`, `native-ai open change` |
+| **AI Lead** | Inicializa, fasea, **abre y valida los specs de todos los changes** | `aisdd init`, `aisdd roadmap`, `aisdd open change` |
 | **AI Delivery Manager** | Plan de recursos y reparto en sprints (capa Delivery, v4) | `aidd project-plan`, `aidd sprint-planning` |
-| **AI Developer** | Implementa, verifica, corrige bugs | `native-ai implement change` |
-| **Outcome Validator** | QA técnico + funcional, archiva | `native-ai close change` |
+| **AI Developer** | Implementa, verifica, corrige bugs | `aisdd implement change` |
+| **Outcome Validator** | QA técnico + funcional, archiva | `aisdd close change` |
 
 ---
 
 ## 2. Requisitos previos
 
 - **Node.js y npm** instalados.
-- Un agente con el skill **`native-ai-specs`** disponible (Claude Code, Codex u otro).
+- Un agente con el skill **`aisdd-specs`** disponible (Claude Code, Codex u otro).
 - Skills auxiliares (opcionales pero recomendados):
   - `booster-ux` — prototipos UX.
   - `booster-uml` — diagramas del change.
@@ -35,17 +35,17 @@ Un flujo de desarrollo donde **la especificación es el motor**: **defines y dis
 ```bash
 node --version
 npm --version
-openspec --version   # si falta, native-ai init lo instala
+openspec --version   # si falta, aisdd init lo instala
 ```
 
 ---
 
 ## 3. Instalación e inicialización
 
-`native-ai init` envuelve la instalación de OpenSpec y prepara el proyecto.
+`aisdd init` envuelve la instalación de OpenSpec y prepara el proyecto.
 
 ```text
-native-ai init
+aisdd init
 ```
 
 Qué hace:
@@ -63,15 +63,15 @@ Qué hace:
 ## 4. El flujo completo de un vistazo
 
 ```
-native-ai init                 ← AI Lead   (una vez)
-native-ai roadmap              ← AI Lead   (una vez · fasea el desarrollo)
+aisdd init                 ← AI Lead   (una vez)
+aisdd roadmap              ← AI Lead   (una vez · fasea el desarrollo)
         │
         ▼   por cada fase del roadmap (= un change):
-native-ai open change <slug>   ← AI Lead   (pre-flight de dudas → specs validados)
+aisdd open change <slug>   ← AI Lead   (pre-flight de dudas → specs validados)
         │  handoff: specs validados ──►
-native-ai implement change <slug>  ← AI Developer (pre-flight → código)
+aisdd implement change <slug>  ← AI Developer (pre-flight → código)
         │  pruebas + corrección de bugs ──►
-native-ai close change <slug>  ← Outcome Validator (valida → archiva)
+aisdd close change <slug>  ← Outcome Validator (valida → archiva)
         │
         ▼  siguiente change
 ```
@@ -120,11 +120,11 @@ aidd architecture             # docs/arquitectura-base.md (arquitectura definiti
 ### Paso 3 — Inicialización y Roadmap (AI Lead)
 
 ```text
-native-ai init
-native-ai roadmap
+aisdd init
+aisdd roadmap
 ```
 
-`native-ai roadmap` genera:
+`aisdd roadmap` genera:
 
 - `docs/roadmap.md` — fases del desarrollo (granularidad según presupuesto de contexto).
 - `docs/prompts-roadmap-native-ai.md` — el prompt exacto de cada fase.
@@ -146,9 +146,9 @@ aidd sprint-planning   # docs/sprint-plan.md             (necesita docs/roadmap.
 El primer change siempre es `foundation` (estructura base, sin funcionalidad):
 
 ```text
-native-ai open change foundation
-native-ai implement change foundation
-native-ai close change foundation
+aisdd open change foundation
+aisdd implement change foundation
+aisdd close change foundation
 ```
 
 ### Paso 5 — Primer change funcional
@@ -157,13 +157,13 @@ El **AI Lead** abre y valida; el **AI Developer** implementa; el **Validator** c
 
 ```text
 # AI Lead
-native-ai open change alta-de-clientes
+aisdd open change alta-de-clientes
 
 # AI Developer (tras recibir los specs validados)
-native-ai implement change alta-de-clientes
+aisdd implement change alta-de-clientes
 
 # Outcome Validator (tras validar)
-native-ai close change alta-de-clientes
+aisdd close change alta-de-clientes
 ```
 
 Repite el Paso 5 para cada fase del roadmap hasta terminar.
@@ -203,13 +203,13 @@ openspec/
 
 | Comando | Quién | Para qué |
 | --- | --- | --- |
-| `native-ai init` | AI Lead | Inicializa OpenSpec + dependencias + `AGENTS.md` |
-| `native-ai roadmap` | AI Lead | Fasea el desarrollo y genera los prompts por fase |
-| `native-ai open change <slug>` | AI Lead | Pre-flight + genera specs validados del change |
-| `native-ai implement change <slug>` | AI Developer | Pre-flight + implementa el código |
-| `native-ai close change <slug>` | Outcome Validator | Valida y archiva el change |
-| `native-ai prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
-| `native-ai uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
+| `aisdd init` | AI Lead | Inicializa OpenSpec + dependencias + `AGENTS.md` |
+| `aisdd roadmap` | AI Lead | Fasea el desarrollo y genera los prompts por fase |
+| `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados del change |
+| `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código |
+| `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
+| `aisdd uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
 | `aidd hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
 | `aidd project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
 | `aidd sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
@@ -221,7 +221,7 @@ openspec/
 | Síntoma | Causa | Solución |
 | --- | --- | --- |
 | El Developer intenta abrir el change | Reparto de roles mal entendido | El **AI Lead** abre y valida; el Developer solo `implement change` |
-| Un change se atasca arrastrando demasiado contexto | Fase demasiado grande | Re-fasea con `native-ai roadmap` (más fases, más pequeñas) |
+| Un change se atasca arrastrando demasiado contexto | Fase demasiado grande | Re-fasea con `aisdd roadmap` (más fases, más pequeñas) |
 | El pre-flight pregunta lo obvio | No leyó `docs/` / `AGENTS.md` / specs previas | Asegura que el contexto del rol está accesible |
 | "La IA recuerda" decisiones no escritas | Se usa el historial como memoria | Todo va a `decisions.md` o `docs/`; si no está escrito, no existe |
 | No hay entrada de auditoría | Se ejecutó OpenSpec a mano | Usa siempre los comandos `native-ai`, no OpenSpec directo |

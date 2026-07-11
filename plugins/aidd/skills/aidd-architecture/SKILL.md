@@ -1,6 +1,6 @@
 ---
 name: aidd-architecture
-description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"
@@ -30,11 +30,11 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - `aidd architecture-proposal` (2.3): propuesta de arquitectura (`docs/propuesta-arquitectura-base.md`).
   - **`aidd architecture`** (este skill, 2.4): arquitectura tecnica definitiva (`docs/arquitectura-base.md`).
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** de la arquitectura base con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 
-> `docs/arquitectura-base.md` es el **insumo principal** del roadmap. En la metodologia completa lo consume `native-ai roadmap` (Fase 3), pero este skill no depende de ello: produce el documento de arquitectura tanto si luego se usa `native-ai-specs` como si no.
+> `docs/arquitectura-base.md` es el **insumo principal** del roadmap. En la metodologia completa lo consume `aisdd roadmap` (Fase 3), pero este skill no depende de ello: produce el documento de arquitectura tanto si luego se usa `aisdd-specs` como si no.
 
 ## Rol y objetivo
 
@@ -136,4 +136,4 @@ Al terminar, informa:
 - Conflictos entre documentos de entrada resueltos y decisiones que quedan pendientes.
 - Recordatorio del gate de Fase 2: prototipo validado por el cliente y guia de estilos, propuesta de arquitectura y arquitectura definitiva **aprobadas por el humano**.
 - Criterio de salida de Fase 2: indica si requisitos y arquitectura quedan en estado consumible para fasear el roadmap, o que falta.
-- Siguiente paso sugerido: Fase 3 — Inicializacion y Roadmap (AI Lead). En la metodologia completa se hace con `native-ai init` y `native-ai roadmap`; queda fuera del conjunto AIDD de planificacion.
+- Siguiente paso sugerido: Fase 3 — Inicializacion y Roadmap (AI Lead). En la metodologia completa se hace con `aisdd init` y `aisdd roadmap`; queda fuera del conjunto AIDD de planificacion.

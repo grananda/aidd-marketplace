@@ -1,6 +1,6 @@
 ---
 name: aidd-prototype
-description: Fase 2 (paso 2.2) del conjunto AIDD (AI Driven Development). Orquesta la implementacion del prototipo mockeado redirigiendo a `booster-ux`, mediante el comando `aidd prototype` (alias `aidd fase 2.2`). No escribe codigo por si mismo. Lee `docs/arquitectura-base-prototipo.md`, identifica las pantallas y flujos clave de la demo y lanza `booster-ux` una vez por pantalla; si `booster-ux` no esta disponible, entrega instrucciones de implementacion manual de la demo. Tras la implementacion recuerda el punto de validacion con cliente y la actualizacion de `docs/cliente-requisitos.md`. Skill puente de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.2) del conjunto AIDD (AI Driven Development). Orquesta la implementacion del prototipo mockeado redirigiendo a `booster-ux`, mediante el comando `aidd prototype` (alias `aidd fase 2.2`). No escribe codigo por si mismo. Lee `docs/arquitectura-base-prototipo.md`, identifica las pantallas y flujos clave de la demo y lanza `booster-ux` una vez por pantalla; si `booster-ux` no esta disponible, entrega instrucciones de implementacion manual de la demo. Tras la implementacion recuerda el punto de validacion con cliente y la actualizacion de `docs/cliente-requisitos.md`. Skill puente de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"

@@ -1,6 +1,6 @@
 ---
 name: booster-uml
-description: Genera un HTML con diagramas UML en Mermaid para un change de OpenSpec. Usar cuando el usuario pida `native-ai uml`, diagramas UML, casos de uso, actividad, secuencia o estado a partir de `openspec/changes/{change-id}/`, o cuando haya que documentar visualmente un cambio OpenSpec sin modificar sus artefactos funcionales.
+description: Genera un HTML con diagramas UML en Mermaid para un change de OpenSpec. Usar cuando el usuario pida `aisdd uml`, diagramas UML, casos de uso, actividad, secuencia o estado a partir de `openspec/changes/{change-id}/`, o cuando haya que documentar visualmente un cambio OpenSpec sin modificar sus artefactos funcionales.
 ---
 
 # booster-uml
@@ -9,7 +9,7 @@ Generar `openspec/changes/<CHANGE_ID>/uml-diagrams.html` con diagramas UML traza
 
 ## Flujo
 
-1. Resolver `CHANGE_ID` desde la peticion o desde los cambios abiertos de OpenSpec si viene invocado por `native-ai uml`.
+1. Resolver `CHANGE_ID` desde la peticion o desde los cambios abiertos de OpenSpec si viene invocado por `aisdd uml`.
 2. Trabajar desde la raiz del proyecto y localizar `openspec/changes/<CHANGE_ID>/`.
 3. Leer, si existen:
    - `proposal.md`

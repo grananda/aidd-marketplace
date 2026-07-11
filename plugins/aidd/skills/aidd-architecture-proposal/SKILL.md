@@ -1,6 +1,6 @@
 ---
 name: aidd-architecture-proposal
-description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la propuesta de arquitectura base del producto, mediante el comando `aidd architecture-proposal` (alias `aidd fase 2.3 arquitectura`). Actua como experto en arquitectura de software que lee `docs/detalle-historias-usuario.md` y genera `docs/propuesta-arquitectura-base.md` con stack tecnico recomendado y justificado, organizacion de modulos y capas, gestion de estado y flujo de datos, estrategia de testing, y consideraciones de seguridad y escalabilidad alineadas con las historias. Paso del Diseno (AI Architect), complementario a la guia de estilos y previo a la arquitectura tecnica definitiva. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la propuesta de arquitectura base del producto, mediante el comando `aidd architecture-proposal` (alias `aidd fase 2.3 arquitectura`). Actua como experto en arquitectura de software que lee `docs/detalle-historias-usuario.md` y genera `docs/propuesta-arquitectura-base.md` con stack tecnico recomendado y justificado, organizacion de modulos y capas, gestion de estado y flujo de datos, estrategia de testing, y consideraciones de seguridad y escalabilidad alineadas con las historias. Paso del Diseno (AI Architect), complementario a la guia de estilos y previo a la arquitectura tecnica definitiva. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"
@@ -30,7 +30,7 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - **`aidd architecture-proposal`** (este skill, 2.3): propuesta de arquitectura (`docs/propuesta-arquitectura-base.md`).
   - `aidd architecture` (2.4): arquitectura tecnica definitiva (`docs/arquitectura-base.md`).
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** de la propuesta de arquitectura con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 

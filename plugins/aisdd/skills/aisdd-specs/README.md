@@ -1,22 +1,22 @@
-# native-ai-specs
+# aisdd-specs
 
 Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar la generacion de diagramas y prototipos con los skills `booster-uml` y `booster-ux`.
 
 ## Resumen comandos
 
-1. `native-ai init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
-2. `native-ai roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
-3. `native-ai open change <what-you-want-to-build>` — crea un cambio OpenSpec y dispara la generacion de diagramas UML.
-4. `native-ai implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
-5. `native-ai close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado.
-6. `native-ai prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
-7. `native-ai prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
-8. `native-ai uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
+1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
+2. `aisdd roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
+3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y dispara la generacion de diagramas UML.
+4. `aisdd implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
+5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado.
+6. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
+7. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
+8. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
 
 ## Requisitos
 
 - Node.js y npm disponibles.
-- OpenSpec instalado globalmente. Si falta, el comando `native-ai init` debe instalarlo con:
+- OpenSpec instalado globalmente. Si falta, el comando `aisdd init` debe instalarlo con:
 
 ```bash
 npm install -g @fission-ai/openspec@latest
@@ -36,7 +36,7 @@ Si falta alguno, Codex debe avisar e indicar donde copiarlo o instalarlo.
 
 ## Comandos disponibles
 
-### `native-ai init`
+### `aisdd init`
 
 Inicializa Native AI Specs en el proyecto:
 
@@ -46,9 +46,9 @@ Inicializa Native AI Specs en el proyecto:
 4. Comprueba la disponibilidad de `booster-ux` y `booster-uml`.
 5. Pregunta si el proyecto es un desarrollo nuevo o un desarrollo ya existente.
 6. Si es existente, solicita las rutas de los markdowns con documentacion funcional, tecnica y de arquitectura, y actualiza `config.yaml` de OpenSpec con ese contexto inicial.
-7. Registra los comandos del skill en el `AGENTS.md` del proyecto (lo crea si no existe) dentro de un bloque delimitado por marcadores `<!-- BEGIN/END native-ai-specs commands -->`, que se reemplaza de forma idempotente en cada ejecucion sin tocar el resto del fichero.
+7. Registra los comandos del skill en el `AGENTS.md` del proyecto (lo crea si no existe) dentro de un bloque delimitado por marcadores `<!-- BEGIN/END aisdd-specs commands -->`, que se reemplaza de forma idempotente en cada ejecucion sin tocar el resto del fichero.
 
-### `native-ai roadmap`
+### `aisdd roadmap`
 
 Fasea el desarrollo a partir de los requisitos y la arquitectura del proyecto antes de crear cambios OpenSpec.
 
@@ -65,7 +65,7 @@ Si no se conoce el modelo real o su ventana de contexto, se debe asumir `medio`.
 El comando genera:
 
 - `docs/roadmap.md`: division del desarrollo por fases, alcance de cada fase, dependencias, entregables OpenSpec esperados y criterios de cierre.
-- `docs/prompts-roadmap-native-ai.md`: prompts para ejecutar el roadmap hasta el final usando los comandos del skill `native-ai-specs`.
+- `docs/prompts-roadmap-native-ai.md`: prompts para ejecutar el roadmap hasta el final usando los comandos del skill `aisdd-specs`.
 
 Tras generar esos documentos, el comando actualiza `openspec/config.yaml` con una seccion `roadmap` (presupuesto de contexto, complejidad, rutas de los documentos y la lista ordenada de fases con su objetivo, riesgo de contexto y slug sugerido), para que los comandos posteriores dispongan de un indice navegable del roadmap.
 
@@ -73,13 +73,13 @@ Este comando no debe ejecutar `openspec new change` ni archivar cambios, ni edit
 
 El fichero `docs/prompts-roadmap-native-ai.md` debe usar como base operativa estos comandos:
 
-- `native-ai open change <what-you-want-to-build>`
-- `native-ai implement change <what-you-want-to-build>`
-- `native-ai close change <what-you-want-to-build>`
+- `aisdd open change <what-you-want-to-build>`
+- `aisdd implement change <what-you-want-to-build>`
+- `aisdd close change <what-you-want-to-build>`
 
 Los prompts deben incluir el contexto minimo necesario para cada fase y evitar arrastrar informacion de fases futuras si no es necesaria todavia.
 
-### `native-ai open change <what-you-want-to-build>`
+### `aisdd open change <what-you-want-to-build>`
 
 Crea un cambio OpenSpec en dos fases:
 
@@ -102,7 +102,7 @@ Comportamientos clave del pre-flight:
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, marca cada decisión con `Origen: auto-default` y, si hay `bloqueantes` sin default seguro, detiene el comando sin ejecutar `openspec new change`.
 - Si tras la lectura inicial no detecta dudas reales, registra una única entrada con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`, y procede a crear el cambio.
 
-### `native-ai implement change <what-you-want-to-build>`
+### `aisdd implement change <what-you-want-to-build>`
 
 Implementa un cambio en dos fases:
 
@@ -122,7 +122,7 @@ Comportamientos clave del pre-flight:
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, y marca cada decision con `Origen: auto-default`. Para `bloqueantes` sin default seguro detiene el comando.
 - Si una duda bloqueante queda `Decision: pendiente`, no ejecuta `openspec instructions apply`.
 
-### `native-ai close change <what-you-want-to-build>`
+### `aisdd close change <what-you-want-to-build>`
 
 Archiva un cambio:
 
@@ -132,15 +132,15 @@ openspec archive <what-you-want-to-build>
 
 El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, Codex debe preguntar cual desea archivar.
 
-### `native-ai prototype-ux <what-you-want-to-build>`
+### `aisdd prototype-ux <what-you-want-to-build>`
 
 Identifica las pantallas nuevas del cambio indicado y lanza el skill `booster-ux` por cada pantalla.
 
-### `native-ai prototype-ux`
+### `aisdd prototype-ux`
 
 Lanza directamente el skill `booster-ux` y sigue su flujo de preguntas.
 
-### `native-ai uml <what-you-want-to-build>`
+### `aisdd uml <what-you-want-to-build>`
 
 Genera el HTML con diagramas asociados al cambio indicado usando `booster-uml`. Las entradas esperadas son:
 
@@ -151,31 +151,31 @@ Genera el HTML con diagramas asociados al cambio indicado usando `booster-uml`. 
 ## Ejemplos de uso
 
 ```text
-native-ai init
+aisdd init
 ```
 
 ```text
-native-ai roadmap
+aisdd roadmap
 ```
 
 ```text
-native-ai open change alta-de-clientes-desde-portal-web
+aisdd open change alta-de-clientes-desde-portal-web
 ```
 
 ```text
-native-ai implement change alta-clientes-portal
+aisdd implement change alta-clientes-portal
 ```
 
 ```text
-native-ai prototype-ux alta-clientes-portal
+aisdd prototype-ux alta-clientes-portal
 ```
 
 ```text
-native-ai uml alta-clientes-portal
+aisdd uml alta-clientes-portal
 ```
 
 ```text
-native-ai close change alta-clientes-portal
+aisdd close change alta-clientes-portal
 ```
 
 ## Auditoria y trazabilidad

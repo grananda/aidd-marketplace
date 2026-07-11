@@ -1,6 +1,6 @@
 ---
 name: aidd-requirements
-description: Fase 1 (paso 1.1) del conjunto AIDD (AI Driven Development). Transforma el brief del cliente en requisitos formales trazables, mediante el comando `aidd requirements` (alias `aidd fase 1.1`). Actua como Product Owner experto en el dominio que lee `docs/cliente-requisitos.md` y genera `docs/requisitos.md` con descripcion del sistema, usuarios y roles con permisos, requisitos funcionales numerados (RF-XX), requisitos no funcionales (NFR-XX), restricciones tecnicas no negociables, alcance dentro/fuera y variables de entorno requeridas. Primer paso de la Definicion (AI Architect) y entrada del mapa de historias de usuario. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 1 (paso 1.1) del conjunto AIDD (AI Driven Development). Transforma el brief del cliente en requisitos formales trazables, mediante el comando `aidd requirements` (alias `aidd fase 1.1`). Actua como Product Owner experto en el dominio que lee `docs/cliente-requisitos.md` y genera `docs/requisitos.md` con descripcion del sistema, usuarios y roles con permisos, requisitos funcionales numerados (RF-XX), requisitos no funcionales (NFR-XX), restricciones tecnicas no negociables, alcance dentro/fuera y variables de entorno requeridas. Primer paso de la Definicion (AI Architect) y entrada del mapa de historias de usuario. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"
@@ -28,7 +28,7 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - `aidd user-story-details` (paso 1.3): detalle de historias de usuario (`docs/detalle-historias-usuario.md`).
 - Fase 2 — Diseno (AI Architect): prototipo, guia de estilos y arquitectura.
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** del documento con `booster-docs` (ver paso 4). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 

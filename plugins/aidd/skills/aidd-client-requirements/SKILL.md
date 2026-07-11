@@ -1,6 +1,6 @@
 ---
 name: aidd-client-requirements
-description: Fase 0 del conjunto AIDD (AI Driven Development). Captura y estructura el brief del cliente antes de que ningun rol de IA produzca contenido, mediante el comando `aidd client-requirements` (alias `aidd fase 0`). Actua como consultor tecnico experto que recopila contexto, stack, restricciones y documentacion aportada, formula las preguntas clave e identifica riesgos y ambiguedades, y genera `docs/cliente-requisitos.md` con suficiente contexto para que la Fase 1 (AI Architect) arranque sin preguntas. Opcionalmente crea o actualiza `AGENTS.md` con contexto, stack y convenciones del proyecto. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 0 del conjunto AIDD (AI Driven Development). Captura y estructura el brief del cliente antes de que ningun rol de IA produzca contenido, mediante el comando `aidd client-requirements` (alias `aidd fase 0`). Actua como consultor tecnico experto que recopila contexto, stack, restricciones y documentacion aportada, formula las preguntas clave e identifica riesgos y ambiguedades, y genera `docs/cliente-requisitos.md` con suficiente contexto para que la Fase 1 (AI Architect) arranque sin preguntas. Opcionalmente crea o actualiza `AGENTS.md` con contexto, stack y convenciones del proyecto. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.1.0"
@@ -28,7 +28,7 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - `aidd user-story-details` — detalle de historias de usuario (`docs/detalle-historias-usuario.md`).
 - Fase 2 — Diseno (AI Architect): prototipo, guia de estilos y arquitectura.
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y los documentos que produce estan expuestos a muchos cambios, por lo que las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada (`openspec/audit/`). Es un skill de planificacion, no de desarrollo activo, y los documentos que produce estan expuestos a muchos cambios, por lo que las decisiones se registran de forma ligera dentro del propio documento generado y no en un log aparte.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** del brief con `booster-docs` (ver paso 5). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 
@@ -142,7 +142,7 @@ Reglas de contenido:
 Solo si el usuario lo pide o acepta la propuesta, crea o actualiza `AGENTS.md` en la raiz con el contexto generico del proyecto para cualquier agente IA: descripcion breve, stack, convenciones y documentos clave. No es obligatorio para cerrar la Fase 0.
 
 - Si `AGENTS.md` no existe, crealo con una cabecera minima y un bloque de contexto del proyecto.
-- Si existe, conserva integro el contenido ajeno y actualiza solo la parte de contexto del proyecto. No dupliques secciones ni toques bloques gestionados por otros skills (por ejemplo el bloque `native-ai-specs commands` si lo hubiera).
+- Si existe, conserva integro el contenido ajeno y actualiza solo la parte de contexto del proyecto. No dupliques secciones ni toques bloques gestionados por otros skills (por ejemplo el bloque `aisdd-specs commands` si lo hubiera).
 
 ### Sello de version y fecha-hora (antes de renderizar)
 

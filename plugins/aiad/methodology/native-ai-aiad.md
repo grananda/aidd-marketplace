@@ -99,7 +99,7 @@ US (AIAD, human-engine)              OpenSpec change (SDD, AI-engine)
 Bridge rules:
 
 - The **stable unit is always the US**. The change is only its temporary "SDD form".
-- In AIAD mode the human never edits the change directly: they open/close it through the bridge, which delegates to `native-ai-specs` when switching to SDD.
+- In AIAD mode the human never edits the change directly: they open/close it through the bridge, which delegates to `aisdd-specs` when switching to SDD.
 - The engine switch can happen **mid-US** (you start, the AI finishes; or vice versa).
 - Without OpenSpec installed, `aiad-bridge` says so and you work standalone on the US.
 

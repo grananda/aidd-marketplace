@@ -1,22 +1,24 @@
 ---
-name: native-ai-specs
-description: Gestiona especificaciones Native AI con OpenSpec mediante comandos `native-ai init`, `native-ai roadmap`, `native-ai open change`, `native-ai implement change`, `native-ai close change`, `native-ai prototype-ux` y `native-ai uml`; coordina documentacion funcional/tecnica/arquitectura, roadmaps, diagramas con booster-uml y prototipos con booster-ux. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas con el usuario (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec, respectivamente. Todos los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` con hashes de input/output, version de prompt, modelo y decisiones humanas, con retencion configurable. Integracion opcional con Jira (MCP de Atlassian) cuando esta configurada, `open change` crea la sub-tarea del change bajo la Story de su historia de usuario, `implement change` mueve sus tickets a In Progress y los asigna, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite.
+name: aisdd-specs
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian): `open change` crea la sub-tarea del change bajo la Story de su HU, `implement change` mueve sus tickets a In Progress, y `close change` los pasa a Done (la Story padre solo cuando todas sus sub-tareas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.5.0"
+  version: "1.0.0"
 ---
 
-# native-ai-specs
+# aisdd-specs (AI Spec-Driven Development)
 
-Usa este skill cuando el usuario pida trabajar con especificaciones Native AI u OpenSpec, o cuando invoque cualquiera de estos comandos:
+Usa este skill cuando el usuario pida trabajar con especificaciones AISDD / OpenSpec, o cuando invoque cualquiera de estos comandos (prefijo primario **`aisdd`**; el prefijo **`native-ai`** se mantiene como **alias legacy** equivalente):
 
-- `native-ai init`
-- `native-ai roadmap`
-- `native-ai open change [what-you-want-to-build]`
-- `native-ai implement change [what-you-want-to-build]`
-- `native-ai close change [what-you-want-to-build]`
-- `native-ai prototype-ux [what-you-want-to-build]`
-- `native-ai uml [what-you-want-to-build]`
+- `aisdd init`            (alias: `native-ai init`)
+- `aisdd roadmap`         (alias: `native-ai roadmap`)
+- `aisdd open change [what-you-want-to-build]`       (alias: `native-ai open change ...`)
+- `aisdd implement change [what-you-want-to-build]`  (alias: `native-ai implement change ...`)
+- `aisdd close change [what-you-want-to-build]`      (alias: `native-ai close change ...`)
+- `aisdd prototype-ux [what-you-want-to-build]`      (alias: `native-ai prototype-ux ...`)
+- `aisdd uml [what-you-want-to-build]`               (alias: `native-ai uml ...`)
+
+> **Alias legacy.** `aisdd <cmd>` y `native-ai <cmd>` son **equivalentes**: ejecutan exactamente el mismo flujo. `aisdd` es el prefijo primario (consistente con `aidd`/`aiad`); `native-ai` se conserva para no romper `AGENTS.md`, roadmaps y referencias de proyectos ya iniciados. En este documento el prefijo `aisdd` es el canonico; donde leas un comando, el equivalente `native-ai` es igual de valido.
 
 Responde y documenta en espanol siempre que sea posible. Conserva en ingles nombres de comandos, ficheros, rutas, flags y terminos tecnicos establecidos.
 
@@ -76,9 +78,11 @@ Si falta `booster-uml`, avisa: `No encuentro el skill booster-uml. Debe instalar
 
 La ausencia de un skill no debe bloquear `init`, `implement` o `close`; si bloquea diagramas o prototipos, informa y deja los comandos OpenSpec completados.
 
-## `native-ai init`
+## `aisdd init`
 
-Inicializa Native AI Specs en el proyecto.
+> Alias: `native-ai init`.
+
+Inicializa AISDD (OpenSpec) en el proyecto.
 
 1. Comprueba si `openspec` esta disponible (`Get-Command openspec` o equivalente).
 2. Si no esta disponible, instala OpenSpec:
@@ -89,49 +93,67 @@ Inicializa Native AI Specs en el proyecto.
    ```bash
    openspec init
    ```
-4. Comprueba `booster-ux` y `booster-uml` segun la seccion de dependencias.
+4. Comprueba `booster-ux`, `booster-uml` y `booster-docs` segun la seccion de dependencias.
 5. Pregunta si el proyecto es:
    - desarrollo nuevo
    - desarrollo ya existente
 6. Si es nuevo, resume la inicializacion y los siguientes pasos.
-7. Si es existente, solicita las rutas de los markdowns con documentacion funcional, tecnica y de arquitectura.
-8. Cuando el usuario facilite las rutas, actualiza `config.yaml` de OpenSpec para incluir ese contexto inicial del proyecto. Manten el formato YAML existente; si no hay una clave clara, crea una seccion `project_context` con la lista de documentos.
-9. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
+7. Si es existente, solicita/auto-detecta los markdown del proyecto, en **dos grupos**:
+   - **Diseno y definicion** (funcional, tecnica y de arquitectura): p. ej. `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/detalle-historias-usuario.md`, `docs/arquitectura-base.md`, `docs/propuesta-arquitectura-base.md`, `docs/guia-estilos.md`.
+   - **Capa de entrega (AIDD)** — **no la ignores**: `docs/planificacion-proyecto.md` (recursos, equipo, esfuerzo humano vs IA), `docs/sprint-plan.md` (sprints, capacidad, asignaciones), `docs/plan-revision-hu.md` (estado de validacion de HU) y `docs/jira-sync.md` (mapeo HU<->Story<->change). Busca estos ficheros en `docs/` y, si existen, inclúyelos; si no, no pasa nada (son opcionales).
+8. Cuando tengas las rutas, actualiza `config.yaml` de OpenSpec con ese contexto inicial. Manten el formato YAML existente; crea/actualiza `project_context` con **dos sub-listas** para que los comandos posteriores sepan que existe cada plano:
+   ```yaml
+   project_context:
+     design_docs:            # diseno y definicion
+       - docs/requisitos.md
+       - docs/detalle-historias-usuario.md
+       - docs/arquitectura-base.md
+     delivery_docs:          # capa de entrega AIDD (solo las que existan)
+       - docs/planificacion-proyecto.md
+       - docs/sprint-plan.md
+       - docs/plan-revision-hu.md
+       - docs/jira-sync.md
+   ```
+   Si ya existe un `project_context` plano (formato antiguo), conserva su contenido y reorganizalo en estas dos sub-listas sin perder rutas.
+9. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; o (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints. Son avisos, no errores: continua igualmente.
+10. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 ### Registro de comandos en `AGENTS.md`
 
-El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca los comandos disponibles del skill `native-ai-specs`.
+El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca los comandos disponibles del skill `aisdd-specs`.
 
 1. Localiza `AGENTS.md` en la raiz del proyecto. Si no existe, crealo con una cabecera minima (`# AGENTS.md`) seguida del bloque de comandos.
 2. Si existe, conserva integro el resto del contenido. No reescribas ni reordenes secciones ajenas al skill.
 3. Gestiona los comandos dentro de un bloque delimitado por marcadores HTML, para poder actualizarlo de forma idempotente en futuras ejecuciones:
 
    ```markdown
-   <!-- BEGIN native-ai-specs commands (auto-generado, no editar a mano) -->
-   ## Comandos native-ai-specs
+   <!-- BEGIN aisdd-specs commands (auto-generado, no editar a mano) -->
+   ## Comandos aisdd
 
-   Skill `native-ai-specs` v<skill_version>. Invoca estos comandos para trabajar con especificaciones Native AI / OpenSpec:
+   Skill `aisdd-specs` v<skill_version>. Invoca estos comandos para trabajar con especificaciones AISDD / OpenSpec (prefijo primario `aisdd`; `native-ai <cmd>` sigue funcionando como alias legacy):
 
-   - `native-ai init` — inicializa OpenSpec y comprueba dependencias.
-   - `native-ai roadmap` — fasea el desarrollo y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
-   - `native-ai open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
-   - `native-ai implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.
-   - `native-ai close change <what-you-want-to-build>` — archiva el cambio OpenSpec.
-   - `native-ai prototype-ux [what-you-want-to-build]` — genera prototipos UX con `booster-ux`.
-   - `native-ai uml <what-you-want-to-build>` — genera el HTML de diagramas del cambio con `booster-uml`.
-   <!-- END native-ai-specs commands -->
+   - `aisdd init` — inicializa OpenSpec, comprueba dependencias y registra el contexto del proyecto (incluida la capa de entrega de AIDD).
+   - `aisdd roadmap` — fasea el desarrollo (alineado al `docs/sprint-plan.md` si existe) y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
+   - `aisdd open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
+   - `aisdd implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.
+   - `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec.
+   - `aisdd prototype-ux [what-you-want-to-build]` — genera prototipos UX con `booster-ux`.
+   - `aisdd uml <what-you-want-to-build>` — genera el HTML de diagramas del cambio con `booster-uml`.
+   <!-- END aisdd-specs commands -->
    ```
 
-4. Si ya existe un bloque entre `<!-- BEGIN native-ai-specs commands ... -->` y `<!-- END native-ai-specs commands -->`, reemplazalo integramente por la version actual (no acumules bloques duplicados). Si no existe, anadelo al final del fichero precedido de una linea en blanco.
+4. Si ya existe un bloque entre `<!-- BEGIN aisdd-specs commands ... -->` y `<!-- END aisdd-specs commands -->`, reemplazalo integramente por la version actual. **Migracion**: si en su lugar existe un bloque legacy `<!-- BEGIN native-ai-specs commands ... -->` / `<!-- END ... -->` (de la version `sdd` anterior), **reemplazalo** por el bloque `aisdd-specs` (no dejes ambos). Si no existe ninguno, anade el nuevo al final del fichero precedido de una linea en blanco.
 5. Sustituye `<skill_version>` por la version real del frontmatter del skill.
 6. Incluye `AGENTS.md` en los `output_files` de la entrada de auditoria de este comando.
 
-## `native-ai roadmap`
+## `aisdd roadmap`
+
+> Alias: `native-ai roadmap`.
 
 Fasea el desarrollo antes de modificar documentos OpenSpec.
 
-1. Revisa si el usuario ya ha pasado requisitos y arquitectura. Tambien puedes localizar documentacion existente en `docs/`, `config.yaml`, `README.md` o rutas indicadas por el usuario.
-2. Si faltan requisitos, arquitectura, o no esta claro donde estan, solicitalos antes de continuar.
+1. Revisa si el usuario ya ha pasado requisitos y arquitectura. Localiza documentacion existente en `docs/`, `config.yaml` (`project_context.design_docs` y `project_context.delivery_docs`), `README.md` o rutas indicadas por el usuario. **Lee tambien la capa de entrega si existe** (`docs/sprint-plan.md`, `docs/planificacion-proyecto.md`, `docs/plan-revision-hu.md`): condiciona el faseado (ver "Alineacion con la capa de entrega").
+2. Si faltan requisitos, arquitectura, o no esta claro donde estan, solicitalos antes de continuar. La capa de entrega es **opcional**: si no hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo.
 3. Estima el `presupuesto de contexto` segun la seccion anterior y clasifica el trabajo tambien por complejidad:
    - `baja`: un solo dominio funcional, pocas integraciones y cambios locales
    - `media`: varios modulos o capas, dependencias compartidas o integraciones relevantes
@@ -149,7 +171,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 7. Cuando tengas contexto suficiente, actua con este rol y objetivo:
    ```text
    Actua con el rol de planificador experto de desarrollos de software.
-   Analiza los requisitos y fasea el desarrollo en las fases que consideres necesarias para implementarlo con openspec. Ajusta la granularidad del roadmap al presupuesto de contexto del modelo: cuanto menor sea, mas fases y mas pequenas deben ser. Evita fases demasiado grandes que obliguen a arrastrar demasiado contexto en un unico change. La arquitectura del proyecto estaria basada en la arquitectura del proyecto. Con ello genera docs/roadmap.md con esta division por fases y que entraria en cada fase. Ademas, crea docs/prompts-roadmap-native-ai.md con los prompts a ejecutar hasta finalizar el desarrollo usando los comandos del skill native-ai-specs. No modifiques aun ningun documento de openspec. Si el usuario no ha pasado requisitos y/o arquitectura o no tienes clara donde esta, solicitaselo.
+   Analiza los requisitos y fasea el desarrollo en las fases que consideres necesarias para implementarlo con openspec. Ajusta la granularidad del roadmap al presupuesto de contexto del modelo: cuanto menor sea, mas fases y mas pequenas deben ser. Evita fases demasiado grandes que obliguen a arrastrar demasiado contexto en un unico change. Basate en la arquitectura del proyecto. Si existe una planificacion de entrega (docs/sprint-plan.md), alinea el faseado a los sprints: mismo orden, cortes de fase coincidiendo con fronteras de sprint y gates de validacion, y manten los changes de una misma HU dentro de la ventana del sprint donde esa HU esta planificada; el presupuesto de contexto sigue mandando el tamano del change, y donde choque con el sprint, marcalo como conflicto en vez de romper el plan. Con ello genera docs/roadmap.md con la division por fases, que entra en cada fase y a que sprint(s) corresponde. Ademas, crea docs/prompts-roadmap-native-ai.md con los prompts a ejecutar hasta finalizar el desarrollo usando los comandos del skill aisdd. No modifiques aun ningun documento de openspec. Si el usuario no ha pasado requisitos y/o arquitectura o no tienes clara donde esta, solicitaselo.
    ```
 8. Crea el directorio `docs/` si no existe.
 9. Genera `docs/roadmap.md` con:
@@ -162,28 +184,43 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - entregables OpenSpec esperados
    - criterios de cierre
    - riesgo de contexto por fase: `bajo`, `medio` o `alto`
+   - **si hay `docs/sprint-plan.md`**: a que **sprint(s)** corresponde cada fase, el **esfuerzo agregado** de la fase (humano vs IA, tomado de `planificacion-proyecto.md`/`sprint-plan.md` si estan) y una seccion **"Conflictos de alineacion roadmap<->sprint"** con lo que el presupuesto de contexto obligo a desviar del plan de sprints (ver "Alineacion con la capa de entrega").
 10. Genera `docs/prompts-roadmap-native-ai.md` con los prompts que deben ejecutarse hasta finalizar el desarrollo, usando solo estos comandos del skill:
-   - `native-ai open change <what-you-want-to-build>`
-   - `native-ai implement change <what-you-want-to-build>`
-   - `native-ai close change <what-you-want-to-build>`
+   - `aisdd open change <what-you-want-to-build>`
+   - `aisdd implement change <what-you-want-to-build>`
+   - `aisdd close change <what-you-want-to-build>`
 11. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
    - que documentos o secciones pasar al modelo
    - que partes del codigo son relevantes
    - que no debe incluirse todavia para no contaminar contexto
    - cuando conviene dividir una fase en varios changes OpenSpec
-   - el prompt exacto para abrir el change con `native-ai open change <what-you-want-to-build>`
-   - el prompt exacto para implementar con `native-ai implement change <what-you-want-to-build>`
-   - el prompt exacto para cerrar con `native-ai close change <what-you-want-to-build>`
+   - el sprint al que pertenece la fase (si hay `sprint-plan.md`)
+   - el prompt exacto para abrir el change con `aisdd open change <what-you-want-to-build>`
+   - el prompt exacto para implementar con `aisdd implement change <what-you-want-to-build>`
+   - el prompt exacto para cerrar con `aisdd close change <what-you-want-to-build>`
 12. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
 13. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
 14. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente.
 15. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 14.
 
+### Alineacion con la capa de entrega (sprint-plan)
+
+Si existe `docs/sprint-plan.md`, el roadmap **se pliega a los sprints ya planificados** por AIDD, sin dejar que la capacidad mande sobre el presupuesto de contexto. Regla de jerarquia: **el presupuesto de contexto decide el tamano del change; el sprint decide el orden, las fronteras y que HU estan comprometidas.**
+
+- **Orden**: fasea en el **mismo orden** que los sprints (que ya refleja prioridad de negocio, capacidad y dependencias).
+- **Fronteras**: haz coincidir los **cortes de fase con las fronteras de sprint** y con los gates de validacion (de `plan-revision-hu.md`) siempre que el contexto lo permita.
+- **Agrupacion**: manten los **changes de una misma HU dentro de la ventana del sprint** donde esa HU esta planificada, para que un sprint no quede con changes a medias.
+- **HU no validadas**: si `docs/plan-revision-hu.md` marca una HU como **en revision o bloqueada**, no la metas en una fase temprana como comprometida; senala que depende de su validacion.
+- **Esfuerzo**: anota en cada fase el esfuerzo agregado (humano vs IA) tomado de `planificacion-proyecto.md`/`sprint-plan.md`.
+- **Conflictos (no romper el plan)**: cuando el presupuesto de contexto obligue a partir una HU en varios changes que **no caben** en su sprint, o a cortar a mitad de un bloque, **no reescribas el sprint-plan**: registra el desajuste en la seccion **"Conflictos de alineacion roadmap<->sprint"** de `docs/roadmap.md` (que HU se parte, en cuantos changes, que sprint desborda) para que el humano re-ejecute `aidd sprint-planning` y re-empaquete (re-faseado seguro: mueve HU, no recrea issues). AISDD **no** modifica `docs/sprint-plan.md`.
+
+Si **no** hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo explicitamente en `docs/roadmap.md` (faseado no alineado a sprints).
+
 ### Actualizacion de `openspec/config.yaml` tras el roadmap
 
 El objetivo es que `openspec/config.yaml` quede como indice navegable del roadmap para los comandos posteriores (`open change`, `implement change`).
 
-1. Localiza `openspec/config.yaml` en la raiz del proyecto. Si no existe, no ejecutes `openspec init` aqui: crea el fichero con un YAML minimo valido y avisa al usuario de que conviene haber ejecutado antes `native-ai init`.
+1. Localiza `openspec/config.yaml` en la raiz del proyecto. Si no existe, no ejecutes `openspec init` aqui: crea el fichero con un YAML minimo valido y avisa al usuario de que conviene haber ejecutado antes `aisdd init`.
 2. Lee el contenido actual y conserva el formato y las claves existentes (por ejemplo `project_context`, `audit.retention_days`). No elimines ni reescribas claves ajenas al roadmap.
 3. Crea o reemplaza por completo una unica seccion de nivel raiz `roadmap` con esta estructura:
 
@@ -200,9 +237,15 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
          name: <nombre de la fase>
          objective: <objetivo en una linea>
          context_risk: bajo | medio | alto
-         change_hint: <slug sugerido para `native-ai open change`>
+         change_hint: <slug estable para `aisdd open change`>   # clave de union roadmap<->sprint<->Jira
+         sprint: <id/nombre del sprint del sprint-plan.md, o vacio si no hay>   # solo si hay sprint-plan
+         hus: [<HU-XX>, ...]        # HUs que cubre la fase (para enlazar con Jira/jira-sync.md)
+         effort_human: <d-persona>  # esfuerzo agregado humano (si hay planificacion-proyecto)
+         effort_ai: <d-persona>     # esfuerzo agregado con IA (si aplica)
        # ...una entrada por fase, en el mismo orden que docs/roadmap.md
    ```
+
+   El `change_hint` es el **slug estable** que sirve de clave de union entre el roadmap, el sprint-plan y Jira; no lo cambies entre re-ejecuciones si la fase es la misma (para no romper el mapeo ni las sub-tareas ya creadas).
 
 4. El numero de entradas de `phases` debe coincidir exactamente con las fases de `docs/roadmap.md`, en el mismo orden y con los mismos nombres.
 5. Si ya existia una seccion `roadmap` de una ejecucion anterior, sustituyela integramente por la nueva (el roadmap mas reciente manda). No fusiones fases antiguas con nuevas.
@@ -233,7 +276,9 @@ Prefiere nombres de fase concretos, por ejemplo:
 - `Fase 4. Construir flujo UI de alta`
 - `Fase 5. Observabilidad, pruebas y rollout`
 
-## `native-ai open change [what-you-want-to-build]`
+## `aisdd open change [what-you-want-to-build]`
+
+> Alias: `native-ai open change [what-you-want-to-build]`.
 
 Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase previa de pre-flight para resolver dudas antes de generar los specs.
 
@@ -302,7 +347,9 @@ Antes de generar los specs del cambio, revisa el contexto disponible y resuelve 
 9. Si tras la lectura inicial no detectas dudas reales, registra una unica entrada en `decisions.md` con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight de apertura` y `Decision: continuar`. No fuerces preguntas artificiales solo por cumplir el flujo.
 10. Antes de generar los specs, resume al usuario el conjunto de decisiones tomadas y confirma que esas decisiones se reflejaran en `design.md`, `proposal.md` y los `spec.md` del cambio.
 
-## `native-ai implement change [what-you-want-to-build]`
+## `aisdd implement change [what-you-want-to-build]`
+
+> Alias: `native-ai implement change [what-you-want-to-build]`.
 
 Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver dudas con el usuario antes de tocar codigo.
 
@@ -371,7 +418,9 @@ Antes de aplicar las instrucciones de OpenSpec, revisa la documentacion del camb
 9. Si tras la lectura inicial no detectas dudas reales, registra una unica entrada en `decisions.md` con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`. No fuerces preguntas artificiales solo por cumplir el flujo.
 10. Antes de pasar a la implementacion real, resume al usuario el conjunto de decisiones tomadas y confirma que puede arrancar `openspec instructions apply`.
 
-## `native-ai close change [what-you-want-to-build]`
+## `aisdd close change [what-you-want-to-build]`
+
+> Alias: `native-ai close change [what-you-want-to-build]`.
 
 Archiva un cambio OpenSpec.
 
@@ -389,7 +438,9 @@ Archiva un cambio OpenSpec.
    - Consulta via el MCP las sub-tareas de la Story padre. Mueve la **Story a Done solo si TODAS sus sub-tareas estan Done**; si queda alguna abierta, deja la Story en In Progress e indica en el resumen que sigue pendiente (que changes faltan).
 7. Verifica que el cambio queda archivado y resume el resultado, incluyendo (si aplico) la sub-tarea pasada a Done y si la Story padre se cerro o sigue pendiente.
 
-## `native-ai prototype-ux [what-you-want-to-build]`
+## `aisdd prototype-ux [what-you-want-to-build]`
+
+> Alias: `native-ai prototype-ux [what-you-want-to-build]`.
 
 Genera prototipos UX.
 
@@ -398,7 +449,9 @@ Genera prototipos UX.
 - Si no llega argumento, lanza directamente `booster-ux` y sigue su flujo de preguntas.
 - Si no existe `booster-ux`, avisa donde debe instalarse y no generes prototipos por otro camino salvo peticion expresa del usuario.
 
-## `native-ai uml [what-you-want-to-build]`
+## `aisdd uml [what-you-want-to-build]`
+
+> Alias: `native-ai uml [what-you-want-to-build]`.
 
 Genera HTML con diagramas asociados al cambio.
 
@@ -493,7 +546,7 @@ Cada linea es un objeto JSON con estos campos:
 {
   "id": "<uuid v4 o ulid>",
   "timestamp": "<ISO 8601 UTC, p.ej. 2026-05-25T14:30:00Z>",
-  "command": "native-ai <subcomando>",
+  "command": "aisdd <subcomando>",
   "change_id": "<id-del-cambio-o-null>",
   "skill_version": "<version del skill, p.ej. 1.2.0>",
   "prompt_version": "<skill_version>:<command-slug>[@variante]",

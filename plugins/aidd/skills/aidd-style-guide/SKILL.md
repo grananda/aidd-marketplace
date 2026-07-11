@@ -1,6 +1,6 @@
 ---
 name: aidd-style-guide
-description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma (via el MCP `figma-developer-mcp` con token, API REST o export de design tokens a JSON). Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma (via el MCP `figma-developer-mcp` con token, API REST o export de design tokens a JSON). Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"
@@ -30,7 +30,7 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - `aidd architecture-proposal` (2.3): propuesta de arquitectura (`docs/propuesta-arquitectura-base.md`).
   - `aidd architecture` (2.4): arquitectura tecnica definitiva (`docs/arquitectura-base.md`).
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** de la guia de estilos con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 

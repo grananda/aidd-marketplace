@@ -1,6 +1,6 @@
 ---
 name: aidd-project-plan
-description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/native-ai-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aidd project-plan` (alias `aidd planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aidd-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.1.0"
@@ -28,7 +28,7 @@ AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquite
   - **`aidd project-plan`** (este skill, paso 3.5.1): plan de recursos (`docs/planificacion-proyecto.md`). Se ejecuta tras aprobar la Fase 2.
   - `aidd sprint-planning` (paso 3.5.2): distribucion del trabajo en sprints (`docs/sprint-plan.md`). Se ejecuta cuando existe el roadmap.
 
-Este conjunto es **autonomo**: puede usarse al margen de `native-ai-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
+Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
 Como complemento opcional, al final del comando se genera una **vista HTML** del plan de proyecto con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
 
@@ -173,4 +173,4 @@ Al terminar, informa:
 - Resumen del equipo recomendado, software/licencias con coste y principales riesgos de recursos.
 - **KPIs de esfuerzo humano vs IA**: esfuerzo humano total, esfuerzo con IA total, ahorro absoluto, % de reduccion y factor de aceleracion.
 - Recordatorio: pendiente de **aprobacion humana**.
-- Siguiente paso sugerido: `aidd sprint-planning` para distribuir el trabajo en sprints usando estos recursos (requiere `docs/roadmap.md`; si no existe, generarlo antes con el AI Lead via `native-ai roadmap`).
+- Siguiente paso sugerido: `aidd sprint-planning` para distribuir el trabajo en sprints usando estos recursos (requiere `docs/roadmap.md`; si no existe, generarlo antes con el AI Lead via `aisdd roadmap`).

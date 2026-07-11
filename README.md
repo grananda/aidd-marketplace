@@ -10,13 +10,13 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | Plugin | Contenido | Para qué sirve |
 |--------|-----------|----------------|
 | `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
-| `sdd` | `native-ai-specs` + metodología | Ejecutar con OpenSpec: roadmap y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. |
-| `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `sdd`.** |
-| `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `sdd` para la fase de ejecución. |
+| `aisdd` | `aisdd-specs` + metodología | Ejecutar con OpenSpec: roadmap (consciente del sprint-plan) y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
+| `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `aisdd`.** |
+| `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
 ## Índice de comandos por skill y fase
 
-Todos los comandos, ordenados por fase del método. Cada comando activa su skill; también se puede invocar namespaced (`/aidd:<skill>`, `/sdd:native-ai-specs`, `/boosters:<skill>`, `/aiad:<skill>`) o por lenguaje natural.
+Todos los comandos, ordenados por fase del método. Cada comando activa su skill; también se puede invocar namespaced (`/aidd:<skill>`, `/aisdd:aisdd-specs`, `/boosters:<skill>`, `/aiad:<skill>`) o por lenguaje natural.
 
 ### `aidd` — Definición, Diseño y Entrega (plugin `aidd`, 12 comandos)
 
@@ -35,21 +35,23 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 3.5.1 | `aidd project-plan` | `aidd-project-plan` | `docs/planificacion-proyecto.md` (recursos) |
 | 3.5.2 | `aidd sprint-planning` | `aidd-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
 
-### `sdd` — Inicialización, Roadmap y Ejecución (plugin `sdd`, skill `native-ai-specs`)
+### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, skill `aisdd-specs`)
+
+> Comandos primarios `aisdd …`; los `native-ai …` siguen funcionando como **alias legacy**. Antes se llamaba plugin `sdd`.
 
 | Fase | Comando | Rol | Genera / hace |
 |------|---------|-----|---------------|
-| 3.1 | `native-ai init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` |
-| 3.3 | `native-ai roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` (fasea por presupuesto de contexto) |
-| 4 | `native-ai open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding) |
-| 4 | `native-ai implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
-| 4 | `native-ai close change <slug>` | Outcome Validator | Valida y archiva el change |
-| 2 / 4 (aux) | `native-ai prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
-| aux | `native-ai uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
+| 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**) |
+| 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` (fasea por contexto, **alineado al `sprint-plan.md`** si existe) |
+| 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding) |
+| 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
+| 4 | `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| 2 / 4 (aux) | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
+| aux | `aisdd uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
 
 ### `boosters` — dependencia compartida (plugin `boosters`, 3 comandos)
 
-Los invocan `aidd` y `sdd`, pero también se pueden llamar directamente.
+Los invocan `aidd` y `aisdd`, pero también se pueden llamar directamente.
 
 | Comando | Skill | Hace |
 |---------|-------|------|
@@ -59,7 +61,7 @@ Los invocan `aidd` y `sdd`, pero también se pueden llamar directamente.
 
 ### `aiad` — Ejecución human-first, *ia-in-the-loop* (plugin `aiad`, 11 comandos)
 
-Cubren la **fase de ejecución** (alternativa human-first a `sdd`); no siguen la numeración de fases AIDD, se agrupan por intención.
+Cubren la **fase de ejecución** (alternativa human-first a `aisdd`); no siguen la numeración de fases AIDD, se agrupan por intención.
 
 | Grupo | Comando | Hace |
 |-------|---------|------|
@@ -80,18 +82,18 @@ Cubren la **fase de ejecución** (alternativa human-first a `sdd`); no siguen la
 No son tres copias del mismo paquete: son **tres piezas de un mismo flujo** que se llaman entre sí. El método AIDD-SDD completo va de la captura de requisitos hasta la ejecución de cada change, y en ese recorrido:
 
 1. **`aidd` cubre la planificación y el diseño** (Fases 0–2 y la capa de entrega 3.5: requisitos → historias → arquitectura → plan de recursos → sprints). Es el "qué" y el "cuándo".
-2. **`sdd` cubre la ejecución** (Fases 3–4: roadmap por presupuesto de contexto y el ciclo `open/implement/close change` sobre OpenSpec, con auditoría e integración Jira). Es el "cómo se construye".
+2. **`aisdd` cubre la ejecución** (Fases 3–4: roadmap por presupuesto de contexto —consciente del `sprint-plan`— y el ciclo `open/implement/close change` sobre OpenSpec, con auditoría e integración Jira). Es el "cómo se construye".
 3. **`boosters` es la dependencia compartida** de los dos anteriores. No es opcional si usas el flujo completo:
    - `aidd prototype` (Fase 2.2) **redirige a `booster-ux`** para maquetar las pantallas del prototipo.
-   - `native-ai prototype-ux` y `native-ai uml` (del plugin `sdd`) **invocan a `booster-ux` y `booster-uml`** para documentar cada change.
-   - Los skills de planificación de `aidd` y `sdd` **invocan a `booster-docs`** para dejar, junto a cada `.md` generado (requisitos, historias, roadmap, sprint-plan…), una vista HTML complementaria para consumo humano (el Markdown sigue siendo la única fuente de verdad).
+   - `aisdd prototype-ux` y `aisdd uml` (del plugin `aisdd`) **invocan a `booster-ux` y `booster-uml`** para documentar cada change.
+   - Los skills de planificación de `aidd` y `aisdd` **invocan a `booster-docs`** para dejar, junto a cada `.md` generado (requisitos, historias, roadmap, sprint-plan…), una vista HTML complementaria para consumo humano (el Markdown sigue siendo la única fuente de verdad).
    - Si `boosters` no está instalado, esos pasos avisan de que falta el booster y no generan ni prototipos, ni diagramas, ni vistas HTML.
 
 Claude Code **no resuelve dependencias entre plugins automáticamente**: cada plugin se instala por separado. Por eso, para el flujo de extremo a extremo necesitas los tres. (Si solo vas a hacer planificación sin prototipos ni diagramas, `aidd` por sí solo funciona; pero la instalación recomendada y completa son los tres.)
 
 ## AIAD — ejecución human-first (opcional e independiente)
 
-`aiad` **no forma parte del trío anterior**: es un plugin independiente con filosofía invertida para la fase de ejecución. Donde `sdd` es *human-in-the-loop* (la IA es el motor, tú validas), `aiad` es **ia-in-the-loop**: **tú eres el motor** que escribe el código y la IA te **aumenta a demanda** (*pull, not push*). Devuelve al ingeniero la autoría, la maestría y el flow del oficio sin renunciar al apalancamiento de la IA.
+`aiad` **no forma parte del trío anterior**: es un plugin independiente con filosofía invertida para la fase de ejecución. Donde `aisdd` es *human-in-the-loop* (la IA es el motor, tú validas), `aiad` es **ia-in-the-loop**: **tú eres el motor** que escribe el código y la IA te **aumenta a demanda** (*pull, not push*). Devuelve al ingeniero la autoría, la maestría y el flow del oficio sin renunciar al apalancamiento de la IA.
 
 11 skills agrupados por intención:
 
@@ -103,7 +105,7 @@ Claude Code **no resuelve dependencias entre plugins automáticamente**: cada pl
 
 Además incluye un **hook** opcional (`hooks/`) que registra de forma factual qué ficheros toca la IA (autoría real, no auto-declarada; opt-in por proyecto) y un **subagente** `aiad-reviewer` que aísla la revisión para no ensuciar tu contexto de trabajo.
 
-**Uso autónomo:** `aiad` se puede instalar y usar **solo**, sobre cualquier repo, con o sin AIDD/SDD. Lee los artefactos de AIDD (`docs/detalle-historias-usuario.md`, `arquitectura-base.md`…) *si existen*, pero no los exige. La única dependencia externa es de `sdd`: `aiad-bridge` necesita OpenSpec/native-ai-specs instalado para saltar de motor (si no está, lo avisa y sigues en standalone). Eliges el motor **por HU** y puedes cambiarlo a mitad.
+**Uso autónomo:** `aiad` se puede instalar y usar **solo**, sobre cualquier repo, con o sin AIDD/SDD. Lee los artefactos de AIDD (`docs/detalle-historias-usuario.md`, `arquitectura-base.md`…) *si existen*, pero no los exige. La única dependencia externa es de `aisdd`: `aiad-bridge` necesita OpenSpec/aisdd-specs instalado para saltar de motor (si no está, lo avisa y sigues en standalone). Eliges el motor **por HU** y puedes cambiarlo a mitad.
 
 > Autoría: el plugin `aiad` es de creación propia (Julio Fernández), independiente del resto del marketplace.
 
@@ -135,7 +137,7 @@ Si usas SSH en vez de HTTPS, vale igual siempre que tu clave tenga acceso al rep
 
 # Instalar los tres plugins del flujo integrado
 /plugin install aidd@aidd-sdd
-/plugin install sdd@aidd-sdd
+/plugin install aisdd@aidd-sdd
 /plugin install boosters@aidd-sdd
 
 # Opcional e independiente: ejecución human-first (ia-in-the-loop)
@@ -153,11 +155,11 @@ Si `/plugin marketplace add` falla con error de autenticación o "repository not
 Tras instalar, cada skill queda *namespaced* por su plugin:
 
 - `/aidd:aidd-sprint-planning`, `/aidd:aidd-requirements`, …
-- `/sdd:native-ai-specs`
+- `/aisdd:aisdd-specs` (comandos `aisdd …`; alias legacy `native-ai …`)
 - `/boosters:booster-ux`, `/boosters:booster-uml`, `/boosters:booster-docs`
 - `/aiad:aiad-tdd`, `/aiad:aiad-review`, `/aiad:aiad-save`, …
 
-También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `native-ai open change`, `aiad tdd`, `aiad review`, …).
+También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `aisdd open change`, `aiad tdd`, `aiad review`, …).
 
 ### Activación automática por proyecto (equipo)
 
@@ -170,7 +172,7 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
   },
   "enabledPlugins": {
     "aidd@aidd-sdd": true,
-    "sdd@aidd-sdd": true,
+    "aisdd@aidd-sdd": true,
     "boosters@aidd-sdd": true,
     "aiad@aidd-sdd": true
   }
@@ -179,7 +181,7 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 
 ## Metodología
 
-La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `sdd` (carpeta `methodology/`). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
+La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
 
 El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiad.md`): el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría.
 
