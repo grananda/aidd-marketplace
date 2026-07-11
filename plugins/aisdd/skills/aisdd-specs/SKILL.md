@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -282,6 +282,8 @@ Prefiere nombres de fase concretos, por ejemplo:
 
 Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase previa de pre-flight para resolver dudas antes de generar los specs.
 
+> **El faseado es normativo.** El alcance del change lo fijan su **fase del roadmap** (`hus`, `change_hint` en `config.yaml`) y la **ventana de su sprint** (`docs/sprint-plan.md`). No propongas **adelantar HU de fases o sprints posteriores**, ni "aprovechar" el change para cubrir criterios de otras HU, ni ampliar el alcance mas alla de lo faseado — aunque parezca eficiente. Si detectas una oportunidad real de adelanto o una dependencia mal faseada, **no la conviertas en pregunta del pre-flight**: registrala como observacion en el resumen final y remite al re-faseado formal (`aisdd roadmap` y/o `aidd sprint-planning`), que es donde se decide el CUANDO. Un change no debe contener specs de HU fuera de su fase. Solo el usuario, por iniciativa propia y explicita, puede ordenar saltarse el faseado.
+
 1. Si el usuario aporta `<what-you-want-to-build>`, usalo literalmente como descripcion o identificador del cambio.
 2. Si no lo aporta, deriva un identificador breve y estable desde el objetivo descrito por el usuario.
 3. Ejecuta el **pre-flight de dudas para apertura** segun la seccion siguiente.
@@ -316,6 +318,7 @@ Antes de generar los specs del cambio, revisa el contexto disponible y resuelve 
    - **confirmacion**: parece claro pero conviene validar antes de redactar (suposiciones sobre actores, canales, plataformas soportadas).
 3. No preguntes lo que ya esta resuelto:
    - objetivo y alcance explicitos del usuario o del prompt del roadmap.
+   - **el faseado del roadmap y el reparto en sprints**: que HU entran en este change ya esta decidido (fase + sprint). **No ofrezcas adelantar HU de otras fases** ni ampliar el alcance del change — no es una duda, es una decision ya tomada (ver "El faseado es normativo"). Las dudas de alcance legitimas son sobre el **COMO** de las HU de esta fase, no sobre el QUE ni el CUANDO.
    - convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`).
    - elecciones triviales y facilmente reversibles (nombres internos, formato de log).
    - puntos ya cubiertos por specs OpenSpec previas o por cambios OpenSpec relacionados ya cerrados.
