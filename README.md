@@ -185,9 +185,30 @@ La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpe
 
 El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiad.md`): el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría.
 
+**Vistas HTML.** Junto a cada `.md` de metodología hay un `.html` homónimo (misma carpeta) renderizado con `booster-docs`, para lectura humana cómoda con índice navegable — [native-ai-aidd-sdd.html](plugins/aidd/methodology/native-ai-aidd-sdd.html), [getting-started](plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html) y [native-ai-aiad.html](plugins/aiad/methodology/native-ai-aiad.html). El Markdown sigue siendo la **única fuente de verdad**.
+
 ## Mantenimiento
 
 - **Versionado**: cada `plugin.json` fija `version` (semver). **Sube la versión al publicar cambios**; si no, los usuarios ya instalados no recibirán las novedades (Claude Code los cree en la misma versión). Tras subir cambios, los usuarios actualizan con `/plugin marketplace update aidd-sdd`.
+- **Regenerar los HTML de metodología** (obligatorio si se edita un `.md` de `methodology/`; la copia de `aisdd` es un espejo, se sobreescribe con `cp`):
+
+  ```bash
+  python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
+    --input plugins/aidd/methodology/native-ai-aidd-sdd.md \
+    --output plugins/aidd/methodology/native-ai-aidd-sdd.html \
+    --title "Native AI · AIDD-SDD — Metodología AI-Native"
+  python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
+    --input plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.md \
+    --output plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
+    --title "AIDD-SDD — Getting Started"
+  python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
+    --input plugins/aiad/methodology/native-ai-aiad.md \
+    --output plugins/aiad/methodology/native-ai-aiad.html \
+    --title "Native AI · AIAD — AI-Augmented Development"
+  cp plugins/aidd/methodology/native-ai-aidd-sdd.html \
+     plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
+     plugins/aisdd/methodology/
+  ```
 - **Hacerlo público** (si algún día procede): `gh repo edit grananda/aidd-marketplace --visibility public`. La instalación entonces no requeriría credenciales.
 - **Desarrollo local** antes de publicar: `claude --plugin-dir ./plugins/aidd` (un plugin suelto) o `/plugin marketplace add ./` (marketplace local); validar con `claude plugin validate ./`.
 

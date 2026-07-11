@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Native AI · AIAD — AI-Augmented Development</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fa; --panel: #ffffff; --panel-soft: #fbfcfd;
+      --text: #1a2230; --text-soft: #404a5c; --muted: #5b6675;
+      --line: #e1e6ed; --line-strong: #c8d1dc;
+      --accent: #005f73; --accent-soft: #d6eef3;
+      --code-bg: #eef2f6;
+      --shadow: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+      --rf: #0a7d8c; --nfr: #6b5bd6; --us: #0a9396; --must: #c1121f;
+      --block: #b00020; --warn: #b58a25; --essential: #e8590c;
+      --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
+      --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
+        --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
+        --line: #28324a; --line-strong: #364260;
+        --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+        --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
+        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
+        --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
+        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    }
+    .layout {
+      display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px;
+      max-width: 1280px; margin: 0 auto; padding: 40px 28px 80px;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; padding: 24px 18px 56px; gap: 24px; }
+      .toc { position: static !important; max-height: none !important; }
+    }
+    main { min-width: 0; }
+    .doc-header { margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+    h2 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 14px; display: flex; align-items: baseline; gap: 8px; }
+    h3 { font-size: 1.08rem; margin: 22px 0 10px; }
+    h4 { font-size: .98rem; margin: 18px 0 8px; color: var(--text-soft); text-transform: uppercase; letter-spacing: .04em; }
+    h2 .anchor { color: var(--line-strong); text-decoration: none; font-weight: 400; opacity: 0; transition: opacity .15s ease, color .15s ease; }
+    h2:hover .anchor { opacity: 1; }
+    h2 .anchor:hover { color: var(--accent); }
+    p { margin: 0 0 14px; color: var(--text-soft); max-width: 74ch; }
+    li { color: var(--text-soft); }
+    ul, ol { padding-left: 24px; margin: 0 0 16px; }
+    ul li, ol li { margin-bottom: 6px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { color: var(--text); }
+    blockquote {
+      margin: 0 0 16px; padding: 12px 16px; border-left: 3px solid var(--accent);
+      background: var(--panel-soft); border-radius: 0 8px 8px 0; color: var(--muted); font-size: .95rem;
+    }
+    code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+      font-family: "SF Mono","JetBrains Mono","Fira Code",Consolas,Menlo,monospace; font-size: .88em; }
+    pre { background: var(--panel-soft); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
+      overflow-x: auto; font-family: "SF Mono","JetBrains Mono","Fira Code",Consolas,Menlo,monospace; font-size: .88em; line-height: 1.55; }
+    pre code { background: transparent; border: 0; padding: 0; }
+    .badge { display: inline-block; background: var(--accent-soft); color: var(--accent);
+      font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+      padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+    .badge-soft { background: transparent; border: 1px solid var(--line-strong); color: var(--muted); }
+    .doc-meta { margin: 0; color: var(--muted); font-size: .92rem; }
+    .doc-meta .dot { margin: 0 6px; color: var(--line-strong); }
+    .doc-meta .sot { font-style: italic; }
+    /* KPI dashboard */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+      border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; }
+    .kpi-value { font-size: 1.9rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+    .kpi-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi-rf { border-left-color: var(--rf); } .kpi-rf .kpi-value { color: var(--rf); }
+    .kpi-nfr { border-left-color: var(--nfr); } .kpi-nfr .kpi-value { color: var(--nfr); }
+    .kpi-us { border-left-color: var(--us); } .kpi-us .kpi-value { color: var(--us); }
+    .kpi-must { border-left-color: var(--must); } .kpi-must .kpi-value { color: var(--must); }
+    .kpi-block { border-left-color: var(--block); } .kpi-block .kpi-value { color: var(--block); }
+    .kpi-essential { border-left-color: var(--essential); } .kpi-essential .kpi-value { color: var(--essential); }
+    .kpi-warn { border-left-color: var(--warn); } .kpi-warn .kpi-value { color: var(--warn); }
+    .kpi-muted { border-left-color: var(--line-strong); } .kpi-muted .kpi-value { color: var(--muted); }
+    /* Chips */
+    .chip { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+      vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
+      border: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+    .chip-rf { color: var(--rf); background: color-mix(in srgb, var(--rf) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-nfr { color: var(--nfr); background: color-mix(in srgb, var(--nfr) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-us { color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-block { color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }
+    .chip-essential { color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }
+    .swatch { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
+      vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }
+    .chip-must { color: var(--must); background: color-mix(in srgb, var(--must) 14%, transparent); }
+    .chip-should { color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }
+    .chip-could { color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }
+    .chip-wont { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+    .chip-prio-high { color: var(--prio-high); background: color-mix(in srgb, var(--prio-high) 14%, transparent); }
+    .chip-prio-mid { color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }
+    .chip-prio-low { color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }
+    .chip-eff-xs { color: var(--eff-xs); background: color-mix(in srgb, var(--eff-xs) 14%, transparent); }
+    .chip-eff-s { color: var(--eff-s); background: color-mix(in srgb, var(--eff-s) 14%, transparent); }
+    .chip-eff-m { color: var(--eff-m); background: color-mix(in srgb, var(--eff-m) 14%, transparent); }
+    .chip-eff-l { color: var(--eff-l); background: color-mix(in srgb, var(--eff-l) 14%, transparent); }
+    .chip-eff-xl { color: var(--eff-xl); background: color-mix(in srgb, var(--eff-xl) 14%, transparent); }
+    /* Sections */
+    .doc-section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 24px 26px; margin: 22px 0; box-shadow: var(--shadow); }
+    .doc-section h2 { margin-top: 0; }
+    .doc-section > h2::before { content: ""; display: inline-block; width: 6px; height: 22px; border-radius: 3px;
+      background: var(--accent); transform: translateY(3px); margin-right: 2px; }
+    .section-scope > h2::before { background: var(--must); }
+    .section-scope ul { list-style: none; padding-left: 0; }
+    .section-scope ul li { padding: 6px 12px; margin-bottom: 6px; border-radius: 8px; background: var(--panel-soft); border: 1px solid var(--line); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); font-size: .94rem; }
+    th, td { padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; color: var(--text-soft); }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) td { background: var(--panel-soft); }
+    th { background: var(--panel-soft); color: var(--text); font-weight: 600; font-size: .82rem;
+      text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--line-strong); }
+    .diagram { margin: 18px 0 4px; padding: 18px; background: var(--panel-soft);
+      border: 1px dashed var(--line-strong); border-radius: 10px; overflow-x: auto; }
+    .diagram .mermaid { text-align: center; background: transparent; border: 0; padding: 0; margin: 0; }
+    .toc { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto;
+      padding: 18px 18px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      box-shadow: var(--shadow); font-size: .9rem; }
+    .toc-title { margin: 0 0 10px; font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .toc ol { list-style: none; counter-reset: toc; padding: 0; margin: 0; }
+    .toc li { counter-increment: toc; margin: 0; }
+    .toc li a { display: block; padding: 6px 10px 6px 12px; color: var(--text-soft); border-radius: 6px; }
+    .toc li a::before { content: counter(toc) "."; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+    .toc li a:hover, .toc li a.active { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    @media print {
+      body { background: #fff; } .layout { display: block; padding: 0; } .toc { display: none; }
+      .doc-section, .kpi { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="toc" aria-label="Indice"><p class="toc-title">En esta pagina</p><ol><li><a href="#1-philosophy-ia-in-the-loop">1. Philosophy — ia-in-the-loop</a></li><li><a href="#2-where-aiad-fits-in-the-marketplace">2. Where AIAD fits in the marketplace</a></li><li><a href="#3-where-openspec-fits">3. Where OpenSpec fits</a></li><li><a href="#4-the-us-change-bridge-switching-between-aiad-and-sdd">4. The US &lt;-&gt; change bridge — switching between AIAD and SDD</a></li><li><a href="#5-skill-catalog-11-skills-5-groups">5. Skill catalog (11 skills, 5 groups)</a></li><li><a href="#6-the-human-first-split-of-work">6. The human-first split of work</a></li><li><a href="#7-the-authorship-journal">7. The authorship journal</a></li><li><a href="#8-automation-the-right-primitive-for-each-capability">8. Automation: the right primitive for each capability</a></li><li><a href="#9-roadmap">9. Roadmap</a></li></ol></nav>
+    <main>
+<header class="doc-header"><h1 id="native-ai-aiad-ai-augmented-development-ia-in-the-loop">Native AI · AIAD — AI-Augmented Development (ia-in-the-loop)</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-07-11 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p><div class="kpi-grid"><div class="kpi kpi-must"><span class="kpi-value">1</span><span class="kpi-label">Must have</span></div></div></header>
+<p><strong>Version:</strong> 0.1</p>
+<p><strong>Date:</strong> 2026-06-27</p>
+<p><strong>Tooling base:</strong> <code>aiad-*</code> skills — on-demand augmentation for human-first development.</p>
+<p><strong>Relationship to the rest of the marketplace:</strong> complements AIDD and SDD. <strong>It does not modify or replace anything that already exists.</strong></p>
+<p>---</p>
+<section class="doc-section" id="1-philosophy-ia-in-the-loop">
+<h2><a class="anchor" href="#1-philosophy-ia-in-the-loop" aria-label="Enlace">#</a>1. Philosophy — ia-in-the-loop</h2>
+<p>AIAD is the humanist counterpart for the execution phase. Where SDD puts the <strong>AI as the engine</strong> and the human as a checkpoint (<em>human-in-the-loop</em>), AIAD inverts the axis: <strong>the human is the engine that writes the code, and the AI intervenes on demand</strong> (<em>ia-in-the-loop</em>).</p>
+<blockquote><strong>Founding principle:</strong> The human is the <strong>author by default</strong>. The AI does not drive: it augments. It acts only when invoked, and by default it <strong>advises, teaches, and proposes</strong> rather than doing. The bounded exception is generating tests and, on explicit request, specific code fragments.</blockquote>
+<p>The motivation is not efficiency (SDD already covers that). It is <strong>giving the engineer back authorship, mastery, discovery, and flow</strong> — the dopamine of the craft — without giving up the leverage of AI.</p>
+<h3 id="human-in-the-loop-vs-ia-in-the-loop">human-in-the-loop vs ia-in-the-loop</h3>
+<div class="table-wrap"><table><thead><tr><th></th><th><strong>human-in-the-loop (SDD)</strong></th><th><strong>ia-in-the-loop (AIAD)</strong></th></tr></thead><tbody><tr><td>Default actor</td><td>The AI</td><td>The human</td></tr><tr><td>Role of the other</td><td>The human validates/approves</td><td>The AI advises/augments on demand</td></tr><tr><td>Optimizes for</td><td>Control, cost, speed</td><td>Authorship, mastery, learning, flow</td></tr><tr><td>Trigger</td><td>The AI runs the cycle</td><td>The human invokes the skill when needed (pull, not push)</td></tr><tr><td>Who writes the code</td><td>The AI</td><td>The human (the AI only writes tests and, on request, fragments)</td></tr></tbody></table></div>
+<p>Neither is &quot;better&quot;: they are tools for different moments. The choice is <strong>per user story (US)</strong>, and it can be switched mid-way (see §4, the bridge).</p>
+<h3 id="aiad-principles">AIAD principles</h3>
+<div class="table-wrap"><table><thead><tr><th>Principle</th><th>Description</th></tr></thead><tbody><tr><td><strong>Human-first</strong></td><td>The human authors the work that gives them mastery, learning, and satisfaction.</td></tr><tr><td><strong>Pull, not push</strong></td><td>No <code>aiad-*</code> skill acts on its own. The human invokes it when stuck or wanting help.</td></tr><tr><td><strong>Augment, don&#x27;t replace</strong></td><td>By default the AI advises, asks, explains, and proposes. It does not touch your files unless explicitly and narrowly asked.</td></tr><tr><td><strong>Teach the why</strong></td><td>Socratic by default: the goal is for you to gain mastery, not dependency.</td></tr><tr><td><strong>Low ceremony</strong></td><td>Invoke and get a fast answer. No 7-question pre-flight: you are in the middle of the work.</td></tr><tr><td><strong>The US is the unit</strong></td><td>The human always works on user stories, never on OpenSpec changes.</td></tr><tr><td><strong>Engine reversibility</strong></td><td>A US can move from AIAD (human-engine) to SDD (AI-engine) and back, via the US &lt;-&gt; change bridge.</td></tr><tr><td><strong>Free will over guardrails</strong></td><td>AIAD does not police how much you delegate. The drift risk (delegating &quot;too much&quot;) is acceptable: it is the human&#x27;s freedom to decide how to work. The <code>aiad-journal</code> only <em>records</em> authorship; it never constrains it.</td></tr></tbody></table></div>
+<p>---</p>
+</section>
+<section class="doc-section" id="2-where-aiad-fits-in-the-marketplace">
+<h2><a class="anchor" href="#2-where-aiad-fits-in-the-marketplace" aria-label="Enlace">#</a>2. Where AIAD fits in the marketplace</h2>
+<p>AIDD and SDD are untouched. AIAD slots in <strong>only at execution</strong>, as an inverted-philosophy alternative:</p>
+<pre><code>Phases 0-2  -- DEFINITION &amp; DESIGN -------------------------------
+  AIDD (human-in-the-loop)   &lt;- stays as is. It is acceptable and
+  requirements, US, detail,     desirable for the AI to produce this
+  architecture, prototype       under human supervision. Nothing
+                                rewarding is lost: supervising IS
+                                the work here.
+        |
+        v  (US with acceptance criteria + approved architecture)
+EXECUTION --------------------------------------------------------
+  Choose the engine PER US:
+
+   +-------------------------+        +-------------------------+
+   | SDD (human-in-the-loop) |  &lt;--&gt;  | AIAD (ia-in-the-loop)   |
+   | AI-engine: open/        | bridge | Human-engine: you write |
+   | implement/close change  | US &lt;-&gt; | the code; the aiad-*    |
+   | Optimizes cost/time     | change | skills augment you       |
+   +-------------------------+        +-------------------------+</code></pre>
+<p><strong>The &quot;spec&quot; you code against in AIAD already exists</strong>: it is <code>docs/detalle-historias-usuario.md</code> (US + acceptance criteria, produced by AIDD) + <code>docs/arquitectura-base.md</code>. AIAD <strong>does not</strong> regenerate specs: it consumes them.</p>
+<p>---</p>
+</section>
+<section class="doc-section" id="3-where-openspec-fits">
+<h2><a class="anchor" href="#3-where-openspec-fits" aria-label="Enlace">#</a>3. Where OpenSpec fits</h2>
+<p>In AIAD, OpenSpec is demoted from <strong>execution engine</strong> to <strong>optional wrapper</strong>. Since you are the one implementing, the <code>open -&gt; implement -&gt; close change</code> cycle (designed for the AI to generate specs and apply them) is no longer the center.</p>
+<ul>
+<li><strong>Default mode (standalone):</strong> the human works on <strong>user stories</strong>, not changes. The <code>aiad-*</code> skills read the US and the architecture if present, but <strong>do not require OpenSpec</strong>.</li>
+<li><strong>When a change is worth it:</strong> because the US is large, because you want traceability/Jira, or because you want to <strong>jump to SDD</strong>. That is where the bridge comes in (§4).</li>
+</ul>
+<p>---</p>
+</section>
+<section class="doc-section" id="4-the-us-change-bridge-switching-between-aiad-and-sdd">
+<h2><a class="anchor" href="#4-the-us-change-bridge-switching-between-aiad-and-sdd" aria-label="Enlace">#</a>4. The US &lt;-&gt; change bridge — switching between AIAD and SDD</h2>
+<p>The key idea: <strong>an OpenSpec change is equivalent to a human user story.</strong> That equivalence becomes a bidirectional engine switch, materialized by the <code>aiad-bridge</code> skill:</p>
+<pre><code>US (AIAD, human-engine)              OpenSpec change (SDD, AI-engine)
+        |                                       |
+        |   &quot;I want the AI to take over&quot;        |
+        +--------------  wrap  -----------------&gt;|   open change &lt;us-slug&gt;
+        |                                       |   (the US becomes a change;
+        |                                       |    follows the normal SDD cycle)
+        |                                       |
+        |   &quot;I want to take back control&quot;       |
+        |&lt;-------------  reclaim  --------------+   the change is treated as a US
+        |                                       |   again; you keep writing</code></pre>
+<p>Bridge rules:</p>
+<ul>
+<li>The <strong>stable unit is always the US</strong>. The change is only its temporary &quot;SDD form&quot;.</li>
+<li>In AIAD mode the human never edits the change directly: they open/close it through the bridge, which delegates to <code>aisdd-specs</code> when switching to SDD.</li>
+<li>The engine switch can happen <strong>mid-US</strong> (you start, the AI finishes; or vice versa).</li>
+<li>Without OpenSpec installed, <code>aiad-bridge</code> says so and you work standalone on the US.</li>
+</ul>
+<p>---</p>
+</section>
+<section class="doc-section" id="5-skill-catalog-11-skills-5-groups">
+<h2><a class="anchor" href="#5-skill-catalog-11-skills-5-groups" aria-label="Enlace">#</a>5. Skill catalog (11 skills, 5 groups)</h2>
+<p>The overlap between near-identical skills is collapsed into a single skill with a <em>mode</em>; genuinely distinct singletons are kept. Each skill is <strong>pull, not push</strong>, and keeps <strong>you as the author</strong>.</p>
+<div class="table-wrap"><table><thead><tr><th>Group</th><th>Skill</th><th>Modes / focus</th><th>What it does</th></tr></thead><tbody><tr><td><strong>Think</strong> (advises, writes no production code)</td><td><code>aiad-design</code></td><td><code>explore</code> (options/naming) · <code>plan</code> (how-to)</td><td>Explore the option space and plan the approach for a US</td></tr><tr><td></td><td><code>aiad-explain</code></td><td>—</td><td>Explain code / library / pattern / error at your level</td></tr><tr><td></td><td><code>aiad-rubber-duck</code></td><td>—</td><td>Reason out loud; the AI asks questions until you find your own answer</td></tr><tr><td><strong>Build</strong> (the AI writes tests only)</td><td><code>aiad-tdd</code></td><td>—</td><td>Writes failing tests from the acceptance criteria; you implement to green</td></tr><tr><td></td><td><code>aiad-test</code></td><td><code>unit</code> · <code>e2e</code></td><td>Fills missing unit or end-to-end tests over code you already wrote</td></tr><tr><td><strong>Improve</strong> (feedback on your code; proposes, you apply)</td><td><code>aiad-review</code></td><td><code>correctness</code> · <code>quality</code> · <code>perf</code> · <code>&lt;base-branch&gt;</code></td><td>Reviews your code teaching the why, or proposes refactors/perf with trade-offs; <code>aiad review &lt;base-branch&gt;</code> (e.g. <code>develop</code>) runs a merge-readiness review of the whole branch diff. Emits a self-contained HTML report with numbered code fragments and proposed before/after changes</td></tr><tr><td><strong>Flow &amp; control</strong></td><td><code>aiad-pair</code></td><td>—</td><td>Sustained driver/navigator session; orchestrates the other skills</td></tr><tr><td></td><td><code>aiad-bridge</code></td><td><code>to-sdd</code> · <code>to-aiad</code></td><td>Wraps/reclaims the US as an OpenSpec change to switch AIAD &lt;-&gt; SDD</td></tr><tr><td></td><td><code>aiad-unblock</code></td><td>—</td><td>Hub / triage when you are stuck and do not even know what to ask for</td></tr><tr><td></td><td><code>aiad-save</code></td><td>—</td><td>Commits all pending changes and pushes the current branch, no questions asked — a quick-save for when you are in a hurry</td></tr><tr><td><strong>Record</strong></td><td><code>aiad-journal</code></td><td><code>log</code> · <code>report</code></td><td>Records what you authored vs delegated, and reports your authorship ratio</td></tr></tbody></table></div>
+<blockquote><code>aiad-save</code> is the one <strong>action/utility</strong> skill: unlike the advisory skills, it performs an autonomous git action (commit + push). It is still pull (you invoke it) and never destructive (no force-push, no branch changes); invoking it is your authorization.</blockquote>
+<h3 id="shared-dna-of-every-aiad-skill">Shared DNA of every <code>aiad-*</code> skill</h3>
+<ol>
+<li><strong>Pull, not push</strong> — they act only when invoked.</li>
+<li><strong>You remain the author</strong> — by default they advise/teach/propose; only <code>aiad-tdd</code>, <code>aiad-test</code> and (on request) a specific fragment write code, always bounded.</li>
+<li><strong>Teach the why</strong> — Socratic by default.</li>
+<li><strong>No autonomous edits</strong> to production files unless explicitly and narrowly requested.</li>
+<li><strong>Read context if present</strong> (the US, <code>arquitectura-base.md</code>, <code>guia-estilos.md</code>) but do not require the whole SDD apparatus.</li>
+<li><strong>Low ceremony</strong> — no long pre-flight; quick response because you are in flow.</li>
+<li><strong>Optional journal</strong> — if you want, they append a line to <code>docs/aiad-journal.md</code> (what you did, what the AI advised/generated). This is the human-first inverse of the SDD audit: it records <em>your</em> authorship, it does not police the AI.</li>
+</ol>
+<p>---</p>
+</section>
+<section class="doc-section" id="6-the-human-first-split-of-work">
+<h2><a class="anchor" href="#6-the-human-first-split-of-work" aria-label="Enlace">#</a>6. The human-first split of work</h2>
+<p>AIAD splits along <strong>two axes</strong>, not just efficiency:</p>
+<div class="table-wrap"><table><thead><tr><th></th><th><strong>Low human value</strong></th><th><strong>High human value</strong></th></tr></thead><tbody><tr><td><strong>High AI gain</strong></td><td>Automate (tests, boilerplate, scaffolding) -&gt; <code>aiad-tdd</code>/<code>aiad-test</code> and on-request fragments</td><td><strong>The human&#x27;s zone</strong> — the algorithm, the hard bug, the abstraction. You write it; the AI only advises (<code>aiad-design</code>, <code>aiad-rubber-duck</code>)</td></tr><tr><td><strong>Low AI gain</strong></td><td>Eliminate</td><td>Human core: taste, product judgment, naming. You decide; the AI is a sounding board (<code>aiad-design explore</code>)</td></tr></tbody></table></div>
+<p>TDD is the paradigmatic case: <strong>the AI writes the tests (toil), you write the code (dopamine)</strong>. You are the one who makes the bar turn green.</p>
+<p>---</p>
+</section>
+<section class="doc-section" id="7-the-authorship-journal">
+<h2><a class="anchor" href="#7-the-authorship-journal" aria-label="Enlace">#</a>7. The authorship journal</h2>
+<p><code>docs/aiad-journal.md</code> is the human-first inverse of the SDD audit. The SDD audit traces AI provenance (who/what/which model) — a surveillance-of-AI artifact. The journal instead <strong>records and celebrates what the human authored</strong>.</p>
+<ul>
+<li>Every <code>aiad-*</code> skill can append a structured line when it helps you (US, type of help, what you authored vs what the AI generated).</li>
+<li><code>aiad-journal report</code> summarizes your <strong>authorship ratio</strong> (% you wrote vs % delegated) per US, per period, or overall.</li>
+<li>It is a <strong>signal, not a gate</strong>: it never blocks delegation. Use it to see your own craft trend, for retrospectives, or to argue the upskilling/retention value of working human-first.</li>
+</ul>
+<p>Line format (append-only Markdown list):</p>
+<pre><code>- &lt;date&gt; | US:&lt;us-id&gt; | skill:&lt;aiad-skill&gt; | mode:&lt;mode&gt; | authored:&lt;human|ai-tests|ai-fragment|advice-only&gt; | note:&lt;one line&gt;</code></pre>
+<p>---</p>
+</section>
+<section class="doc-section" id="8-automation-the-right-primitive-for-each-capability">
+<h2><a class="anchor" href="#8-automation-the-right-primitive-for-each-capability" aria-label="Enlace">#</a>8. Automation: the right primitive for each capability</h2>
+<p>AIAD is <em>pull, not push</em>, so <strong>skills are the default primitive</strong> for everything advisory and conversational. Two capabilities are better served by other Claude Code primitives:</p>
+<h3 id="the-journal-hook-the-one-legitimate-push">The journal hook (the one legitimate &quot;push&quot;)</h3>
+<p>A plugin hook (<code>hooks/hooks.json</code> -&gt; <code>hooks/aiad-journal-hook.sh</code>) runs on <code>PostToolUse</code> for <code>Write</code>/<code>Edit</code>/<code>MultiEdit</code> and appends an <code>ai-edit</code> line to <code>docs/aiad-journal.md</code>. It is the only place AIAD acts automatically, and it is allowed precisely because it <strong>only records, never controls</strong>:</p>
+<ul>
+<li><strong>Opt-in per project:</strong> it does nothing unless <code>docs/aiad-journal.md</code> already exists.</li>
+<li><strong>Passive &amp; safe:</strong> <code>async</code>, non-blocking, always exits 0; never edits code, never asks.</li>
+<li><strong>Factual authorship:</strong> AI edits go through tools and get logged; hand-typed human edits are invisible to the hook and thus theirs. The craft ratio stops being self-reported.</li>
+</ul>
+<p>This respects <em>free will over guardrails</em>: it is a measurement, not a gate.</p>
+<h3 id="the-review-subagent-context-isolation">The review subagent (context isolation)</h3>
+<p><code>aiad-review</code> ships a companion subagent, <code>aiad-reviewer</code> (<code>agents/aiad-reviewer.md</code>), with <strong>read-only tools</strong> (Read, Grep, Glob, Bash — no edit tools, so it structurally cannot apply fixes). The skill delegates the heavy reading (diff, files, architecture/style docs) to it so the human&#x27;s working context stays clean, and relays back only the findings report, which the skill renders as a <strong>self-contained HTML report</strong> (numbered code fragments, impact and why per finding, proposed before/after changes, test gaps) alongside the terminal summary. The same isolation pattern can later be applied to <code>aiad-test</code> and the generation burst of <code>aiad-tdd</code>; it must <strong>not</strong> be applied to <code>aiad-pair</code> (continuous collaboration) or the conversational skills.</p>
+<h3 id="what-stays-a-plain-skill-and-why-hooks-are-otherwise-wrong">What stays a plain skill, and why hooks are otherwise wrong</h3>
+<p>Everything else (design, explain, rubber-duck, pair, unblock, bridge, save) stays a skill. Putting a hook on an advisory skill would make the AI act on its own — the opposite of ia-in-the-loop. Hooks are reserved here for passive recording only.</p>
+</section>
+<section class="doc-section" id="9-roadmap">
+<h2><a class="anchor" href="#9-roadmap" aria-label="Enlace">#</a>9. Roadmap</h2>
+<ul>
+<li><strong>v0.1 (available):</strong> the eleven catalog skills (§5) — <code>aiad-design</code>, <code>aiad-explain</code>, <code>aiad-rubber-duck</code>, <code>aiad-tdd</code>, <code>aiad-test</code>, <code>aiad-review</code>, <code>aiad-pair</code>, <code>aiad-bridge</code>, <code>aiad-unblock</code>, <code>aiad-save</code>, <code>aiad-journal</code>.</li>
+<li><strong>Candidate improvements (not built):</strong> an AIAD <code>getting-started</code> guide; an <code>aiad help</code> command listing the catalog by type of blocker; richer authorship analytics on top of <code>aiad-journal</code>.</li>
+</ul>
+</section>
+    </main>
+  </div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+
+    // Scroll-spy: highlight the current section in the TOC.
+    const links = [...document.querySelectorAll('.toc a')];
+    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(a => a.classList.remove('active'));
+          const a = map.get(e.target.id);
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+  </script>
+</body>
+</html>

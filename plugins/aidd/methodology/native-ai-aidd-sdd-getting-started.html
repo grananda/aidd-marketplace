@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AIDD-SDD — Getting Started</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f7fa; --panel: #ffffff; --panel-soft: #fbfcfd;
+      --text: #1a2230; --text-soft: #404a5c; --muted: #5b6675;
+      --line: #e1e6ed; --line-strong: #c8d1dc;
+      --accent: #005f73; --accent-soft: #d6eef3;
+      --code-bg: #eef2f6;
+      --shadow: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+      --rf: #0a7d8c; --nfr: #6b5bd6; --us: #0a9396; --must: #c1121f;
+      --block: #b00020; --warn: #b58a25; --essential: #e8590c;
+      --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
+      --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1623; --panel: #161f2f; --panel-soft: #1b2536;
+        --text: #e6ebf4; --text-soft: #c2cad8; --muted: #94a0b3;
+        --line: #28324a; --line-strong: #364260;
+        --accent: #4dd0e1; --accent-soft: #143038; --code-bg: #1f2940;
+        --shadow: 0 1px 2px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+        --rf: #35c4d6; --nfr: #a99bff; --us: #4dd0e1; --must: #ff6b74;
+        --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
+        --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
+        --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    }
+    .layout {
+      display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 40px;
+      max-width: 1280px; margin: 0 auto; padding: 40px 28px 80px;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; padding: 24px 18px 56px; gap: 24px; }
+      .toc { position: static !important; max-height: none !important; }
+    }
+    main { min-width: 0; }
+    .doc-header { margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 10px; letter-spacing: -0.01em; }
+    h2 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 14px; display: flex; align-items: baseline; gap: 8px; }
+    h3 { font-size: 1.08rem; margin: 22px 0 10px; }
+    h4 { font-size: .98rem; margin: 18px 0 8px; color: var(--text-soft); text-transform: uppercase; letter-spacing: .04em; }
+    h2 .anchor { color: var(--line-strong); text-decoration: none; font-weight: 400; opacity: 0; transition: opacity .15s ease, color .15s ease; }
+    h2:hover .anchor { opacity: 1; }
+    h2 .anchor:hover { color: var(--accent); }
+    p { margin: 0 0 14px; color: var(--text-soft); max-width: 74ch; }
+    li { color: var(--text-soft); }
+    ul, ol { padding-left: 24px; margin: 0 0 16px; }
+    ul li, ol li { margin-bottom: 6px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    strong { color: var(--text); }
+    blockquote {
+      margin: 0 0 16px; padding: 12px 16px; border-left: 3px solid var(--accent);
+      background: var(--panel-soft); border-radius: 0 8px 8px 0; color: var(--muted); font-size: .95rem;
+    }
+    code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+      font-family: "SF Mono","JetBrains Mono","Fira Code",Consolas,Menlo,monospace; font-size: .88em; }
+    pre { background: var(--panel-soft); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px;
+      overflow-x: auto; font-family: "SF Mono","JetBrains Mono","Fira Code",Consolas,Menlo,monospace; font-size: .88em; line-height: 1.55; }
+    pre code { background: transparent; border: 0; padding: 0; }
+    .badge { display: inline-block; background: var(--accent-soft); color: var(--accent);
+      font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+      padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+    .badge-soft { background: transparent; border: 1px solid var(--line-strong); color: var(--muted); }
+    .doc-meta { margin: 0; color: var(--muted); font-size: .92rem; }
+    .doc-meta .dot { margin: 0 6px; color: var(--line-strong); }
+    .doc-meta .sot { font-style: italic; }
+    /* KPI dashboard */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+      border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; }
+    .kpi-value { font-size: 1.9rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+    .kpi-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .kpi-rf { border-left-color: var(--rf); } .kpi-rf .kpi-value { color: var(--rf); }
+    .kpi-nfr { border-left-color: var(--nfr); } .kpi-nfr .kpi-value { color: var(--nfr); }
+    .kpi-us { border-left-color: var(--us); } .kpi-us .kpi-value { color: var(--us); }
+    .kpi-must { border-left-color: var(--must); } .kpi-must .kpi-value { color: var(--must); }
+    .kpi-block { border-left-color: var(--block); } .kpi-block .kpi-value { color: var(--block); }
+    .kpi-essential { border-left-color: var(--essential); } .kpi-essential .kpi-value { color: var(--essential); }
+    .kpi-warn { border-left-color: var(--warn); } .kpi-warn .kpi-value { color: var(--warn); }
+    .kpi-muted { border-left-color: var(--line-strong); } .kpi-muted .kpi-value { color: var(--muted); }
+    /* Chips */
+    .chip { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+      vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
+      border: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+    .chip-rf { color: var(--rf); background: color-mix(in srgb, var(--rf) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-nfr { color: var(--nfr); background: color-mix(in srgb, var(--nfr) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-us { color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-block { color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }
+    .chip-essential { color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }
+    .swatch { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
+      vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }
+    .chip-must { color: var(--must); background: color-mix(in srgb, var(--must) 14%, transparent); }
+    .chip-should { color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }
+    .chip-could { color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }
+    .chip-wont { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+    .chip-prio-high { color: var(--prio-high); background: color-mix(in srgb, var(--prio-high) 14%, transparent); }
+    .chip-prio-mid { color: var(--prio-mid); background: color-mix(in srgb, var(--prio-mid) 14%, transparent); }
+    .chip-prio-low { color: var(--prio-low); background: color-mix(in srgb, var(--prio-low) 14%, transparent); }
+    .chip-eff-xs { color: var(--eff-xs); background: color-mix(in srgb, var(--eff-xs) 14%, transparent); }
+    .chip-eff-s { color: var(--eff-s); background: color-mix(in srgb, var(--eff-s) 14%, transparent); }
+    .chip-eff-m { color: var(--eff-m); background: color-mix(in srgb, var(--eff-m) 14%, transparent); }
+    .chip-eff-l { color: var(--eff-l); background: color-mix(in srgb, var(--eff-l) 14%, transparent); }
+    .chip-eff-xl { color: var(--eff-xl); background: color-mix(in srgb, var(--eff-xl) 14%, transparent); }
+    /* Sections */
+    .doc-section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      padding: 24px 26px; margin: 22px 0; box-shadow: var(--shadow); }
+    .doc-section h2 { margin-top: 0; }
+    .doc-section > h2::before { content: ""; display: inline-block; width: 6px; height: 22px; border-radius: 3px;
+      background: var(--accent); transform: translateY(3px); margin-right: 2px; }
+    .section-scope > h2::before { background: var(--must); }
+    .section-scope ul { list-style: none; padding-left: 0; }
+    .section-scope ul li { padding: 6px 12px; margin-bottom: 6px; border-radius: 8px; background: var(--panel-soft); border: 1px solid var(--line); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); font-size: .94rem; }
+    th, td { padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; color: var(--text-soft); }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:nth-child(even) td { background: var(--panel-soft); }
+    th { background: var(--panel-soft); color: var(--text); font-weight: 600; font-size: .82rem;
+      text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--line-strong); }
+    .diagram { margin: 18px 0 4px; padding: 18px; background: var(--panel-soft);
+      border: 1px dashed var(--line-strong); border-radius: 10px; overflow-x: auto; }
+    .diagram .mermaid { text-align: center; background: transparent; border: 0; padding: 0; margin: 0; }
+    .toc { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto;
+      padding: 18px 18px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+      box-shadow: var(--shadow); font-size: .9rem; }
+    .toc-title { margin: 0 0 10px; font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .toc ol { list-style: none; counter-reset: toc; padding: 0; margin: 0; }
+    .toc li { counter-increment: toc; margin: 0; }
+    .toc li a { display: block; padding: 6px 10px 6px 12px; color: var(--text-soft); border-radius: 6px; }
+    .toc li a::before { content: counter(toc) "."; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+    .toc li a:hover, .toc li a.active { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    @media print {
+      body { background: #fff; } .layout { display: block; padding: 0; } .toc { display: none; }
+      .doc-section, .kpi { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="toc" aria-label="Indice"><p class="toc-title">En esta pagina</p><ol><li><a href="#1-qu-es-esto-en-una-frase">1. ¿Qué es esto en una frase?</a></li><li><a href="#2-requisitos-previos">2. Requisitos previos</a></li><li><a href="#3-instalaci-n-e-inicializaci-n">3. Instalación e inicialización</a></li><li><a href="#4-el-flujo-completo-de-un-vistazo">4. El flujo completo de un vistazo</a></li><li><a href="#5-quickstart-end-to-end-proyecto-nuevo">5. Quickstart end-to-end (proyecto nuevo)</a></li><li><a href="#6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar">6. El pre-flight de dudas (lo que más sorprende al empezar)</a></li><li><a href="#7-artefactos-que-vas-a-ver">7. Artefactos que vas a ver</a></li><li><a href="#8-comandos-de-referencia">8. Comandos de referencia</a></li><li><a href="#9-errores-t-picos-al-empezar">9. Errores típicos al empezar</a></li><li><a href="#10-siguientes-pasos">10. Siguientes pasos</a></li></ol></nav>
+    <main>
+<header class="doc-header"><h1 id="native-ai-aidd-sdd-getting-started">Native AI · AIDD-SDD — Getting Started</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-07-11 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p></header>
+<p><strong>Guía de arranque rápido</strong> para desarrollar con la metodología <strong>AIDD-SDD</strong>: los skills <code>aidd</code> (planificación, diseño y entrega) sobre el proceso <em>Spec-Driven Development</em>, y el skill <code>aisdd-specs</code> (ejecución sobre OpenSpec).</p>
+<blockquote>Documento de referencia completo: [native-ai-aidd-sdd.md](native-ai-aidd-sdd.md). Esta guía es el camino corto para ponerte en marcha en una tarde.</blockquote>
+<p>---</p>
+<section class="doc-section" id="1-qu-es-esto-en-una-frase">
+<h2><a class="anchor" href="#1-qu-es-esto-en-una-frase" aria-label="Enlace">#</a>1. ¿Qué es esto en una frase?</h2>
+<p>Un flujo de desarrollo donde <strong>la especificación es el motor</strong>: <strong>defines y diseñas con los skills <code>aidd</code></strong> → generas specs por <em>change</em> con <code>aisdd-specs</code> (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.</p>
+<p><strong>Los cinco roles:</strong></p>
+<div class="table-wrap"><table><thead><tr><th>Rol</th><th>Hace</th><th>Comandos clave</th></tr></thead><tbody><tr><td><strong>AI Architect</strong></td><td>Requisitos, historias, arquitectura, prototipo</td><td><code>aidd requirements</code>, <code>aidd user-stories</code>, <code>aidd user-story-details</code>, <code>aidd prototype-architecture</code>, <code>aidd prototype</code>, <code>aidd style-guide</code>, <code>aidd architecture-proposal</code>, <code>aidd architecture</code></td></tr><tr><td><strong>AI Lead</strong></td><td>Inicializa, fasea, <strong>abre y valida los specs de todos los changes</strong></td><td><code>aisdd init</code>, <code>aisdd roadmap</code>, <code>aisdd open change</code></td></tr><tr><td><strong>AI Delivery Manager</strong></td><td>Plan de recursos y reparto en sprints (capa Delivery, v4)</td><td><code>aidd project-plan</code>, <code>aidd sprint-planning</code></td></tr><tr><td><strong>AI Developer</strong></td><td>Implementa, verifica, corrige bugs</td><td><code>aisdd implement change</code></td></tr><tr><td><strong>Outcome Validator</strong></td><td>QA técnico + funcional, archiva</td><td><code>aisdd close change</code></td></tr></tbody></table></div>
+<p>---</p>
+</section>
+<section class="doc-section" id="2-requisitos-previos">
+<h2><a class="anchor" href="#2-requisitos-previos" aria-label="Enlace">#</a>2. Requisitos previos</h2>
+<ul>
+<li><strong>Node.js y npm</strong> instalados.</li>
+<li>Un agente con el skill <strong><code>aisdd-specs</code></strong> disponible (Claude Code, Codex u otro).</li>
+<li>Skills auxiliares (opcionales pero recomendados):</li>
+<li><code>booster-ux</code> — prototipos UX.</li>
+<li><code>booster-uml</code> — diagramas del change.</li>
+<li><code>booster-docs</code> — vistas HTML de los documentos de planificación (AIDD/SDD).</li>
+<li>Comprobación rápida:</li>
+</ul>
+<pre><code>node --version
+npm --version
+openspec --version   # si falta, aisdd init lo instala</code></pre>
+<p>---</p>
+</section>
+<section class="doc-section" id="3-instalaci-n-e-inicializaci-n">
+<h2><a class="anchor" href="#3-instalaci-n-e-inicializaci-n" aria-label="Enlace">#</a>3. Instalación e inicialización</h2>
+<p><code>aisdd init</code> envuelve la instalación de OpenSpec y prepara el proyecto.</p>
+<pre><code>aisdd init</code></pre>
+<p>Qué hace:</p>
+<ol>
+<li>Instala OpenSpec si falta (<code>npm install -g @fission-ai/openspec@latest</code>).</li>
+<li>Ejecuta <code>openspec init</code> por debajo.</li>
+<li>Comprueba <code>booster-ux</code> y <code>booster-uml</code>.</li>
+<li>Pregunta si el proyecto es <strong>nuevo</strong> o <strong>existente</strong>.</li>
+<li>Registra los comandos del skill en <code>AGENTS.md</code> (bloque idempotente auto-generado).</li>
+</ol>
+<p><strong>Resultado:</strong> Native AI Specs inicializado, <code>AGENTS.md</code> con los comandos, <code>openspec/</code> creado.</p>
+<p>---</p>
+</section>
+<section class="doc-section" id="4-el-flujo-completo-de-un-vistazo">
+<h2><a class="anchor" href="#4-el-flujo-completo-de-un-vistazo" aria-label="Enlace">#</a>4. El flujo completo de un vistazo</h2>
+<pre><code>aisdd init                 ← AI Lead   (una vez)
+aisdd roadmap              ← AI Lead   (una vez · fasea el desarrollo)
+        │
+        ▼   por cada fase del roadmap (= un change):
+aisdd open change &lt;slug&gt;   ← AI Lead   (pre-flight de dudas → specs validados)
+        │  handoff: specs validados ──►
+aisdd implement change &lt;slug&gt;  ← AI Developer (pre-flight → código)
+        │  pruebas + corrección de bugs ──►
+aisdd close change &lt;slug&gt;  ← Outcome Validator (valida → archiva)
+        │
+        ▼  siguiente change</code></pre>
+<blockquote><strong>Regla de oro del reparto:</strong> el <strong>AI Lead</strong> abre (<code>open change</code>) y valida los specs de <strong>todos</strong> los changes; el <strong>AI Developer</strong> solo implementa (<code>implement change</code>) + verifica + corrige bugs; el <strong>Outcome Validator</strong> archiva (<code>close change</code>).</blockquote>
+<p>---</p>
+</section>
+<section class="doc-section" id="5-quickstart-end-to-end-proyecto-nuevo">
+<h2><a class="anchor" href="#5-quickstart-end-to-end-proyecto-nuevo" aria-label="Enlace">#</a>5. Quickstart end-to-end (proyecto nuevo)</h2>
+<h3 id="paso-0-brief-del-cliente">Paso 0 — Brief del cliente</h3>
+<pre><code>aidd client-requirements   # docs/cliente-requisitos.md — contexto, stack, restricciones</code></pre>
+<p>Punto de partida del AI Architect. Captura el brief y, opcionalmente, crea/actualiza <code>AGENTS.md</code>.</p>
+<h3 id="paso-1-definici-n-ai-architect">Paso 1 — Definición (AI Architect)</h3>
+<p>Ejecuta, en este orden, los comandos <code>aidd</code> (cada uno aplica el prompt de su paso):</p>
+<pre><code>aidd requirements          # docs/requisitos.md — requisitos formales trazables (RF-XX, NFR-XX)
+aidd user-stories          # docs/mapa-historias-usuario.md — historias por fases
+aidd user-story-details    # docs/detalle-historias-usuario.md — criterios de aceptación verificables</code></pre>
+<p>Opcional, sobre las HU ya definidas — planificar su <strong>revisión/validación</strong> con negocio y TI en un Excel:</p>
+<pre><code>aidd hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
+                           #   (consolida mapa+detalle de HU: Detalle HU, Dashboard, Leyenda y Gantt de revisión)</code></pre>
+<h3 id="paso-2-dise-o-ai-architect">Paso 2 — Diseño (AI Architect)</h3>
+<pre><code>aidd prototype-architecture   # docs/arquitectura-base-prototipo.md
+aidd prototype                # prototipo mockeado (redirige a booster-ux) — valídalo con el cliente
+aidd style-guide              # docs/guia-estilos.md
+aidd architecture-proposal    # docs/propuesta-arquitectura-base.md
+aidd architecture             # docs/arquitectura-base.md (arquitectura definitiva, insumo del roadmap)</code></pre>
+<h3 id="paso-3-inicializaci-n-y-roadmap-ai-lead">Paso 3 — Inicialización y Roadmap (AI Lead)</h3>
+<pre><code>aisdd init
+aisdd roadmap</code></pre>
+<p><code>aisdd roadmap</code> genera:</p>
+<ul>
+<li><code>docs/roadmap.md</code> — fases del desarrollo (granularidad según presupuesto de contexto).</li>
+<li><code>docs/prompts-roadmap-native-ai.md</code> — el prompt exacto de cada fase.</li>
+<li>Sección <code>roadmap</code> en <code>openspec/config.yaml</code>.</li>
+</ul>
+<h3 id="paso-3-5-planificaci-n-de-entrega-ai-delivery-manager-opcional">Paso 3.5 — Planificación de entrega (AI Delivery Manager) · opcional</h3>
+<p>Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills <code>aidd</code>, autónomos de OpenSpec):</p>
+<pre><code>aidd project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
+aidd sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)</code></pre>
+<p>Útil cuando un equipo Scrum va a ejecutar el desarrollo. No sustituye al roadmap: reparte sus changes en sprints respetando dependencias y <strong>sin partir ningún change</strong>.</p>
+<h3 id="paso-4-foundation-ai-lead">Paso 4 — Foundation (AI Lead)</h3>
+<p>El primer change siempre es <code>foundation</code> (estructura base, sin funcionalidad):</p>
+<pre><code>aisdd open change foundation
+aisdd implement change foundation
+aisdd close change foundation</code></pre>
+<h3 id="paso-5-primer-change-funcional">Paso 5 — Primer change funcional</h3>
+<p>El <strong>AI Lead</strong> abre y valida; el <strong>AI Developer</strong> implementa; el <strong>Validator</strong> cierra:</p>
+<pre><code># AI Lead
+aisdd open change alta-de-clientes
+
+# AI Developer (tras recibir los specs validados)
+aisdd implement change alta-de-clientes
+
+# Outcome Validator (tras validar)
+aisdd close change alta-de-clientes</code></pre>
+<p>Repite el Paso 5 para cada fase del roadmap hasta terminar.</p>
+<p>---</p>
+</section>
+<section class="doc-section" id="6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar">
+<h2><a class="anchor" href="#6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar" aria-label="Enlace">#</a>6. El pre-flight de dudas (lo que más sorprende al empezar)</h2>
+<p><code>open change</code> e <code>implement change</code> <strong>no actúan a ciegas</strong>: antes preguntan.</p>
+<ul>
+<li>Máximo <strong>7 preguntas</strong> por change, priorizando las <strong>bloqueantes</strong> (alcance, modelo de datos, contrato de API, integraciones, permisos).</li>
+<li>No repreguntan lo ya resuelto en <code>docs/</code>, <code>AGENTS.md</code> o specs previas.</li>
+<li>Las respuestas se guardan en <code>openspec/changes/&lt;slug&gt;/decisions.md</code>.</li>
+<li>En modo no interactivo aplican el default recomendado y se detienen solo ante bloqueantes sin default seguro.</li>
+</ul>
+<p><strong>Tu trabajo durante el pre-flight:</strong> responder con criterio. Si una duda es de arquitectura, el Developer la <strong>eleva</strong> (no la inventa).</p>
+<p>---</p>
+</section>
+<section class="doc-section" id="7-artefactos-que-vas-a-ver">
+<h2><a class="anchor" href="#7-artefactos-que-vas-a-ver" aria-label="Enlace">#</a>7. Artefactos que vas a ver</h2>
+<pre><code>docs/                                # definición, roadmap y planificación de entrega (planificacion-proyecto.md, sprint-plan.md)
+AGENTS.md                            # ancla de contexto + comandos (auto-generado)
+openspec/
+├── config.yaml                      # project_context + roadmap
+├── specs/                           # specs consolidadas
+├── changes/&lt;slug&gt;/
+│   ├── proposal.md  design.md  spec.md
+│   └── decisions.md                 # decisiones del pre-flight
+└── audit/YYYY-MM.jsonl              # auditoría append-only de cada comando</code></pre>
+<p>---</p>
+</section>
+<section class="doc-section" id="8-comandos-de-referencia">
+<h2><a class="anchor" href="#8-comandos-de-referencia" aria-label="Enlace">#</a>8. Comandos de referencia</h2>
+<div class="table-wrap"><table><thead><tr><th>Comando</th><th>Quién</th><th>Para qué</th></tr></thead><tbody><tr><td><code>aisdd init</code></td><td>AI Lead</td><td>Inicializa OpenSpec + dependencias + <code>AGENTS.md</code></td></tr><tr><td><code>aisdd roadmap</code></td><td>AI Lead</td><td>Fasea el desarrollo y genera los prompts por fase</td></tr><tr><td><code>aisdd open change &lt;slug&gt;</code></td><td>AI Lead</td><td>Pre-flight + genera specs validados del change</td></tr><tr><td><code>aisdd implement change &lt;slug&gt;</code></td><td>AI Developer</td><td>Pre-flight + implementa el código</td></tr><tr><td><code>aisdd close change &lt;slug&gt;</code></td><td>Outcome Validator</td><td>Valida y archiva el change</td></tr><tr><td><code>aisdd prototype-ux [&lt;slug&gt;]</code></td><td>Architect / Developer</td><td>Prototipos UX (booster-ux)</td></tr><tr><td><code>aisdd uml &lt;slug&gt;</code></td><td>Cualquiera</td><td>Diagramas HTML del change (booster-uml)</td></tr><tr><td><code>aidd hu-review-plan</code></td><td>AI Architect / Delivery</td><td>Excel de planificación de la revisión de HU <code>docs/xlsx/plan-revision-hu.xlsx</code> (Detalle HU, Dashboard, Leyenda, Gantt)</td></tr><tr><td><code>aidd project-plan</code></td><td>AI Delivery Manager</td><td>Plan de recursos <code>docs/planificacion-proyecto.md</code> (capa Delivery, v4)</td></tr><tr><td><code>aidd sprint-planning</code></td><td>AI Delivery Manager</td><td>Reparto en sprints <code>docs/sprint-plan.md</code> (capa Delivery, v4)</td></tr></tbody></table></div>
+<p>---</p>
+</section>
+<section class="doc-section" id="9-errores-t-picos-al-empezar">
+<h2><a class="anchor" href="#9-errores-t-picos-al-empezar" aria-label="Enlace">#</a>9. Errores típicos al empezar</h2>
+<div class="table-wrap"><table><thead><tr><th>Síntoma</th><th>Causa</th><th>Solución</th></tr></thead><tbody><tr><td>El Developer intenta abrir el change</td><td>Reparto de roles mal entendido</td><td>El <strong>AI Lead</strong> abre y valida; el Developer solo <code>implement change</code></td></tr><tr><td>Un change se atasca arrastrando demasiado contexto</td><td>Fase demasiado grande</td><td>Re-fasea con <code>aisdd roadmap</code> (más fases, más pequeñas)</td></tr><tr><td>El pre-flight pregunta lo obvio</td><td>No leyó <code>docs/</code> / <code>AGENTS.md</code> / specs previas</td><td>Asegura que el contexto del rol está accesible</td></tr><tr><td>&quot;La IA recuerda&quot; decisiones no escritas</td><td>Se usa el historial como memoria</td><td>Todo va a <code>decisions.md</code> o <code>docs/</code>; si no está escrito, no existe</td></tr><tr><td>No hay entrada de auditoría</td><td>Se ejecutó OpenSpec a mano</td><td>Usa siempre los comandos <code>aisdd</code>, no OpenSpec directo</td></tr></tbody></table></div>
+<p>---</p>
+</section>
+<section class="doc-section" id="10-siguientes-pasos">
+<h2><a class="anchor" href="#10-siguientes-pasos" aria-label="Enlace">#</a>10. Siguientes pasos</h2>
+<ul>
+<li>Lee la metodología completa: [native-ai-aidd-sdd.md](native-ai-aidd-sdd.md).</li>
+<li>Rellena tu <code>AGENTS.md</code> con contexto, stack, roles y documentos clave del proyecto.</li>
+<li>Empieza por <code>docs/cliente-requisitos.md</code> y avanza fase a fase.</li>
+</ul>
+<blockquote><strong>Principio que lo resume todo:</strong> documentos como fuente de verdad, human-in-the-loop en cada transición, y un change cerrado y validado antes de abrir el siguiente.</blockquote>
+</section>
+    </main>
+  </div>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
+
+    // Scroll-spy: highlight the current section in the TOC.
+    const links = [...document.querySelectorAll('.toc a')];
+    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(a => a.classList.remove('active'));
+          const a = map.get(e.target.id);
+          if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-10% 0px -80% 0px' });
+    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+  </script>
+</body>
+</html>
