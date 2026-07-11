@@ -190,7 +190,21 @@ Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales*
 
 **Atlassian.** ⚠️ **El MCP remoto oficial de Atlassian NO expone las operaciones Agile** (crear sprints, añadir/mover issues de sprint): cubre issues y transiciones, pero **no basta para el volcado de `aidd sprint-planning`** — lo comprobamos en un proyecto real y hubo que instalar otro. Recomendación según lo que necesites:
 
-- **Flujo completo (volcado de sprints incluido)** — un MCP de la comunidad que exponga la API Agile de Jira, p. ej. [`mcp-atlassian`](https://github.com/sooperset/mcp-atlassian) con API token (tools `jira_create_sprint`, `jira_add_issues_to_sprint`, `jira_get_sprints_from_board`, …). Es el que usamos.
+- **Flujo completo (volcado de sprints incluido)** — un MCP de la comunidad que exponga la API Agile de Jira, p. ej. [`mcp-atlassian`](https://github.com/sooperset/mcp-atlassian) con API token (tools `jira_create_sprint`, `jira_add_issues_to_sprint`, `jira_get_sprints_from_board`, …). Es el que usamos. Instalación:
+
+  1. Crea un **API token** de Atlassian en <https://id.atlassian.com/manage-profile/security/api-tokens>.
+  2. Registra el MCP en Claude Code (requiere [`uv`](https://docs.astral.sh/uv/); alternativa: la imagen Docker `ghcr.io/sooperset/mcp-atlassian` del mismo proyecto):
+
+  ```bash
+  claude mcp add jira-agile \
+    --env JIRA_URL=https://<tu-org>.atlassian.net \
+    --env JIRA_USERNAME=<tu-email> \
+    --env JIRA_API_TOKEN=<tu-token> \
+    -- uvx mcp-atlassian
+  ```
+
+  3. Verifica con `/mcp` que el servidor aparece conectado y expone las tools `jira_*` (incluidas las de sprint).
+
 - **Solo ciclo de changes de aisdd** (sub-tareas, transiciones — sin crear sprints): también vale el MCP remoto oficial (OAuth): `claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse`.
 
 Requisitos en Jira: un proyecto con **board Scrum** (los sprints viven en el board) y permisos para crear issues y sprints. Nota: los nombres de issue types varían por tipo de proyecto (*team-managed* usa `Subtask`; *company-managed*, `Sub-task`) — los skills los descubren y verifican solos antes de crear nada.
