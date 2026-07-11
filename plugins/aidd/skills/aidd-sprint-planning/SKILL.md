@@ -3,7 +3,7 @@ name: aidd-sprint-planning
 description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.2"
+  version: "1.4.3"
 ---
 
 # aidd-sprint-planning (AIDD · Fase 3.5 · paso 3.5.2 · sprints)
@@ -198,11 +198,12 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 **Persistencia del enlace y la configuracion.** Para que `aisdd open/implement/close change` puedan crear las sub-tareas y mover los tickets despues, deja preparado el puente:
 
 1. Escribe (o actualiza, sin tocar otras claves) la seccion `jira:` en `openspec/config.yaml` con: `site`, `project_key`, `board_id`, `story_issue_type`, `subtask_issue_type`, `status_in_progress`, `status_done` y `assignee_override` (vacio salvo que el MCP use una cuenta de servicio). **Los issue types se descubren, no se asumen**: lee los tipos reales del proyecto via MCP y usa sus nombres exactos — el de Story tal como exista y como `subtask_issue_type` el tipo con `subtask: true` (en proyectos *team-managed* se llama `Subtask`; en *company-managed*, `Sub-task`). Si no existe `openspec/` (proyecto sin OpenSpec), escribe estos mismos datos en una cabecera de `docs/jira-sync.md` y avisa de que la sincronizacion de changes requiere el mundo aisdd-specs.
-2. Inicializa/actualiza el registro `docs/jira-sync.md` (fuente de verdad del mapeo HU <-> change <-> issue), una fila por HU, con la clave de la **Story** recien creada y, si el roadmap ya asocia changes a esa HU, la lista de change(s) previstos con su sub-tarea en blanco y estado `to_do`. Estructura:
+2. Inicializa/actualiza el registro `docs/jira-sync.md` (fuente de verdad del mapeo HU <-> change <-> issue), una fila por HU, con la clave de la **Story** recien creada y, si el roadmap ya asocia changes a esa HU, la lista de change(s) previstos y estado `to_do`. La columna de sub-tareas solo aplica a HU repartidas entre **2+ changes** (modelo hibrido de `aisdd-specs`); para HU de un solo change queda `—`. Estructura:
 
    | HU | Story (Jira) | change(s) | Sub-tarea(s) (Jira) | estado |
    |----|--------------|-----------|---------------------|--------|
-   | HU-03 | ABC-12 | back-auth | (pendiente) | to_do |
+   | HU-02 | ABC-11 | foundation | — | to_do |
+   | HU-03 | ABC-12 | back-auth, front-auth | (pendientes) | to_do |
 
 3. No crees las sub-tareas de los changes aqui; solo dejas registradas las HU con su Story y los changes previstos. Las sub-tareas las crea `aisdd open change`.
 
@@ -215,9 +216,10 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 Convencion del enlace entre los dos planos (negocio y ejecucion), que este skill prepara y `aisdd-specs` consume:
 
 - **La HU es la unidad rastreable de entrega** (Story en Jira): es lo que el equipo se compromete a entregar, lo que tiene criterios de aceptacion y lo que el cliente valida. Es estable.
-- **El change es la unidad de ejecucion** del AI Developer (sub-tarea de su HU): es como la IA construye la HU, acotado por el presupuesto de contexto del roadmap. Una HU puede necesitar **varios** changes.
-- **Enlace**: cada change conoce su(s) HU (anotada en `proposal.md` y en `docs/jira-sync.md`); cada HU conoce sus changes (sus sub-tareas). El pegamento operativo es referenciar la clave de la sub-tarea/Story (`ABC-123`) en el PR del change.
-- **Avance**: `implement change` mueve la sub-tarea y su Story a In Progress; `close change` pasa la sub-tarea a Done y la Story a Done **solo cuando todas sus sub-tareas estan Done**. Asi una HU no se marca completada a medias.
+- **El change es la unidad de ejecucion** del AI Developer: es como la IA construye la HU, acotado por el presupuesto de contexto del roadmap. Una HU puede necesitar **varios** changes.
+- **Modelo hibrido por HU** (lo aplica `aisdd-specs`): si una HU se realiza con **un solo change**, los comandos operan **directamente sobre su Story** (sin sub-tarea — una sub-tarea 1:1 solo duplicaria la Story); si la HU se reparte entre **2 o mas changes**, cada change es una **sub-tarea** bajo su Story para progreso atomico.
+- **Enlace**: cada change conoce su(s) HU (anotada en `proposal.md` y en `docs/jira-sync.md`); cada HU conoce sus changes. El pegamento operativo es referenciar la clave de la Story/sub-tarea (`ABC-123`) en el PR del change.
+- **Avance**: `implement change` mueve a In Progress las Stories de **todas** las HU que implementa (y la sub-tarea del change donde exista); `close change` las pasa a Done — una Story con sub-tareas, **solo cuando todas estan Done**. Asi una HU no se marca completada a medias.
 
 ### Sello de version y fecha-hora (antes de renderizar)
 
