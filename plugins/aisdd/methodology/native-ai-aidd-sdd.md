@@ -181,7 +181,7 @@ Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadm
 
 | Responsabilidad | Comandos / Detalle |
 |---|---|
-| **Genera el plan de recursos** | Ejecuta `aidd project-plan` en cuanto el diseño (Fase 2) está aprobado: produce `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias, infraestructura/entornos, esfuerzo agregado (a partir de XS/S/M/L/XL), dependencias y riesgos de recursos, derivados de `arquitectura-base.md` y las historias |
+| **Genera el plan de recursos** | Ejecuta `aidd project-plan` en cuanto el diseño (Fase 2) está aprobado: produce `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias, infraestructura/entornos, esfuerzo agregado con **doble estimación humano clásico vs IA** (a partir de XS/S/M/L/XL) y **KPIs de la diferencia** (ahorro en jornadas, % de reducción y factor de aceleración), dependencias y riesgos de recursos, derivados de `arquitectura-base.md` y las historias |
 | **Distribuye el trabajo en sprints** | Ejecuta `aidd sprint-planning` cuando existe `docs/roadmap.md`: produce `docs/sprint-plan.md` agrupando los changes/fases en sprints con objetivo, capacidad, asignación de perfiles y dependencias respetadas |
 | **Respeta el faseado por contexto** | No parte un change para encajarlo en un sprint; un sprint contiene changes/historias completos. El roadmap (presupuesto de contexto) manda sobre el calendario |
 | **Hace consumible el plan por un equipo Scrum** | Traduce la planificación AI-native a recursos y calendario que un equipo humano gestiona en su día a día |
@@ -481,7 +481,7 @@ Un **change** es la unidad de trabajo: equivale a una fase del roadmap o feature
 
 #### Paso 3.5.1 — `aidd project-plan` (plan de recursos)
 
-Puede ejecutarse en cuanto la Fase 2 está aprobada (no requiere el roadmap). El AI Delivery Manager genera `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias (open source vs coste, órdenes de magnitud), infraestructura/entornos, esfuerzo agregado (a partir de XS/S/M/L/XL), dependencias y riesgos de recursos.
+Puede ejecutarse en cuanto la Fase 2 está aprobada (no requiere el roadmap). El AI Delivery Manager genera `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias (open source vs coste, órdenes de magnitud), infraestructura/entornos, esfuerzo agregado con **doble estimación humano clásico vs IA** (a partir de XS/S/M/L/XL) y **KPIs de la diferencia** (ahorro en jornadas, % de reducción y factor de aceleración), dependencias y riesgos de recursos.
 
 **Criterio:** Plan de recursos aprobado; el equipo sabe qué perfiles, licencias e infraestructura necesita.
 
