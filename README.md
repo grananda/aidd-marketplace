@@ -299,6 +299,12 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
      plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
      plugins/aisdd/methodology/
   ```
+- **Versión de Mermaid**: `booster-docs` y `booster-uml` fijan la misma versión y `sha256` del bundle (`MERMAID_VERSION`, `MERMAID_SHA256`, `MERMAID_SIZE` en sus respectivos scripts). Comparten el `mermaid.min.js` de `docs/html/`, así que **si actualizas la versión, hazlo en los dos** y recalcula el hash:
+
+  ```bash
+  curl -sS -o /tmp/m.js https://cdn.jsdelivr.net/npm/mermaid@<version>/dist/mermaid.min.js
+  wc -c /tmp/m.js && sha256sum /tmp/m.js   # tamaño y hash que van a los dos scripts
+  ```
 - **Hook de actividad compartido**: `hooks/aidd-activity-hook.sh` es el **mismo fichero** en los cuatro plugins (cada plugin instalado es autónomo, no pueden compartir ficheros). Si lo tocas, cópialo a los cuatro y comprueba que coinciden:
 
   ```bash

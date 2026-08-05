@@ -148,6 +148,23 @@ python .agents\skills\booster-uml\scripts\render_uml_html.py --change-id auth-se
 
 El script lee desde stdin por defecto y decodifica bytes como UTF-8, pero en Windows `stdin` puede llegar degradado por la shell antes de Python. Para documentacion en espanol, usar `--input <markdown-file>`.
 
+### Como se cargan los diagramas
+
+El HTML carga el bundle **autocontenido** `mermaid.min.js` (una sola peticion, sin chunks), nunca el entry ESM `mermaid.esm.min.mjs` (que descarga en cascada decenas de ficheros al renderizar; basta con que un proxy corte uno para quedarse sin diagrama, y al ser un `import` estatico ni siquiera se ejecuta el resto del script).
+
+Cadena de respaldo real, en este orden:
+
+1. `mermaid.min.js` **junto al HTML** (mismo directorio del change).
+2. `../../../docs/html/mermaid.min.js` — el que deja `booster-docs` en el proyecto. Asi un change reutiliza el bundle ya descargado sin necesitar copia propia ni red.
+3. La CDN, con la version fijada.
+4. Si todo falla, el **codigo fuente del diagrama queda visible con un aviso** en vez de un hueco mudo.
+
+El script deja `mermaid.min.js` junto al HTML cuando el documento tiene diagramas: lo descarga una sola vez por maquina a una cache de usuario (`$XDG_CACHE_HOME` o `~/.cache/aidd-marketplace/`) y lo copia; no repite descarga ni copia si el fichero ya esta y su tamano y hash coinciden. Es best-effort: sin red el render **no falla**, solo avisa.
+
+Flag `--no-mermaid-asset`: no provisiona el asset (util en CI). Los diagramas dependeran entonces de la CDN.
+
+> **Peso en el repositorio.** El bundle son ~3,5 MB y este booster escribe dentro de `openspec/changes/<id>/`, asi que habria una copia por change. Recomendado ignorarlo en git: anadir `openspec/changes/*/mermaid.min.js` (y `docs/html/mermaid.min.js`) al `.gitignore` del proyecto. Es un artefacto regenerable; si se prefiere que el HTML sea portable tal cual, versionarlo es una decision valida.
+
 ## Checklist
 
 Antes de finalizar, verificar:
@@ -160,3 +177,5 @@ Antes de finalizar, verificar:
 - La tabla de trazabilidad cubre los requisitos y escenarios principales.
 - El fichero `uml-diagrams.html` existe en el directorio del change.
 - El fichero `uml-diagrams.html` esta en UTF-8 y no contiene mojibake detectable.
+- El script informo de la ruta del `mermaid.min.js` provisionado (o advirtio de por que no pudo).
+- Al entregar o archivar el HTML, va acompanado de su `mermaid.min.js` (o hay uno en `docs/html/`).

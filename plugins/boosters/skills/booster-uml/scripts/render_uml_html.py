@@ -4,11 +4,97 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
+import os
 import re
 import sys
+import tempfile
+import urllib.request
 from datetime import date
 from pathlib import Path
+
+
+# --- Mermaid asset ----------------------------------------------------------
+#
+# SYNC: este bloque es el mismo que en booster-docs
+# (skills/booster-docs/scripts/render_docs_html.py). Si cambias la version de
+# Mermaid, cambiala en los dos: ambos boosters escriben en docs/html/ y comparten
+# el mismo mermaid.min.js, asi que deben apuntar a la misma version y hash.
+#
+# El HTML carga el bundle *autocontenido* (una peticion, sin chunks) y prefiere
+# una copia junto al HTML antes que la CDN. El entry ESM no vale: carga un chunk
+# por tipo de diagrama al renderizar y cada chunk encadena decenas mas, asi que
+# basta con que un proxy corte una peticion para quedarse sin diagrama.
+MERMAID_VERSION = "11.16.0"
+MERMAID_ASSET_NAME = "mermaid.min.js"
+MERMAID_URL = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/{MERMAID_ASSET_NAME}"
+MERMAID_SHA256 = "74d7c46dabca328c2294733910a8aa1ed0c37451776e8d5295da38a2b758fb9b"
+MERMAID_SIZE = 3565102
+MERMAID_TIMEOUT = 20.0
+
+
+def _asset_is_valid(path: Path) -> bool:
+    """True cuando *path* es exactamente el bundle fijado (tamano y luego hash)."""
+    try:
+        if path.stat().st_size != MERMAID_SIZE:
+            return False
+        return hashlib.sha256(path.read_bytes()).hexdigest() == MERMAID_SHA256
+    except OSError:
+        return False
+
+
+def _mermaid_cache_path() -> Path:
+    base = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    return Path(base) / "aidd-marketplace" / f"mermaid-{MERMAID_VERSION}.min.js"
+
+
+def _write_atomic(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+        tmp.write(data)
+        tmp_path = Path(tmp.name)
+    os.chmod(tmp_path, 0o644)
+    os.replace(tmp_path, path)
+
+
+def ensure_mermaid_asset(output_dir: Path) -> tuple[Path | None, str]:
+    """Best-effort: deja el mermaid.min.js fijado junto al HTML generado.
+
+    Devuelve ``(ruta, nota)`` si el asset queda en su sitio y ``(None, motivo)``
+    si no. Nunca lanza: sin la copia local el HTML recurre a la CDN y, si tampoco
+    responde, muestra el codigo fuente del diagrama con un aviso.
+    """
+    target = output_dir / MERMAID_ASSET_NAME
+    if _asset_is_valid(target):
+        return target, "ya presente"
+
+    cache = _mermaid_cache_path()
+    if _asset_is_valid(cache):
+        note = "copiado de la cache local"
+        try:
+            data = cache.read_bytes()
+        except OSError as exc:
+            return None, f"no se pudo leer la cache ({exc})"
+    else:
+        note = f"descargado de la CDN (mermaid@{MERMAID_VERSION})"
+        try:
+            with urllib.request.urlopen(MERMAID_URL, timeout=MERMAID_TIMEOUT) as response:
+                data = response.read()
+        except Exception as exc:  # noqa: BLE001 - best-effort por diseno
+            return None, f"no se pudo descargar de la CDN ({exc})"
+        if len(data) != MERMAID_SIZE or hashlib.sha256(data).hexdigest() != MERMAID_SHA256:
+            return None, f"la descarga no coincide con mermaid@{MERMAID_VERSION} (tamano/hash)"
+        try:
+            _write_atomic(cache, data)
+        except OSError:
+            pass  # la cache es solo una optimizacion
+
+    try:
+        _write_atomic(target, data)
+    except OSError as exc:
+        return None, f"no se pudo escribir junto al HTML ({exc})"
+    return target, note
 
 
 MERMAID_DANGEROUS = re.compile(r"(?<!-)[<>&]|<<\s*(include|extend)\s*>>", re.IGNORECASE)
@@ -526,6 +612,13 @@ def build_html(change_id: str, markdown: str) -> tuple[str, list[str]]:
       padding: 0;
       margin: 0;
     }}
+    .diagram.offline::after {{
+      content: "Diagrama Mermaid sin renderizar (falta mermaid.min.js junto al HTML y la CDN no responde; el codigo fuente se muestra arriba)";
+      display: block;
+      margin-top: 10px;
+      font-size: .8rem;
+      color: var(--warn-border, #b58a25);
+    }}
     .table-wrap {{
       overflow-x: auto;
       border: 1px solid var(--line);
@@ -621,14 +714,56 @@ def build_html(change_id: str, markdown: str) -> tuple[str, list[str]]:
 {body}
     </main>
   </div>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    mermaid.initialize({{
-      startOnLoad: true,
-      securityLevel: 'strict',
-      theme: dark ? 'dark' : 'default'
-    }});
+  <script>
+    // Cargador de Mermaid, best-effort y que falla a la vista.
+    //
+    // Usa el bundle AUTOCONTENIDO (mermaid.min.js), nunca el entry ESM: el build
+    // ESM carga un chunk por tipo de diagrama al renderizar, asi que una sola
+    // peticion bloqueada por un proxy corporativo deja los diagramas en blanco.
+    // Ademas fallaba con un import estatico: si la URL no respondia, el modulo
+    // entero no llegaba a ejecutarse y no habia ni aviso.
+    //
+    // Orden: copia local junto a este HTML (funciona sin red, sobre file:// y
+    // detras de un proxy) y luego la CDN. Son <script> clasicos, asi que onerror
+    // si dispara y la cadena de respaldo es real. Si todo falla, el codigo fuente
+    // del diagrama queda visible con un aviso en vez de un hueco mudo.
+    (function () {{
+      if (!document.querySelector('.mermaid')) return;
+      // La misma version fijada en todos los extremos, para que el respaldo de la
+      // CDN no pueda derivar respecto al asset local que provisiona el script.
+      // El segundo candidato es el docs/html/ del proyecto (este HTML vive en
+      // openspec/changes/<id>/): si booster-docs ya dejo ahi el bundle, sirve sin
+      // necesidad de una segunda copia y sin red.
+      var sources = ['{MERMAID_ASSET_NAME}',
+                     '../../../docs/html/{MERMAID_ASSET_NAME}',
+                     '{MERMAID_URL}'];
+      function fail() {{
+        document.querySelectorAll('.diagram').forEach(function (d) {{
+          d.classList.add('offline');
+        }});
+      }}
+      function start() {{
+        try {{
+          var dark = document.documentElement.dataset.theme === 'dark'
+            || (document.documentElement.dataset.theme !== 'light'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          mermaid.initialize({{ startOnLoad: false, securityLevel: 'strict',
+                               theme: dark ? 'dark' : 'default' }});
+          // run() explicito en vez de startOnLoad: devuelve una promesa, asi que
+          // un error de render es capturable en vez de quedar tragado.
+          mermaid.run({{ querySelector: '.mermaid' }}).catch(fail);
+        }} catch (e) {{ fail(); }}
+      }}
+      function load(i) {{
+        if (i >= sources.length) {{ fail(); return; }}
+        var s = document.createElement('script');
+        s.src = sources[i];
+        s.onload = start;
+        s.onerror = function () {{ load(i + 1); }};
+        document.head.appendChild(s);
+      }}
+      load(0);
+    }})();
   </script>
 </body>
 </html>
@@ -642,6 +777,15 @@ def main() -> int:
     parser.add_argument("--change-id", required=True, help="OpenSpec change identifier.")
     parser.add_argument("--output", required=True, help="HTML output path.")
     parser.add_argument("--input", help="Optional Markdown input path. Reads stdin when omitted.")
+    parser.add_argument(
+        "--no-mermaid-asset",
+        dest="mermaid_asset",
+        action="store_false",
+        help=(
+            f"No provisiona {MERMAID_ASSET_NAME} junto al HTML (util en CI). "
+            "Los diagramas dependeran entonces de la CDN al abrirlo."
+        ),
+    )
     args = parser.parse_args()
     reads_stdin = not args.input
 
@@ -692,6 +836,19 @@ def main() -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8")
+
+    # Un informe UML es todo diagramas: si falta el asset no queda pagina, asi que
+    # se provisiona siempre que el documento tenga algun bloque Mermaid.
+    if args.mermaid_asset and 'class="mermaid"' in document:
+        asset, note = ensure_mermaid_asset(output.parent)
+        if asset:
+            print(f"Asset Mermaid: {asset} ({note})")
+        else:
+            print(
+                f"ADVERTENCIA: No se pudo dejar {MERMAID_ASSET_NAME} junto al HTML ({note}). "
+                "Los diagramas dependeran de la CDN al abrirlo.",
+                file=sys.stderr,
+            )
 
     if repaired_count:
         print(
