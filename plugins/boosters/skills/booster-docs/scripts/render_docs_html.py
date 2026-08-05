@@ -24,9 +24,13 @@ can be derived generically.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
+import os
 import re
 import sys
+import tempfile
+import urllib.request
 import webbrowser
 from collections import Counter
 from datetime import date
@@ -83,6 +87,93 @@ def repair_common_mojibake(text: str) -> tuple[str, int]:
         return token
 
     return MOJIBAKE_TOKEN_RE.sub(repair_token, text), repaired_count
+
+
+# --- Mermaid asset ----------------------------------------------------------
+
+# The HTML loads the *self-contained* Mermaid bundle (``mermaid.min.js``: one
+# request, no lazy chunks), preferring a copy next to the HTML over the CDN. That
+# local copy is provisioned here, lazily: the bundle is downloaded once per
+# machine into a user cache and copied into each output folder, instead of being
+# vendored in the plugin (a 3,5 MB blob every clone of the marketplace would carry
+# forever). Version and sha256 are pinned, so a lazy fetch is as deterministic as
+# a vendored file, and the URL below is the same one the HTML falls back to.
+MERMAID_VERSION = "11.16.0"
+MERMAID_ASSET_NAME = "mermaid.min.js"
+MERMAID_URL = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/{MERMAID_ASSET_NAME}"
+MERMAID_SHA256 = "74d7c46dabca328c2294733910a8aa1ed0c37451776e8d5295da38a2b758fb9b"
+MERMAID_SIZE = 3565102
+MERMAID_TIMEOUT = 20.0
+
+MERMAID_BLOCK_RE = re.compile(r"^\s*```mermaid\b", re.MULTILINE)
+
+
+def has_mermaid_blocks(markdown: str) -> bool:
+    return bool(MERMAID_BLOCK_RE.search(markdown))
+
+
+def _asset_is_valid(path: Path) -> bool:
+    """True when *path* is exactly the pinned bundle (cheap size check, then hash)."""
+    try:
+        if path.stat().st_size != MERMAID_SIZE:
+            return False
+        return hashlib.sha256(path.read_bytes()).hexdigest() == MERMAID_SHA256
+    except OSError:
+        return False
+
+
+def _mermaid_cache_path() -> Path:
+    base = os.environ.get("XDG_CACHE_HOME") or (Path.home() / ".cache")
+    return Path(base) / "aidd-marketplace" / f"mermaid-{MERMAID_VERSION}.min.js"
+
+
+def _write_atomic(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as tmp:
+        tmp.write(data)
+        tmp_path = Path(tmp.name)
+    # NamedTemporaryFile creates 0600; the asset sits next to a world-readable HTML.
+    os.chmod(tmp_path, 0o644)
+    os.replace(tmp_path, path)
+
+
+def ensure_mermaid_asset(output_dir: Path) -> tuple[Path | None, str]:
+    """Best-effort: put the pinned ``mermaid.min.js`` next to the generated HTML.
+
+    Returns ``(path, note)`` when the asset is in place and ``(None, reason)``
+    otherwise. Never raises: without the local asset the HTML still falls back to
+    the CDN and, failing that, shows the diagram source with a notice.
+    """
+    target = output_dir / MERMAID_ASSET_NAME
+    if _asset_is_valid(target):
+        return target, "ya presente"
+
+    cache = _mermaid_cache_path()
+    if _asset_is_valid(cache):
+        note = "copiado de la cache local"
+        try:
+            data = cache.read_bytes()
+        except OSError as exc:
+            return None, f"no se pudo leer la cache ({exc})"
+    else:
+        note = f"descargado de la CDN (mermaid@{MERMAID_VERSION})"
+        try:
+            with urllib.request.urlopen(MERMAID_URL, timeout=MERMAID_TIMEOUT) as response:
+                data = response.read()
+        except Exception as exc:  # noqa: BLE001 - best-effort by design
+            return None, f"no se pudo descargar de la CDN ({exc})"
+        if len(data) != MERMAID_SIZE or hashlib.sha256(data).hexdigest() != MERMAID_SHA256:
+            return None, f"la descarga no coincide con mermaid@{MERMAID_VERSION} (tamano/hash)"
+        try:
+            _write_atomic(cache, data)
+        except OSError:
+            pass  # the cache is only an optimization; the copy below is what matters
+
+    try:
+        _write_atomic(target, data)
+    except OSError as exc:
+        return None, f"no se pudo escribir junto al HTML ({exc})"
+    return target, note
 
 
 # --- Doc types --------------------------------------------------------------
@@ -691,7 +782,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       background: var(--panel); color: var(--text-soft); font-size: 1rem; cursor: pointer;
       box-shadow: var(--shadow); line-height: 1; }}
     .theme-toggle:hover {{ color: var(--accent); border-color: var(--accent); }}
-    .diagram.offline::after {{ content: "Diagrama Mermaid sin renderizar (CDN no disponible; el codigo fuente se muestra arriba)";
+    .diagram.offline::after {{ content: "Diagrama Mermaid sin renderizar (falta mermaid.min.js junto al HTML y la CDN no responde; el codigo fuente se muestra arriba)";
       display: block; margin-top: 10px; font-size: .8rem; color: var(--warn); }}
     /* KPI dashboard */
     .kpi-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }}
@@ -776,7 +867,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
   </div>
   <script>
     // Theme toggle (auto -> claro -> oscuro), persisted per browser. Classic script:
-    // must keep working even without network (the Mermaid CDN import lives apart).
+    // must keep working even without network (the Mermaid loader lives apart).
     (function () {{
       const KEY = 'booster-docs-theme';
       const btn = document.getElementById('themeToggle');
@@ -815,20 +906,53 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
     }})();
   </script>
-  <script type="module">
-    // Mermaid via CDN, best-effort: offline the diagrams stay as readable source
-    // with a notice instead of silently breaking the page's other scripts.
-    if (document.querySelector('.mermaid')) {{
-      try {{
-        const {{ default: mermaid }} = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
-        const dark = document.documentElement.dataset.theme === 'dark'
-          || (document.documentElement.dataset.theme !== 'light'
-              && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        mermaid.initialize({{ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' }});
-      }} catch (e) {{
-        document.querySelectorAll('.diagram').forEach(d => d.classList.add('offline'));
+  <script>
+    // Mermaid loader, best-effort and fail-visible.
+    //
+    // Uses the SELF-CONTAINED bundle (mermaid.min.js), never the ESM entry: the
+    // ESM build lazy-loads one chunk per diagram type at render time, so a single
+    // blocked request behind a corporate proxy leaves the diagrams silently blank
+    // -- and it fails inside Mermaid's async render, out of reach of any try/catch
+    // around the import.
+    //
+    // Order: the local copy next to this HTML first (works offline, over file://
+    // and behind a
+    // proxy), then the CDN. Classic <script> tags, so onerror actually fires and
+    // the fallback chain is real. If everything fails, the source stays visible
+    // with a notice instead of an empty gap.
+    (function () {{
+      if (!document.querySelector('.mermaid')) return;
+      // Same pinned version on both ends, so the CDN fallback cannot drift from
+      // the local asset this script provisions.
+      var sources = ['{MERMAID_ASSET_NAME}',
+                     '{MERMAID_URL}'];
+      function fail() {{
+        document.querySelectorAll('.diagram').forEach(function (d) {{
+          d.classList.add('offline');
+        }});
       }}
-    }}
+      function start() {{
+        try {{
+          var dark = document.documentElement.dataset.theme === 'dark'
+            || (document.documentElement.dataset.theme !== 'light'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          mermaid.initialize({{ startOnLoad: false, securityLevel: 'strict',
+                               theme: dark ? 'dark' : 'default' }});
+          // Explicit run() instead of startOnLoad: it returns a promise, so a
+          // render error is catchable rather than swallowed.
+          mermaid.run({{ querySelector: '.mermaid' }}).catch(fail);
+        }} catch (e) {{ fail(); }}
+      }}
+      function load(i) {{
+        if (i >= sources.length) {{ fail(); return; }}
+        var s = document.createElement('script');
+        s.src = sources[i];
+        s.onload = start;
+        s.onerror = function () {{ load(i + 1); }};
+        document.head.appendChild(s);
+      }}
+      load(0);
+    }})();
   </script>
 </body>
 </html>
@@ -856,6 +980,15 @@ def main() -> int:
         dest="open_browser",
         action="store_true",
         help="Open the generated HTML in the default browser (best-effort; no-op in headless environments).",
+    )
+    parser.add_argument(
+        "--no-mermaid-asset",
+        dest="mermaid_asset",
+        action="store_false",
+        help=(
+            f"Do not provision {MERMAID_ASSET_NAME} next to the HTML (useful in CI). "
+            "Diagrams then depend on the CDN at open time."
+        ),
     )
     args = parser.parse_args()
     reads_stdin = not args.input
@@ -895,6 +1028,19 @@ def main() -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(document, encoding="utf-8")
+
+    # Only when the document actually has diagrams: a doc without Mermaid blocks
+    # neither downloads nor copies anything.
+    if args.mermaid_asset and has_mermaid_blocks(markdown):
+        asset, note = ensure_mermaid_asset(output.parent)
+        if asset:
+            print(f"Asset Mermaid: {asset} ({note})")
+        else:
+            print(
+                f"ADVERTENCIA: No se pudo dejar {MERMAID_ASSET_NAME} junto al HTML ({note}). "
+                "Los diagramas dependeran de la CDN al abrirlo.",
+                file=sys.stderr,
+            )
 
     if repaired_count:
         print(f"ADVERTENCIA: Se repararon {repaired_count} fragmentos con mojibake comun.", file=sys.stderr)
