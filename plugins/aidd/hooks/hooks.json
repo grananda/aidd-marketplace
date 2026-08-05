@@ -1,0 +1,17 @@
+{
+  "description": "Registro de actividad AIDD/AISDD: anota en docs/aidd-activity.md que skill se ejecuta y que ficheros toca la IA. Opt-in: solo registra si ese fichero ya existe en el proyecto.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/aidd-activity-hook.sh\"",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}

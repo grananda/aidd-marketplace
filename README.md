@@ -179,6 +179,36 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 }
 ```
 
+## Registro de actividad (opt-in)
+
+Los cuatro plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
+
+**Se activa por proyecto creando el fichero de registro** (sin él no se escribe nada, en ningún proyecto):
+
+```bash
+touch docs/aidd-activity.md   # activar
+rm docs/aidd-activity.md      # desactivar
+```
+
+A partir de ahí, `docs/aidd-activity.md` se va llenando solo:
+
+```
+- 2026-08-05T09:12:44Z | user:jfernandez | skill:aidd:aidd-user-story-details | run | note:fases=4
+- 2026-08-05T09:14:02Z | user:jfernandez | skill:aidd:aidd-user-story-details | file:docs/detalle-historias-usuario.md | note:-
+- 2026-08-05T09:15:31Z | user:jfernandez | skill:boosters:booster-docs | file:docs/html/detalle-historias-usuario.html | note:-
+```
+
+- Una línea `run` por cada skill invocado (con sus argumentos en `note:`), y una línea `file:` por cada fichero que escribe la IA, **atribuido al skill que estaba activo** en ese momento.
+- Marcas de tiempo en **UTC** (`Z`), como el journal de AIAD, para que ordenen bien entre máquinas y zonas horarias.
+- **Pasivo**: solo registra. Nunca bloquea una acción, nunca edita código y nunca hace fallar la sesión.
+- **Sin duplicados**: el hook viaja en los cuatro plugins, así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
+- Lo que escribes tú a mano en tu editor **no pasa por las tools de la IA y por tanto no se registra**. El log es traza de la IA, no vigilancia del humano.
+- No registra el contenido de tus prompts ni del código: solo el skill, el fichero y los argumentos del comando.
+
+Es independiente de `docs/aiad-journal.md` (plugin `aiad`), que responde a otra pregunta: **cuánto** escribiste tú frente a lo que delegaste. Puedes tener los dos, uno o ninguno.
+
+> **Nota**: el resumen de `note:` es determinista (los argumentos del comando). Un hook es un script de shell, sin modelo detrás, así que no puede redactar en prosa qué le pediste; para eso tendría que escribirlo el propio skill.
+
 ## MCP recomendados
 
 Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales**: sin ellos todo funciona igual y el paso correspondiente se omite con aviso (los skills nunca caen a llamadas REST manuales ni gestionan credenciales). Los skills localizan las tools **por función**, no por nombre, así que cualquier variante de MCP equivalente sirve.
@@ -248,6 +278,14 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
   cp plugins/aidd/methodology/native-ai-aidd-sdd.html \
      plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
      plugins/aisdd/methodology/
+  ```
+- **Hook de actividad compartido**: `hooks/aidd-activity-hook.sh` es el **mismo fichero** en los cuatro plugins (cada plugin instalado es autónomo, no pueden compartir ficheros). Si lo tocas, cópialo a los cuatro y comprueba que coinciden:
+
+  ```bash
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aisdd/hooks/
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aiad/hooks/
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/boosters/hooks/
+  sha256sum plugins/*/hooks/aidd-activity-hook.sh   # los cuatro deben coincidir
   ```
 - **Hacerlo público** (si algún día procede): `gh repo edit grananda/aidd-marketplace --visibility public`. La instalación entonces no requeriría credenciales.
 - **Desarrollo local** antes de publicar: `claude --plugin-dir ./plugins/aidd` (un plugin suelto) o `/plugin marketplace add ./` (marketplace local); validar con `claude plugin validate ./`.

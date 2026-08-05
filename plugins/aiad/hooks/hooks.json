@@ -1,4 +1,5 @@
 {
+  "description": "Dos registros pasivos y opt-in, cada uno se activa creando su fichero: el journal de autoria AIAD (docs/aiad-journal.md) y la traza de actividad del marketplace (docs/aidd-activity.md).",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,6 +8,16 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/aiad-journal-hook.sh\"",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/aidd-activity-hook.sh\"",
             "async": true
           }
         ]
