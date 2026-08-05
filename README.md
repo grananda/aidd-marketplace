@@ -18,7 +18,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 
 Todos los comandos, ordenados por fase del método. Cada comando activa su skill; también se puede invocar namespaced (`/aidd:<skill>`, `/aisdd:aisdd-specs`, `/boosters:<skill>`, `/aiad:<skill>`) o por lenguaje natural.
 
-### `aidd` — Definición, Diseño y Entrega (plugin `aidd`, 12 comandos)
+### `aidd` — Definición, Diseño y Entrega (plugin `aidd`, 13 comandos)
 
 | Fase | Comando | Skill | Genera |
 |------|---------|-------|--------|
@@ -34,6 +34,9 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 2.4 | `aidd architecture` | `aidd-architecture` | `docs/arquitectura-base.md` (arquitectura definitiva) |
 | 3.5.1 | `aidd project-plan` | `aidd-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de aceleración) |
 | 3.5.2 | `aidd sprint-planning` | `aidd-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
+| transversal | `aidd metrics` | `aidd-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA: tiempo atendido, ciclo por HU, churn; ahorro solo con esfuerzo real declarado) |
+
+> `aidd metrics` no es un paso del método: es una capa de observación, **independiente del resto y ejecutable en cualquier momento**. No produce nada que consuma otro comando y no bloquea ninguna fase. Por eso vive aquí y no en la metodología. Ver [Registro de actividad](#registro-de-actividad-opt-in).
 
 ### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, skill `aisdd-specs`)
 
@@ -179,6 +182,53 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 }
 ```
 
+## Registro de actividad (opt-in)
+
+Los cuatro plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
+
+**Se activa por proyecto creando el fichero de registro** (sin él no se escribe nada, en ningún proyecto):
+
+```bash
+touch docs/aidd-activity.md   # activar
+rm docs/aidd-activity.md      # desactivar
+```
+
+A partir de ahí, `docs/aidd-activity.md` se va llenando solo:
+
+```
+- 2026-08-05T09:12:44Z | user:jfernandez | skill:aidd:aidd-user-story-details | ctx:HU-07 | run | note:HU-07 fases=4
+- 2026-08-05T09:14:02Z | user:jfernandez | skill:aidd:aidd-user-story-details | ctx:HU-07 | file:docs/detalle-historias-usuario.md | note:-
+- 2026-08-05T09:18:20Z | user:jfernandez | skill:- | ctx:HU-07 | turn | note:dur=336s skills=1 files=3
+```
+
+- Una línea `run` por cada skill invocado (con sus argumentos en `note:`), y una línea `file:` por cada fichero que escribe la IA, **atribuido al skill que estaba activo** en ese momento.
+- Una línea `turn` al cerrar cada turno, con su **duración**. Son las que permiten medir tiempo *atendido* (pediste algo y esperaste) en vez de tiempo de calendario, que contaría noches y reuniones. Un turno que no toca nada no deja rastro.
+- El campo `ctx:` es la **historia de usuario o el change** en curso: se detecta de los argumentos (`HU-07`) o de trabajar dentro de `openspec/changes/<id>/`. Es lo que permite dar tiempo de ciclo por HU.
+- Marcas de tiempo en **UTC** (`Z`), como el journal de AIAD, para que ordenen bien entre máquinas y zonas horarias.
+- **Pasivo**: solo registra. Nunca bloquea una acción, nunca edita código y nunca hace fallar la sesión.
+- **Sin duplicados**: el hook viaja en los cuatro plugins, así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
+- Lo que escribes tú a mano en tu editor **no pasa por las tools de la IA y por tanto no se registra**. El log es traza de la IA, no vigilancia del humano.
+- No registra el contenido de tus prompts ni del código: solo el skill, el fichero y los argumentos del comando.
+
+Es independiente de `docs/aiad-journal.md` (plugin `aiad`), que responde a otra pregunta: **cuánto** escribiste tú frente a lo que delegaste. Puedes tener los dos, uno o ninguno.
+
+> **Nota**: el resumen de `note:` es determinista (los argumentos del comando). Un hook es un script de shell, sin modelo detrás, así que no puede redactar en prosa qué le pediste; para eso tendría que escribirlo el propio skill.
+
+### KPIs a partir del registro
+
+Con el registro activo, `aidd metrics` convierte esa traza en un informe (`docs/kpis-ia.md` + HTML): tiempo atendido, reparto planificación vs ejecución, tiempo de ciclo por HU o change, retrabajo y código entregado.
+
+Se ejecuta **cuando quieras y las veces que quieras**: solo lee (registro, `git log` y las tallas de `docs/detalle-historias-usuario.md` para el baseline) y no modifica nada del proyecto. Si falta alguna de esas fuentes, recorta el informe y lo dice, pero no falla.
+
+⚠️ **El registro no es retroactivo.** `git log` alcanza todo el historial, pero la traza empieza el día que creaste `docs/aidd-activity.md`. Si quieres medir un sprint, actívalo **antes** de empezarlo.
+
+El ahorro es harina de otro costal, y conviene entender por qué antes de enseñar un número a nadie:
+
+- El registro mide **tiempo atendido**, no esfuerzo total. No ve revisar, probar, teclear a mano ni reunirse, y lo que escribes tú en tu editor no pasa por las tools de la IA.
+- Por eso `aidd metrics` **se niega a calcular ahorro** salvo que el equipo declare su esfuerzo real en la ventana medida (`--real-days`, de partes de horas o worklogs). Restar el tiempo atendido al baseline daría aceleraciones de x100, que es justo el tipo de cifra que no aguanta una pregunta incómoda.
+- El baseline es el esfuerzo humano de las tallas XS/S/M/L/XL, y es legítimo porque se declaró **antes** de ejecutar. No es un ajuste a posteriori.
+- Si la aceleración resultante supera x10, el informe la marca como **no publicable** y explica que casi siempre significa esfuerzo infradeclarado o baseline inflado.
+
 ## MCP recomendados
 
 Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales**: sin ellos todo funciona igual y el paso correspondiente se omite con aviso (los skills nunca caen a llamadas REST manuales ni gestionan credenciales). Los skills localizan las tools **por función**, no por nombre, así que cualquier variante de MCP equivalente sirve.
@@ -248,6 +298,14 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
   cp plugins/aidd/methodology/native-ai-aidd-sdd.html \
      plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
      plugins/aisdd/methodology/
+  ```
+- **Hook de actividad compartido**: `hooks/aidd-activity-hook.sh` es el **mismo fichero** en los cuatro plugins (cada plugin instalado es autónomo, no pueden compartir ficheros). Si lo tocas, cópialo a los cuatro y comprueba que coinciden:
+
+  ```bash
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aisdd/hooks/
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aiad/hooks/
+  cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/boosters/hooks/
+  sha256sum plugins/*/hooks/aidd-activity-hook.sh   # los cuatro deben coincidir
   ```
 - **Hacerlo público** (si algún día procede): `gh repo edit grananda/aidd-marketplace --visibility public`. La instalación entonces no requeriría credenciales.
 - **Desarrollo local** antes de publicar: `claude --plugin-dir ./plugins/aidd` (un plugin suelto) o `/plugin marketplace add ./` (marketplace local); validar con `claude plugin validate ./`.

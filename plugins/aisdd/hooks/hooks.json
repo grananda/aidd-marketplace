@@ -1,17 +1,7 @@
 {
-  "description": "Dos registros pasivos y opt-in, cada uno se activa creando su fichero: el journal de autoria AIAD (docs/aiad-journal.md) y la traza de actividad del marketplace (docs/aidd-activity.md), que alimenta los KPIs de `aidd metrics`.",
+  "description": "Registro de actividad AIDD/AISDD: anota en docs/aidd-activity.md que skill se ejecuta, que ficheros toca la IA y cuanto dura cada turno, para que `aidd metrics` pueda calcular KPIs. Opt-in: solo registra si ese fichero ya existe en el proyecto.",
   "hooks": {
     "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/aiad-journal-hook.sh\"",
-            "async": true
-          }
-        ]
-      },
       {
         "matcher": "*",
         "hooks": [

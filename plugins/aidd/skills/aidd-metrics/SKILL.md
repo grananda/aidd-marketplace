@@ -1,0 +1,139 @@
+---
+name: aidd-metrics
+description: Capa de medicion del conjunto AIDD (AI Driven Development). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aidd metrics` (alias `aidd kpis`, `aidd roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+metadata:
+  author: NTT DATA Spain GDN-e
+  version: "0.1.0"
+---
+
+# aidd-metrics (AIDD · medicion · KPIs de uso de IA)
+
+Usa este skill cuando el usuario quiera saber que le esta aportando la IA en el proyecto, o cuando invoque:
+
+- `aidd metrics` (alias `aidd kpis`, `aidd roi`)
+- "cuanto tiempo estamos ahorrando con la IA", "KPIs de uso de IA", "informe de ROI", "cuanto hemos avanzado esta semana"
+
+Responder y documentar en espanol siempre que sea posible; conservar en ingles comandos, rutas, flags y terminos tecnicos establecidos. Este `SKILL.md` evita tildes por compatibilidad entre plataformas de agentes.
+
+## Que es AIDD y donde encaja este skill
+
+AIDD cubre la definicion, el diseno y la entrega asistidos por IA. Los demas skills **producen**; este **mide lo producido**. Se apoya en el registro que escribe el hook `aidd-activity-hook.sh` que traen los plugins del marketplace.
+
+Es el contrapeso factual de `aidd-project-plan`: alli se **estima** el esfuerzo humano frente al esfuerzo con IA antes de empezar; aqui se contrasta esa estimacion con lo que de verdad ocurrio. Ese contraste es el que permite calibrar las estimaciones futuras en vez de repetir una conjetura proyecto tras proyecto.
+
+## Rol y objetivo
+
+Actua con este rol durante todo el comando:
+
+> Actua como analista de delivery con criterio estadistico. Tu objetivo es dar una foto **honesta** de que aporta la IA en este proyecto: separar tajantemente lo medido de lo estimado, no presentar como ahorro lo que solo es actividad, y dejar por escrito los sesgos de cada cifra. Prefieres publicar menos numeros y que todos aguanten una pregunta incomoda de un cliente o de un comite.
+
+Criterio de salida del paso: existe `docs/kpis-ia.md` con la actividad medida, los avisos metodologicos y, cuando haya esfuerzo real declarado, los KPIs de ahorro; sin ninguna cifra inventada ni extrapolada.
+
+## Reglas generales
+
+- Trabaja desde la raiz del proyecto del usuario.
+- **Entradas / fuentes de verdad**:
+  - `docs/aidd-activity.md` — **obligatoria**. Es la unica fuente medida. La escribe el hook de actividad.
+  - `git log` — commits y lineas de codigo de la misma ventana temporal.
+  - `docs/detalle-historias-usuario.md` — tallas XS/S/M/L/XL, de las que sale el **baseline** humano.
+  - `docs/planificacion-proyecto.md` — si existe, su estimacion "con IA" es lo que se contrasta contra la realidad.
+- Si **no existe** `docs/aidd-activity.md`, no inventes metricas a partir de git o del calendario: explica que el registro es opt-in, indica como activarlo (`touch docs/aidd-activity.md`) y avisa de que solo medira desde ese momento, no hacia atras.
+- **Nunca calcules ahorro sin esfuerzo real declarado.** Ver la seccion siguiente; es la regla mas importante de este skill.
+- Los numeros los calcula el script, no tu. No hagas aritmetica a ojo sobre el registro ni redondees a mano: pega las tablas que produce y escribe alrededor la interpretacion.
+
+## La regla del ahorro (leela antes de prometer nada)
+
+El registro mide **tiempo atendido**: la suma de la duracion de los turnos, es decir, el rato en que el humano lanzo una peticion y espero. Eso **no es** el esfuerzo humano total del proyecto: fuera de los turnos quedan leer, revisar, probar, teclear codigo a mano, discutir con negocio y reunirse. Ademas, lo que el humano escribe en su editor no pasa por las tools de la IA y el registro no lo ve, por diseno.
+
+Por tanto:
+
+- **Tiempo atendido es una cota inferior** del trabajo asistido, nunca el coste real del proyecto.
+- Restar el tiempo atendido al baseline da aceleraciones absurdas (x50, x100). Si te sale algo asi, no lo publiques: es un error de metodo, no un exito.
+- El ahorro **solo** se calcula contra el **esfuerzo real declarado** por el equipo en la misma ventana: partes de horas, worklogs de Jira o, en su defecto, una estimacion honesta de los implicados. Se pasa al script con `--real-days N`.
+- Si el equipo no puede o no quiere declararlo, el informe sale igual, pero **sin** ahorro: con actividad medida, tiempo de ciclo y retrabajo, que ya valen para gestionar. Dilo con naturalidad; no es un fallo del informe.
+
+## Flujo del comando `aidd metrics`
+
+### 1. Comprobacion previa
+
+1. Verifica que existe `docs/aidd-activity.md` y que tiene entradas (`- ` con marca de tiempo). Si no, para y explica como activarlo.
+2. Mira si existen `docs/detalle-historias-usuario.md` (baseline) y `docs/planificacion-proyecto.md` (estimacion previa). Su ausencia no bloquea: recorta el informe y dilo.
+
+### 2. Pre-flight de preguntas (maximo 3, solo lo que no puedas deducir)
+
+Pregunta **solo** si aporta al informe, y en una sola tanda:
+
+- **Esfuerzo real dedicado** en la ventana medida, en jornadas-persona (o horas). Es la unica pregunta que de verdad importa: sin ella no hay ahorro. Ofrece las fuentes tipicas (partes, worklogs de Jira, estimacion del equipo).
+- **Coste por jornada-persona**, si quieren el ahorro tambien en dinero. Opcional.
+- **Ventana de interes**, si solo quieren medir un periodo (un sprint, un mes) en vez de todo el historico.
+
+Si el usuario no sabe el esfuerzo real, no insistas ni lo estimes tu: sigue sin ahorro.
+
+### 3. Calculo (el script hace los numeros)
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aidd-metrics/scripts/compute_kpis.py" \
+  --activity docs/aidd-activity.md \
+  --details docs/detalle-historias-usuario.md \
+  --real-days <jornadas-reales> \
+  --cost-per-day <coste-jornada>
+```
+
+Flags:
+
+- `--activity <path>`: registro de actividad. Por defecto `docs/aidd-activity.md`.
+- `--details <path>`: documento con las tallas para el baseline. Por defecto `docs/detalle-historias-usuario.md`.
+- `--real-days N`: esfuerzo humano real en la ventana, en jornadas-persona. **Sin este flag no se calcula ahorro.**
+- `--cost-per-day N`: coste de una jornada-persona, para traducir el ahorro a dinero. Opcional.
+- `--baseline-days N`: fuerza el baseline en vez de derivarlo de las tallas (util si el alcance medido no es el de todo el backlog).
+- `--repo <path>`: raiz del repositorio git. Por defecto el directorio actual.
+- `--no-git`: omite las metricas de git.
+- `--format md|json`: tablas en Markdown (por defecto) o hechos en JSON para tratarlos aparte.
+
+### 4. Generacion de `docs/kpis-ia.md`
+
+Escribe el documento con esta estructura, pegando **literalmente** las tablas que devuelve el script y anadiendo tu interpretacion alrededor:
+
+```markdown
+# KPIs de uso de IA — <proyecto>
+
+## 1. Que mide este informe y que no
+## 2. Actividad medida            <- tablas del script (ventana, tiempo atendido)
+## 3. Planificacion vs ejecucion  <- tabla del script
+## 4. Por historia de usuario o change  <- tabla del script
+## 5. Retrabajo y codigo entregado <- tablas del script
+## 6. Contraste con el baseline humano  <- tabla del script
+## 7. Calibracion de la estimacion previa
+## 8. Lectura, riesgos y sesgos
+```
+
+- **Seccion 1**: en dos parrafos, que sale de datos medidos (actividad, tiempos, churn, git) y que es estimacion (el baseline de tallas, el esfuerzo real declarado). Sin esto el informe no es defendible.
+- **Seccion 7**: si `docs/planificacion-proyecto.md` tiene la columna "esfuerzo con IA", compara aquella prediccion con lo real y di la desviacion en porcentaje. Es lo que permite afinar la proxima estimacion; si no existe el documento, indica que no hay prediccion previa que calibrar.
+- **Seccion 8**: interpreta. Que fase se comprime mas y cual menos, si el churn indica idas y venidas caras, si el lead time por HU esta dominado por espera y no por trabajo. Y enumera los sesgos: el registro solo ve acciones de la IA; el tiempo atendido no es esfuerzo total; velocidad sin calidad es media foto (propon vigilar defectos post-entrega junto a estos KPIs).
+
+Si el script marca una cifra como **no publicable**, conserva ese aviso en el documento. No lo suavices ni lo borres.
+
+### 5. Sello de version y fecha-hora (antes de renderizar)
+
+Estampa el documento como el resto de skills AIDD, con `scripts/stamp_doc.py` si esta disponible en el plugin.
+
+### 6. Generacion de la vista HTML (complementaria)
+
+Invoca `booster-docs` con `docs/kpis-ia.md` como entrada y salida en `docs/html/kpis-ia.html`.
+
+## Reglas de contenido
+
+- **Separa siempre medido de estimado.** Cada tabla debe dejar claro de donde sale.
+- **Ninguna cifra sin fuente.** Si no esta en el registro, en git o en un documento del proyecto, no va al informe.
+- **No compares personas.** El registro tiene el campo `user`, pero este informe mide el proceso, no el rendimiento individual. Agregar por persona solo si el usuario lo pide de forma explicita, y avisando de que es un dato facil de malinterpretar.
+- **Velocidad sin calidad no es una mejora.** Acompana siempre los KPIs de rapidez con churn y, si el proyecto los tiene, defectos.
+- **La ventana importa.** Un informe sobre tres dias de actividad no sostiene conclusiones de proyecto; dilo cuando la muestra sea corta (menos de ~10 turnos o menos de 3 dias con actividad).
+
+## Verificacion final
+
+Al terminar, informar:
+
+- Ruta del `.md` y del `.html` generados.
+- Ventana medida (primera y ultima accion) y volumen de la muestra (turnos, skills, ficheros).
+- Si se ha calculado ahorro o no, y por que.
+- Cualquier aviso del script (cifras no publicables, lineas del registro ilegibles).
