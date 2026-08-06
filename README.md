@@ -34,11 +34,11 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 2.4 | `aidd architecture` | `aidd-architecture` | `docs/arquitectura-base.md` (arquitectura definitiva) |
 | 3.5.1 | `aidd project-plan` | `aidd-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de aceleración) |
 | 3.5.2 | `aidd sprint-planning` | `aidd-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
-| transversal | `aidd metrics` | `aidd-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA: tiempo atendido, ciclo por HU, churn; ahorro solo con esfuerzo real declarado) |
+| transversal | `aidd metrics` | `aidd-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA: tiempo atendido, ciclo por HU, churn y correcciones por change; ahorro solo con esfuerzo real declarado) |
 
 > `aidd metrics` no es un paso del método: es una capa de observación, **independiente del resto y ejecutable en cualquier momento**. No produce nada que consuma otro comando y no bloquea ninguna fase. Por eso vive aquí y no en la metodología. Ver [Registro de actividad](#registro-de-actividad-opt-in).
 
-### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, skill `aisdd-specs`)
+### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, skills `aisdd-specs` y `aisdd-amend`)
 
 > Comandos primarios `aisdd …`; los `native-ai …` siguen funcionando como **alias legacy**. Antes se llamaba plugin `sdd`.
 
@@ -48,9 +48,22 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` (fasea por contexto, **alineado al `sprint-plan.md`** si existe) |
 | 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding) |
 | 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
+| 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
 | 4 | `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
 | 2 / 4 (aux) | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
 | aux | `aisdd uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
+
+#### Cuando aparece un cambio a mitad de un change
+
+No todo cambio cuesta lo mismo. La pregunta que decide el coste **no** es "¿cambia el código?", sino: **¿algún documento AIDD sellado queda diciendo algo falso?**
+
+| Nivel | Situación | Qué tocas |
+|-------|-----------|-----------|
+| 1. Implementación | El spec es correcto y el código no lo cumple | Solo el código |
+| 2. Decisión no documentada | Ningún documento fijaba ese detalle | Una entrada `Tipo: correccion` en `decisions.md`, y sigues |
+| 3. Contradicción documental | Un documento sellado afirma lo contrario | **Ese** documento, y solo ese, re-sellado por su skill |
+
+El caso 2 es el habitual (una incompatibilidad de versiones que aparece al validar, un matiz visual que la guía no recogía) y **no** se escala al Architect ni se re-aplica el change. Si además hay que tocar los specs (criterios o tareas nuevas), la vía es **`aisdd amend change`**: escribe el delta y lo implementa sin re-ejecutar el change entero sobre un árbol ya trabajado. Toma una baseline de build y tests **antes** de tocar nada, para separar con evidencia lo que rompe la enmienda de lo que ya estaba roto — así no necesita conocer los cambios manuales que hayas hecho por tu cuenta.
 
 ### `boosters` — dependencia compartida (plugin `boosters`, 3 comandos)
 
@@ -218,7 +231,15 @@ Es independiente de `docs/aiad-journal.md` (plugin `aiad`), que responde a otra 
 
 Con el registro activo, `aidd metrics` convierte esa traza en un informe (`docs/kpis-ia.md` + HTML): tiempo atendido, reparto planificación vs ejecución, tiempo de ciclo por HU o change, retrabajo y código entregado.
 
-Se ejecuta **cuando quieras y las veces que quieras**: solo lee (registro, `git log` y las tallas de `docs/detalle-historias-usuario.md` para el baseline) y no modifica nada del proyecto. Si falta alguna de esas fuentes, recorta el informe y lo dice, pero no falla.
+Se ejecuta **cuando quieras y las veces que quieras**: solo lee (registro, `git log`, las tallas de `docs/detalle-historias-usuario.md` para el baseline y, si el proyecto usa AISDD, `openspec/audit/*.jsonl`) y no modifica nada del proyecto. Si falta alguna de esas fuentes, recorta el informe y lo dice, pero no falla.
+
+**Calidad de la especificación (solo con AISDD).** El resto del informe mide velocidad, y velocidad sin calidad es media foto. De la auditoría salen tres cifras que la completan sin instrumentar nada nuevo:
+
+- **Correcciones por change** — retrabajo de *especificación*, complementario al churn, que mide retrabajo de *código*. Se leen distinto: churn alto con correcciones bajas suele ser refactor legítimo; correcciones altas con churn bajo significa que las specs iban mal y alguien lo absorbió adivinando. Muchas correcciones en un change apuntan a su `open change`, no a un equipo lento.
+- **% de decisiones que la IA resolvió sin preguntar** — cuánta autonomía se está tomando el pre-flight.
+- **Lead time real `open change` → `close change`**, medido de la traza en vez de inferido.
+
+Es una **cota inferior**: solo cuenta las correcciones que llegaron a `decisions.md`. Sirve para comparar changes entre sí, no como recuento exacto — y el informe lo dice donde se lee. Se desactiva con `--no-audit`.
 
 ⚠️ **El registro no es retroactivo.** `git log` alcanza todo el historial, pero la traza empieza el día que creaste `docs/aidd-activity.md`. Si quieres medir un sprint, actívalo **antes** de empezarlo.
 

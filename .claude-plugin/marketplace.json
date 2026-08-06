@@ -13,7 +13,7 @@
     {
       "name": "aisdd",
       "source": "./plugins/aisdd",
-      "description": "AISDD — aisdd-specs: gestion de changes sobre OpenSpec con auditoria e integracion Jira, consciente de la capa de entrega de AIDD (comandos `aisdd ...`; alias legacy `native-ai ...`). Fork mantenido del antiguo `sdd`."
+      "description": "AISDD — aisdd-specs (gestion de changes sobre OpenSpec con auditoria e integracion Jira, consciente de la capa de entrega de AIDD) y aisdd-amend (`aisdd amend change`: incorpora una modificacion a un change ya abierto y ejecuta solo ese delta). Comandos `aisdd ...`; alias legacy `native-ai ...`. Fork mantenido del antiguo `sdd`."
     },
     {
       "name": "aiad",

@@ -1,9 +1,9 @@
 ---
 name: aisdd-specs
-description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/`. Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en tres niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.2"
+  version: "1.4.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -136,6 +136,7 @@ El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca 
    - `aisdd roadmap` — fasea el desarrollo (alineado al `docs/sprint-plan.md` si existe) y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
    - `aisdd open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
    - `aisdd implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.
+   - `aisdd amend change [descripcion]` — incorpora una modificacion a un change ya abierto y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`).
    - `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec.
    - `aisdd prototype-ux [what-you-want-to-build]` — genera prototipos UX con `booster-ux`.
    - `aisdd uml <what-you-want-to-build>` — genera el HTML de diagramas del cambio con `booster-uml`.
@@ -338,7 +339,7 @@ Antes de generar los specs del cambio, revisa el contexto disponible y resuelve 
    ## <slug-de-la-decision>
 
    - **Fecha**: <YYYY-MM-DD>
-   - **Tipo**: bloqueante | preferencia | confirmacion
+   - **Tipo**: bloqueante | preferencia | confirmacion | correccion
    - **Origen**: usuario | auto-default
    - **Contexto**: <objetivo del usuario / docs/roadmap.md / spec previa, seccion o linea>
    - **Pregunta**: <pregunta planteada>
@@ -372,7 +373,8 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
    - Localiza en `docs/jira-sync.md` las **HU del change** y resuelve el **modo** de cada una (Story directa vs sub-tarea). Si una HU en modo sub-tarea no tiene aun la sub-tarea de este change (p. ej. se abrio sin Jira), creala ahora como en `open change`; si una HU no tiene Story, omitela con aviso.
    - Resuelve el usuario asignado (cuenta del MCP o `assignee_override`) y mueve a **In Progress** (descubriendo la transicion, sin hardcodear): en modo directo la **Story**; en modo sub-tarea la **sub-tarea y su Story padre**. Asigna al usuario resuelto lo que muevas.
    - Actualiza el estado de cada HU implicada en `docs/jira-sync.md` a `in_progress`.
-8. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente.
+8. Si durante la implementacion, o en la validacion posterior, surge un cambio que ningun spec habia especificado (incompatibilidad de versiones, ajuste de configuracion, peticion del usuario sobre la marcha), **no escales por defecto**: clasificalo segun "Correcciones durante la implementacion" y resuelvelo en el nivel que le corresponda.
+9. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente.
 
 ### Pre-flight de dudas
 
@@ -409,7 +411,7 @@ Antes de aplicar las instrucciones de OpenSpec, revisa la documentacion del camb
    ## <slug-de-la-decision>
 
    - **Fecha**: <YYYY-MM-DD>
-   - **Tipo**: bloqueante | preferencia | confirmacion
+   - **Tipo**: bloqueante | preferencia | confirmacion | correccion
    - **Origen**: usuario | auto-default
    - **Contexto**: <referencia a design.md / proposal.md / spec.md, seccion o linea>
    - **Pregunta**: <pregunta planteada>
@@ -423,6 +425,46 @@ Antes de aplicar las instrucciones de OpenSpec, revisa la documentacion del camb
 8. Si el usuario rechaza responder o pide aplazar una duda, registra `Decision: pendiente` y, si era bloqueante, detente sin ejecutar `openspec instructions apply`. Informa al usuario de las dudas pendientes y termina.
 9. Si tras la lectura inicial no detectas dudas reales, registra una unica entrada en `decisions.md` con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`. No fuerces preguntas artificiales solo por cumplir el flujo.
 10. Antes de pasar a la implementacion real, resume al usuario el conjunto de decisiones tomadas y confirma que puede arrancar `openspec instructions apply`.
+
+### Correcciones durante la implementacion
+
+Durante `implement change`, o en la validacion posterior, aparecen cambios que nadie habia especificado: una incompatibilidad de versiones, un ajuste de configuracion, un matiz visual que el usuario pide sobre la marcha. **No todos merecen el mismo proceso.** Clasifica antes de actuar:
+
+| Nivel | Situacion | Que haces |
+|-------|-----------|-----------|
+| 1. Implementacion | El spec es correcto y el codigo no lo cumple | Corriges el codigo. **No** tocas documentacion ni `decisions.md` |
+| 2. Decision no documentada | Ningun documento AIDD fijaba ese detalle | Resuelves, registras `Tipo: correccion` en `decisions.md` y **continuas** |
+| 3. Contradiccion documental | Un documento sellado afirma lo contrario | Corriges **ese** documento (y solo ese), se re-sella, y despues alineas los artefactos del change |
+
+**Regla de corte.** La pregunta no es "cambia el codigo?", sino **"queda algun documento AIDD sellado diciendo algo falso?"**. Si la respuesta es no, es nivel 2 y se resuelve dentro del change.
+
+Reglas de aplicacion:
+
+1. **Comprueba antes de clasificar.** Busca el elemento afectado (version, token de estilo, endpoint, nombre) en `docs/` y en los `spec.md` del change antes de decidir el nivel. No asumas que no esta documentado: verificalo y anota que revisaste.
+2. **Un nivel 2 no dispara una segunda pasada.** Nunca re-ejecutes `openspec instructions apply` para incorporar una correccion de nivel 2: aplica el cambio directamente sobre el codigo y registra la decision. Re-aplicar un change sobre un arbol ya implementado arriesga rehacer trabajo y pisar ficheros. Si la correccion exige ademas tocar los specs del change (criterios nuevos, tareas nuevas), esa es la via del skill **`aisdd-amend`** (`aisdd amend change`), que especifica e implementa unicamente el delta.
+3. **Un nivel 3 corrige un solo documento.** La cadena completa hacia arriba (`cliente-requisitos.md` -> `requisitos.md` -> `propuesta-arquitectura-base.md` -> `arquitectura-base.md`) solo se recorre cuando el cambio nace de una decision del cliente sobre el alcance. Un hallazgo tecnico durante el desarrollo afecta normalmente a `arquitectura-base.md` y a nada mas. Los documentos AIDD los actualiza su skill (`aidd architecture`, `aidd style-guide`...), que ademas re-sella la version con `stamp_doc.py`; no los edites por tu cuenta salvo que el cambio sea de una linea y lo confirmes con el usuario.
+4. **No escales por defecto.** Un nivel 2 no se reporta al AI Lead ni se escala al Architect. Escalar cuesta un ciclo completo y solo se justifica en nivel 3.
+5. **Registra siempre el nivel 2.** El suelo de trazabilidad es una entrada en `decisions.md`; nunca cero. Sin ella el repositorio acaba contradiciendo a sus propios documentos sin constancia de cuando se torcio.
+6. **Si el mismo tipo de correccion se repite** en un change, dilo en el resumen del comando: varias correcciones del mismo tipo son sintoma de specs flojas y material a corregir en el siguiente `open change`.
+7. **Si el change ya esta archivado**, no lo reabras: la correccion va en un change nuevo (`aisdd open change <slug>`).
+
+Formato de la entrada en `openspec/changes/<change>/decisions.md`:
+
+```markdown
+## <slug-de-la-correccion>
+
+- **Fecha**: <YYYY-MM-DD>
+- **Tipo**: correccion
+- **Nivel**: 2 (decision no documentada) | 3 (contradiccion documental)
+- **Origen**: usuario | auto-default
+- **Contexto**: <donde surgio: criterio X de la validacion, peticion del usuario durante la implementacion>
+- **Documentos comprobados**: <ficheros de docs/ y spec.md revisados; que fijaban y que no>
+- **Decision**: <lo que se aplica>
+- **Justificacion**: <una linea con el motivo>
+- **Documentos actualizados**: <nivel 3: fichero corregido y version resellada | nivel 2: ninguno>
+```
+
+El campo **Documentos comprobados** es lo que hace auditable la regla de corte: deja constancia de que el nivel se decidio mirando, no suponiendo.
 
 ## `aisdd close change [what-you-want-to-build]`
 
@@ -594,7 +636,7 @@ Cada linea es un objeto JSON con estos campos:
   "decisions": [
     {
       "slug": "<slug>",
-      "type": "bloqueante | preferencia | confirmacion",
+      "type": "bloqueante | preferencia | confirmacion | correccion",
       "origen": "usuario | auto-default",
       "decision": "<resumen corto de la opcion elegida o 'pendiente'>"
     }
@@ -613,7 +655,7 @@ Reglas para los campos:
 - `output_hash`: misma formula sobre `output_files`. Si el comando no produce ficheros nuevos ni modificados, usa el hash del string vacio y deja `output_files` vacio.
 - `input_files`: ficheros leidos como entrada relevante del comando (artefactos del cambio, configuracion, documentos del usuario). No incluyas codigo fuente del repositorio salvo que el comando lo procese explicitamente.
 - `output_files`: ficheros creados o modificados por el comando (proposal.md, design.md, spec.md, decisions.md, roadmap.md, HTML de UML, etc.).
-- `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). En el resto, lista vacia.
+- `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
 - `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.4.0:implement-change/preflight`, `1.4.0:open-change/preflight`, `1.4.0:roadmap`, `1.4.0:close-change`, `1.4.0:init`, `1.4.0:prototype-ux`, `1.4.0:uml`.

@@ -15,6 +15,8 @@ Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar l
 7. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
 8. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
 
+> **Skill hermano**: `aisdd amend change [descripcion]` (skill `aisdd-amend`) incorpora una modificacion a un change **ya abierto** y ejecuta solo ese delta, sin re-aplicar el change entero. Es la via operativa de la "Regla de corte" descrita en la seccion "Correcciones durante la implementacion" del `SKILL.md` de este skill.
+
 ## Requisitos
 
 - Node.js y npm disponibles.

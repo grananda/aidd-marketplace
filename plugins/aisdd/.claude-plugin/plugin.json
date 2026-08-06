@@ -1,8 +1,8 @@
 {
   "name": "aisdd",
   "displayName": "AISDD — AI Spec-Driven Development (OpenSpec)",
-  "version": "1.5.0",
-  "description": "Skill aisdd-specs: gestion de especificaciones AI Spec-Driven sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open/implement/close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy `native-ai ...` siguen funcionando). Pre-flight de dudas, presupuesto de contexto, auditoria estructurada e integracion opcional con Jira (Story por HU, change como sub-tarea, Story a Done solo cuando todas sus sub-tareas estan Done). Es consciente de la capa de entrega de AIDD: `init` registra la planificacion (docs/planificacion-proyecto.md, docs/sprint-plan.md, docs/plan-revision-hu.md) y `roadmap` la lee para fasear alineado a los sprints. Fork mantenido del antiguo plugin `sdd`; incluye la metodologia AIDD al dia como spec canonica.",
+  "version": "1.7.0",
+  "description": "Skills aisdd-specs y aisdd-amend: gestion de especificaciones AI Spec-Driven sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open/implement/amend/close change`, `aisdd prototype-ux` y `aisdd uml` (alias legacy `native-ai ...` siguen funcionando). Pre-flight de dudas, presupuesto de contexto, auditoria estructurada e integracion opcional con Jira (Story por HU, change como sub-tarea, Story a Done solo cuando todas sus sub-tareas estan Done). Es consciente de la capa de entrega de AIDD: `init` registra la planificacion (docs/planificacion-proyecto.md, docs/sprint-plan.md, docs/plan-revision-hu.md) y `roadmap` la lee para fasear alineado a los sprints. `aisdd amend change` incorpora una modificacion a un change ya abierto y ejecuta solo ese delta, con baseline de build y tests previa para distinguir regresiones reales de fallos preexistentes. Fork mantenido del antiguo plugin `sdd`; incluye la metodologia AIDD al dia como spec canonica.",
   "author": {
     "name": "NTT DATA Spain GDN-e"
   },
