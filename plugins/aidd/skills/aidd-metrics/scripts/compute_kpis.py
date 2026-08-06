@@ -201,6 +201,129 @@ def git_stats(repo: Path, since: datetime | None, until: datetime | None) -> dic
     return out
 
 
+def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) -> dict:
+    """The AISDD side: what the structured audit log records about each change.
+
+    ``openspec/audit/*.jsonl`` is append-only, one entry per ``aisdd`` command.
+    It is the only source that sees the *specification* side of the work: how
+    many doubts the pre-flight raised, how many the agent resolved alone, and
+    how many corrections a change needed once its specs were supposedly closed.
+
+    Corrections are the quality counterpart to churn. Churn measures code that
+    had to be rewritten; corrections measure specs that turned out to be wrong.
+    A change can have low churn and bad specs (the developer guessed well), or
+    high churn from a legitimate refactor. They diagnose different things.
+
+    The count is a FLOOR, never exact: it only sees corrections that were
+    actually recorded. The report must say so.
+    """
+    out: dict = {"available": False, "path": str(audit_dir)}
+    if not audit_dir.is_dir():
+        return out
+    files = sorted(audit_dir.glob("*.jsonl"))
+    if not files:
+        return out
+
+    parsed, malformed, in_window = 0, 0, []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                malformed += 1
+                continue
+            if not isinstance(entry, dict):
+                malformed += 1
+                continue
+            ts = parse_ts(str(entry.get("timestamp", "")))
+            if ts is None:
+                malformed += 1
+                continue
+            parsed += 1
+            if (since and ts < since) or (until and ts > until):
+                continue
+            entry["_ts"] = ts
+            in_window.append(entry)
+
+    out.update({"available": True, "files": len(files), "entries_total": parsed,
+                "entries_in_window": len(in_window), "malformed": malformed})
+    if not in_window:
+        return out
+
+    commands: Counter = Counter()
+    changes: dict[str, dict] = defaultdict(
+        lambda: {"commands": 0, "decisions": 0, "corrections": 0, "auto_defaults": 0,
+                 "opened": None, "closed": None, "status_issues": 0})
+    corrections = decisions_total = auto_defaults = status_issues = 0
+
+    for e in in_window:
+        command = str(e.get("command") or "desconocido")
+        commands[command] += 1
+        if str(e.get("status") or "ok") != "ok":
+            status_issues += 1
+
+        change_id = e.get("change_id")
+        slug = str(change_id) if change_id else None
+        if slug:
+            c = changes[slug]
+            c["commands"] += 1
+            if str(e.get("status") or "ok") != "ok":
+                c["status_issues"] += 1
+            if command.endswith("open change"):
+                c["opened"] = min(c["opened"], e["_ts"]) if c["opened"] else e["_ts"]
+            elif command.endswith("close change"):
+                c["closed"] = max(c["closed"], e["_ts"]) if c["closed"] else e["_ts"]
+
+        for d in e.get("decisions") or []:
+            if not isinstance(d, dict):
+                continue
+            decisions_total += 1
+            is_correction = str(d.get("type") or "") == "correccion"
+            is_auto = str(d.get("origen") or "") == "auto-default"
+            corrections += int(is_correction)
+            auto_defaults += int(is_auto)
+            if slug:
+                changes[slug]["decisions"] += 1
+                changes[slug]["corrections"] += int(is_correction)
+                changes[slug]["auto_defaults"] += int(is_auto)
+
+    lead_times: list[float] = []
+    for slug, c in changes.items():
+        if c["opened"] and c["closed"] and c["closed"] >= c["opened"]:
+            c["lead_time_s"] = (c["closed"] - c["opened"]).total_seconds()
+            lead_times.append(c["lead_time_s"])
+        else:
+            c["lead_time_s"] = None
+        c["opened"] = c["opened"].strftime("%Y-%m-%d") if c["opened"] else None
+        c["closed"] = c["closed"].strftime("%Y-%m-%d") if c["closed"] else None
+
+    tracked = len(changes)
+    out.update({
+        "commands": dict(commands.most_common()),
+        "changes": dict(sorted(changes.items())),
+        "changes_tracked": tracked,
+        "changes_closed": sum(1 for c in changes.values() if c["closed"]),
+        "changes_open": sorted(s for s, c in changes.items() if not c["closed"]),
+        "corrections_total": corrections,
+        "corrections_per_change": (corrections / tracked) if tracked else 0.0,
+        "changes_with_corrections": sum(1 for c in changes.values() if c["corrections"]),
+        "decisions_total": decisions_total,
+        "auto_defaults": auto_defaults,
+        "auto_default_pct": (auto_defaults / decisions_total * 100) if decisions_total else 0.0,
+        "status_issues": status_issues,
+        "lead_time_p50_s": percentile(lead_times, 50) if lead_times else 0.0,
+        "lead_times_measured": len(lead_times),
+    })
+    return out
+
+
 def fmt_hours(seconds: float) -> str:
     hours = seconds / 3600.0
     if hours < 1:
@@ -209,7 +332,8 @@ def fmt_hours(seconds: float) -> str:
 
 
 def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict,
-                real_days: float | None = None, cost_per_day: float | None = None) -> dict:
+                real_days: float | None = None, cost_per_day: float | None = None,
+                audit: dict | None = None) -> dict:
     stamps = [e["ts"] for e in (act.runs + act.files + act.turns)]
     first, last = (min(stamps), max(stamps)) if stamps else (None, None)
 
@@ -302,6 +426,7 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
             for k, v in sorted(ctx_stats.items(), key=lambda kv: -kv[1]["seconds"])
         },
         "git": git,
+        "audit": audit or {"available": False},
         "baseline": {
             "days": baseline_days,
             "sized_items": sized_items,
@@ -412,6 +537,54 @@ def md_tables(f: dict) -> str:
             out.append(f"| `{path}` | {n} |")
         out.append("")
 
+    au = f["audit"]
+    if au.get("available") and au.get("entries_in_window"):
+        out.append("### Correcciones y ciclo de los changes (auditoria AISDD)\n")
+        out.append("| KPI | Valor |")
+        out.append("|---|---|")
+        out.append(f"| Comandos `aisdd` registrados | {au['entries_in_window']} |")
+        out.append(f"| Changes con actividad | {au['changes_tracked']} |")
+        out.append(f"| Changes cerrados | {au['changes_closed']} |")
+        out.append(f"| Correcciones registradas | {au['corrections_total']} |")
+        out.append(f"| Correcciones por change (media) | {au['corrections_per_change']:.2f} |")
+        out.append(f"| Changes que necesitaron correccion | "
+                   f"{au['changes_with_corrections']} de {au['changes_tracked']} |")
+        out.append(f"| Decisiones registradas | {au['decisions_total']} |")
+        out.append(f"| Resueltas por la IA sin preguntar | {au['auto_default_pct']:.0f} % |")
+        if au.get("lead_times_measured"):
+            out.append(f"| Lead time de un change, open->close (p50) | "
+                       f"{fmt_hours(au['lead_time_p50_s'])} |")
+        if au.get("status_issues"):
+            out.append(f"| Comandos no completados (partial/aborted) | {au['status_issues']} |")
+        out.append("")
+
+        if au.get("changes"):
+            out.append("| Change | Comandos | Decisiones | Correcciones | Lead time | Estado |")
+            out.append("|---|---|---|---|---|---|")
+            for slug, c in au["changes"].items():
+                lead = fmt_hours(c["lead_time_s"]) if c.get("lead_time_s") else "-"
+                estado = "cerrado" if c["closed"] else "abierto"
+                out.append(f"| `{slug}` | {c['commands']} | {c['decisions']} | "
+                           f"{c['corrections']} | {lead} | {estado} |")
+            out.append("")
+
+        out.append("> Las correcciones son **retrabajo de especificacion**: lo que el change "
+                   "necesito cambiar despues de dar sus specs por cerradas. Complementan al "
+                   "churn, que mide retrabajo de *codigo*. Un change puede tener churn bajo "
+                   "y specs malas (el desarrollador acerto adivinando) o churn alto por un "
+                   "refactor legitimo: diagnostican cosas distintas.")
+        out.append("")
+        out.append("> **Es una cota inferior.** Solo cuenta las correcciones que llegaron a "
+                   "`decisions.md`; las que se resolvieron sin anotar no aparecen. Sirve "
+                   "para comparar changes entre si, no como recuento exacto.")
+        out.append("")
+    elif au.get("available"):
+        out.append("### Correcciones y ciclo de los changes (auditoria AISDD)\n")
+        out.append(f"Hay auditoria en `{au['path']}` ({au.get('entries_total', 0)} entradas), "
+                   "pero ninguna cae dentro de la ventana que mide el registro de actividad. "
+                   "No se calculan correcciones.")
+        out.append("")
+
     g = f["git"]
     if g.get("available"):
         out.append("### Codigo entregado en la ventana (git)\n")
@@ -495,6 +668,11 @@ def main() -> int:
     parser.add_argument("--format", choices=["md", "json"], default="md",
                         help="Tablas en Markdown (por defecto) o hechos en JSON.")
     parser.add_argument("--no-git", action="store_true", help="Omite las metricas de git.")
+    parser.add_argument("--audit", default="openspec/audit",
+                        help="Directorio de auditoria AISDD (por defecto openspec/audit). "
+                             "Si no existe, el informe sale igual sin esa seccion.")
+    parser.add_argument("--no-audit", action="store_true",
+                        help="Omite las metricas de la auditoria AISDD.")
     args = parser.parse_args()
 
     activity = Path(args.activity)
@@ -520,8 +698,13 @@ def main() -> int:
     if not args.no_git:
         git = git_stats(Path(args.repo), min(stamps), max(stamps))
 
+    audit = {"available": False}
+    if not args.no_audit:
+        audit = read_audit(Path(args.audit), min(stamps), max(stamps))
+
     facts = build_facts(act, baseline_days, sized, git,
-                        real_days=args.real_days, cost_per_day=args.cost_per_day)
+                        real_days=args.real_days, cost_per_day=args.cost_per_day,
+                        audit=audit)
     if args.baseline_days is not None:
         facts["baseline"]["source"] = "--baseline-days (indicado a mano)"
 

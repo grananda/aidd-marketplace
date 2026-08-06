@@ -1,9 +1,9 @@
 ---
 name: aidd-metrics
-description: Capa de medicion del conjunto AIDD (AI Driven Development). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aidd metrics` (alias `aidd kpis`, `aidd roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Capa de medicion del conjunto AIDD (AI Driven Development). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aidd metrics` (alias `aidd kpis`, `aidd roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aidd-metrics (AIDD · medicion · KPIs de uso de IA)
@@ -37,6 +37,7 @@ Criterio de salida del paso: existe `docs/kpis-ia.md` con la actividad medida, l
   - `git log` — commits y lineas de codigo de la misma ventana temporal.
   - `docs/detalle-historias-usuario.md` — tallas XS/S/M/L/XL, de las que sale el **baseline** humano.
   - `docs/planificacion-proyecto.md` — si existe, su estimacion "con IA" es lo que se contrasta contra la realidad.
+  - `openspec/audit/*.jsonl` — **opcional**. Si el proyecto usa AISDD, la auditoria estructurada aporta el eje de **calidad de la especificacion**: correcciones por change, decisiones resueltas por la IA sin preguntar y lead time real `open change` -> `close change`. Si el directorio no existe, el informe sale igual sin esa seccion.
 - Si **no existe** `docs/aidd-activity.md`, no inventes metricas a partir de git o del calendario: explica que el registro es opt-in, indica como activarlo (`touch docs/aidd-activity.md`) y avisa de que solo medira desde ese momento, no hacia atras.
 - **Nunca calcules ahorro sin esfuerzo real declarado.** Ver la seccion siguiente; es la regla mas importante de este skill.
 - Los numeros los calcula el script, no tu. No hagas aritmetica a ojo sobre el registro ni redondees a mano: pega las tablas que produce y escribe alrededor la interpretacion.
@@ -75,6 +76,7 @@ Si el usuario no sabe el esfuerzo real, no insistas ni lo estimes tu: sigue sin 
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aidd-metrics/scripts/compute_kpis.py" \
   --activity docs/aidd-activity.md \
   --details docs/detalle-historias-usuario.md \
+  --audit openspec/audit \
   --real-days <jornadas-reales> \
   --cost-per-day <coste-jornada>
 ```
@@ -87,6 +89,8 @@ Flags:
 - `--cost-per-day N`: coste de una jornada-persona, para traducir el ahorro a dinero. Opcional.
 - `--baseline-days N`: fuerza el baseline en vez de derivarlo de las tallas (util si el alcance medido no es el de todo el backlog).
 - `--repo <path>`: raiz del repositorio git. Por defecto el directorio actual.
+- `--audit <path>`: directorio de auditoria AISDD. Por defecto `openspec/audit`. Si no existe, la seccion de correcciones se omite sin error.
+- `--no-audit`: omite las metricas de la auditoria AISDD.
 - `--no-git`: omite las metricas de git.
 - `--format md|json`: tablas en Markdown (por defecto) o hechos en JSON para tratarlos aparte.
 
@@ -101,7 +105,7 @@ Escribe el documento con esta estructura, pegando **literalmente** las tablas qu
 ## 2. Actividad medida            <- tablas del script (ventana, tiempo atendido)
 ## 3. Planificacion vs ejecucion  <- tabla del script
 ## 4. Por historia de usuario o change  <- tabla del script
-## 5. Retrabajo y codigo entregado <- tablas del script
+## 5. Retrabajo y codigo entregado <- tablas del script (churn, correcciones, git)
 ## 6. Contraste con el baseline humano  <- tabla del script
 ## 7. Calibracion de la estimacion previa
 ## 8. Lectura, riesgos y sesgos
@@ -109,7 +113,8 @@ Escribe el documento con esta estructura, pegando **literalmente** las tablas qu
 
 - **Seccion 1**: en dos parrafos, que sale de datos medidos (actividad, tiempos, churn, git) y que es estimacion (el baseline de tallas, el esfuerzo real declarado). Sin esto el informe no es defendible.
 - **Seccion 7**: si `docs/planificacion-proyecto.md` tiene la columna "esfuerzo con IA", compara aquella prediccion con lo real y di la desviacion en porcentaje. Es lo que permite afinar la proxima estimacion; si no existe el documento, indica que no hay prediccion previa que calibrar.
-- **Seccion 8**: interpreta. Que fase se comprime mas y cual menos, si el churn indica idas y venidas caras, si el lead time por HU esta dominado por espera y no por trabajo. Y enumera los sesgos: el registro solo ve acciones de la IA; el tiempo atendido no es esfuerzo total; velocidad sin calidad es media foto (propon vigilar defectos post-entrega junto a estos KPIs).
+- **Seccion 5**: si hay auditoria AISDD, el script anade las **correcciones por change**. Interpretalas como lo que son: retrabajo de *especificacion*, no de codigo. Un change con muchas correcciones apunta a un `open change` que no capturo lo que debia, no a un desarrollo lento; se corrige en el pre-flight del siguiente change, no apretando al equipo. Conserva el aviso de que la cifra es una **cota inferior** (solo cuenta lo que se registro en `decisions.md`) y usala para comparar changes entre si, no como recuento exacto.
+- **Seccion 8**: interpreta. Que fase se comprime mas y cual menos, si el churn indica idas y venidas caras, si el lead time por HU esta dominado por espera y no por trabajo. Cruza **churn con correcciones**: churn alto con correcciones bajas suele ser refactor legitimo; correcciones altas con churn bajo significa que las specs iban mal y alguien lo absorbio adivinando. Y enumera los sesgos: el registro solo ve acciones de la IA; el tiempo atendido no es esfuerzo total; las correcciones solo cuentan las anotadas; velocidad sin calidad es media foto (propon vigilar defectos post-entrega junto a estos KPIs).
 
 Si el script marca una cifra como **no publicable**, conserva ese aviso en el documento. No lo suavices ni lo borres.
 

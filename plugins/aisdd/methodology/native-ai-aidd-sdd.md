@@ -168,7 +168,8 @@ Capa de diagnóstico, QA técnico y funcional. Es el único rol que puede escala
 | **Revisión técnica** | Revisa el código generado por la IA en busca de errores, deuda o malas prácticas |
 | **Validación de estándares y patrones** | Comprueba que el código sigue la arquitectura y guía de estilos definidas |
 | **Verifica trazabilidad** | Comprueba que `decisions.md` del change refleja las decisiones reales y que existe entrada de auditoría en `openspec/audit/` |
-| **Diagnostica la naturaleza del problema** | Determina si un problema es de implementación (→ Dev), de spec (→ Lead) o arquitectónico (→ Lead para escalar al Architect) |
+| **Diagnostica la naturaleza del problema** | Determina si un problema es de implementación (→ Dev), una decisión técnica no documentada (→ se resuelve dentro del change), de spec (→ Lead) o arquitectónico (→ Lead para escalar al Architect) |
+| **Resuelve en el change** | Decisiones técnicas que ningún documento AIDD fijaba: se registran como `Tipo: correccion` en `decisions.md` y el ciclo continúa, sin escalar ni re-aplicar el change (ver "Regla de corte") |
 | **Devuelve al AI Developer** | Solo para problemas de implementación — con descripción, criterio que falla y evidencia |
 | **Reporta al AI Lead** | Cuando detecta problemas de spec o arquitectónicos que superan el scope del Developer |
 | **Aprobación de Merge Requests** | Es la firma final antes de que el change se integre en la rama principal |
@@ -534,14 +535,15 @@ Diagnostica la naturaleza de cada problema
    │                       │
  OK ✓                   KO ✗
    │                       │
-   │         ┌─────────────┴──────────────────┐
-   │         │                                │
-   │   Problema de                    Problema de spec
-   │   implementación                 o arquitectónico
-   │         │                                │
-   │   → Dev corrige              → Reporta al AI Lead
-   │     (itera hasta OK)           Lead reabre/ajusta el
-   │                                change o escala al Architect
+   │         ┌─────────────┼─────────────────────┐
+   │         │             │                     │
+   │   Problema de   Decisión técnica      Problema de spec
+   │   implementación  no documentada      o arquitectónico
+   │         │             │                     │
+   │   → Dev corrige   → Se resuelve y     → Reporta al AI Lead
+   │     (itera hasta    se registra en      Lead reabre/ajusta el
+   │      OK)            decisions.md        change o escala al
+   │                     El ciclo sigue      Architect
    ▼
 Outcome Validator aprueba el Merge Request
         │
@@ -556,6 +558,12 @@ AI Lead abre y valida el siguiente change (aisdd open change)
         │
         ▼  ── Handoff: specs validados ──► AI Developer ──
 ```
+
+> **Regla de corte — qué merece tocar documentación.** El coste de una corrección debe ser proporcional a su alcance real. La pregunta no es "¿cambia el código?", sino **¿algún documento AIDD sellado queda diciendo algo falso?**
+>
+> - **Problema de implementación** — el spec es correcto y el código no lo cumple. Lo corrige el Developer iterando. No se toca ningún documento.
+> - **Decisión técnica no documentada** — ningún documento fijaba ese detalle (una incompatibilidad de versiones descubierta al validar, un matiz visual que la guía de estilos no recoge). Se resuelve, se registra como entrada `Tipo: correccion` en el `decisions.md` del change, y el ciclo continúa: **no** se escala al Architect y **no** se vuelve a aplicar el change. Si además la corrección exige criterios o tareas nuevas en el change, la vía es `aisdd amend change`, que escribe ese delta —y solo ese— y lo implementa sin rehacer lo ya entregado.
+> - **Contradicción documental** — un documento sellado afirma lo contrario de lo que ahora es cierto. Se corrige **ese** documento, y solo ese, y se re-sella con `stamp_doc.py`. La cadena completa hacia arriba (`cliente-requisitos.md` → `requisitos.md` → `propuesta-arquitectura-base.md` → `arquitectura-base.md`) solo se recorre cuando el cambio nace de una decisión del cliente sobre el alcance, no de un hallazgo técnico durante el desarrollo.
 
 **Prompt de apertura** (lo ejecuta el AI Lead, extraído de `docs/prompts-roadmap-native-ai.md` para cada fase):
 
@@ -929,3 +937,6 @@ Tabla de cambios aplicados o pendientes de decisión sobre esta metodología. Si
 | 008 | Roles / Fase 3.5 (v4) | **Aplicado** | Se añade el rol **AI Delivery Manager** y la **Fase 3.5 — Planificación de entrega**, con los skills `aidd project-plan` (`docs/planificacion-proyecto.md`) y `aidd sprint-planning` (`docs/sprint-plan.md`) | El SDD v3 faseaba por presupuesto de contexto (roadmap) pero no cubría recursos ni calendario para un equipo humano. Esta capa, autónoma de OpenSpec, traduce el roadmap a recursos y sprints sin romper el faseado por contexto (un sprint no parte un change). Hace la planificación AI-native consumible por un equipo Scrum. |
 | 009 | Integración Jira / Fases 3.5 y 4 | **Superado (#010)** | Integración opcional con Jira (MCP de Atlassian). `aidd sprint-planning` vuelca los sprints y crea una **Story por HU**; `aisdd open change` creaba cada change como **sub-tarea** de la Story de su HU (siempre); `implement change` movía sub-tarea + Story a *In Progress*; `close change` pasaba la sub-tarea a *Done* y la Story a *Done* solo cuando **todas** sus sub-tareas lo están. Enlace en `docs/jira-sync.md` + sección `jira:` en `openspec/config.yaml` | La **HU** es la unidad de entrega rastreable y el **change** la unidad de ejecución. El detalle "sub-tarea siempre" queda superado por el modelo híbrido del registro #010; el resto (Stories por HU, enlace, opcionalidad) sigue vigente. |
 | 010 | Integración Jira / Fase 4 | **Aplicado** | **Modelo híbrido por HU**: si una HU se realiza con un **solo change**, los comandos operan **directamente sobre su Story** (sin sub-tarea); si se reparte entre **2+ changes**, cada change es una **sub-tarea** bajo su Story (Done de la Story solo cuando todas están Done). Un change que implementa varias HU mueve las Stories de **todas** ellas. `open change` no cambia estados (abrir es diseñar specs); el modo se resuelve en el momento del comando (un re-faseado que reparta una HU crea sub-tareas solo para los changes nuevos) | La sub-tarea 1:1 duplicaba la Story sin aportar información (ruido en el board) y el modelo anterior solo movía la Story de la HU "principal", dejando sin reflejo el avance de las HU secundarias de un change. El híbrido conserva el progreso atómico exactamente donde aporta (HU repartida) y el Done-condicionado, con un board que refleja el avance real de cada HU. |
+| 011 | Fase 4 / Correcciones | **Aplicado** | Se añade una **tercera rama** al diagnóstico del Outcome Validator: **decisión técnica no documentada**, que se resuelve dentro del change (entrada `Tipo: correccion` en `decisions.md`) sin escalar al Architect, sin reescribir los specs y sin volver a aplicar el change. La acompaña una **regla de corte** explícita: un documento AIDD solo se corrige cuando la decisión lo deja **desmentido**, y solo se corrige ese documento. `correccion` se suma a los tipos de `decisions.md` y al esquema de auditoría | El árbol de diagnóstico era binario (implementación vs spec/arquitectura), así que un detalle que ningún documento había fijado —una incompatibilidad de versiones descubierta al validar, un matiz visual fuera de la guía de estilos— caía por defecto en la rama cara: revisar la arquitectura, reescribir los specs y re-aplicar el change, con riesgo de pisar código ya escrito. La tercera rama hace el coste de la corrección proporcional a su alcance real conservando la trazabilidad mínima en `decisions.md`; el tipo propio la hace **contable** en `openspec/audit/*.jsonl` (correcciones por change es un indicador de la calidad de los specs, consumible por `aidd-metrics`). |
+| 012 | Fase 4 / Correcciones | **Aplicado** | Se añade el skill **`aisdd-amend`** (`aisdd amend change [descripcion]`): el usuario describe una modificación, el skill escribe el delta en los artefactos del change ya abierto (criterios en `spec.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) e implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply`. Toma una **baseline de build y tests antes de tocar nada** para separar con evidencia lo que rompe la enmienda de lo que ya estaba roto. Asume la documentación AIDD al día (no la valida) y no reconcilia cambios manuales del working tree | El registro #011 dio el criterio para clasificar correcciones, pero no una vía de ejecución: una corrección que además exigía tocar los specs del change se quedaba sin herramienta, y el humano acababa re-aplicando el change entero sobre un árbol ya implementado. La baseline resuelve el problema de fondo: el agente no conoce el trabajo manual previo, así que la única forma honesta de afirmar "no hay regresiones" es medir antes y después en lugar de suponerlo. |
+| 013 | Medicion / Fase 4 | **Aplicado** | `aidd-metrics` deja de ser ciego a AISDD: lee `openspec/audit/*.jsonl` (opcional, con `--audit`/`--no-audit`, y degrada sin error si no existe) y añade a `docs/kpis-ia.md` las **correcciones por change**, el **porcentaje de decisiones que la IA resolvió sin preguntar** y el **lead time real `open change` -> `close change`** | El informe medía velocidad (tiempo atendido, churn, código entregado) pero declaraba él mismo que "velocidad sin calidad es media foto". El eje de calidad ya estaba escrito en la auditoría desde el registro #011 y nadie lo leía. Las correcciones son retrabajo de **especificación**, complementario al churn (retrabajo de **código**): churn alto con correcciones bajas es refactor legítimo; correcciones altas con churn bajo significa specs flojas que alguien absorbió adivinando. El coste fue un parser y dos tablas; la alternativa era instrumentar una fuente nueva para un dato que ya existía. |
