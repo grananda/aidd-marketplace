@@ -10,10 +10,11 @@ Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar l
 2. `aisdd roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
 3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
 4. `aisdd implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
-5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado.
-6. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
-7. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
-8. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
+5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado (en roadmaps multilane, verifica antes que el change no escribio fuera de las rutas de su lane).
+6. `aisdd lane [list | switch <lane-id> | status]` — consulta y cambia la linea de trabajo activa. Solo aplica a roadmaps `multilane`.
+7. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
+8. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
+9. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
 
 > **Skill hermano**: `aisdd amend change [descripcion]` (skill `aisdd-amend`) incorpora una modificacion a un change **ya abierto** y ejecuta solo ese delta, sin re-aplicar el change entero. Es la via operativa de la "Regla de corte" descrita en la seccion "Correcciones durante la implementacion" del `SKILL.md` de este skill.
 
@@ -74,6 +75,8 @@ El comando genera:
 
 **Alineacion con el sprint-plan**: si existe `docs/sprint-plan.md` (generado por `aidd sprint-planning`), el roadmap **se pliega a los sprints**: respeta su orden, corta las fases en fronteras de sprint, mantiene los changes de una HU dentro de la ventana de su sprint y no fasea HU no validadas; anota en cada fase el sprint, las HU cubiertas y el esfuerzo (humano e IA), y documenta las discrepancias en una seccion de conflictos de alineacion roadmap↔sprint. Sin `sprint-plan.md`, fasea solo por presupuesto de contexto.
 
+**Modo del roadmap**: el comando pregunta si el faseado sera `atomic` (un unico change abierto en todo el proyecto, comportamiento clasico) o `multilane` (el roadmap se fracciona en lineas de trabajo paralelas con un change abierto **por lane**). Para multilane propone un numero de lanes calculado como `min(modulos disjuntos de arquitectura-base.md, devs de implementacion de planificacion-proyecto.md)` —con su justificacion, para que el usuario no tenga que adivinarlo— y lo negocia hasta un acuerdo real; rechaza mas lanes que devs (no aporta paralelismo) o que modulos disjuntos (los lanes se pisarian). Las fases pasan a nombrarse `F0` (foundation), `F-<lane-id>-NN` (fase de lane) y `FB-NN` (barrera que bloquea todos los lanes: contrato, migracion, permisos, rollout), y `docs/roadmap.md` gana las secciones "Lanes" y "Dependencias cross-lane".
+
 Tras generar esos documentos, el comando actualiza `openspec/config.yaml` con una seccion `roadmap` (presupuesto de contexto, complejidad, rutas de los documentos y la lista ordenada de fases con su objetivo, riesgo de contexto y slug sugerido), para que los comandos posteriores dispongan de un indice navegable del roadmap.
 
 Este comando no debe ejecutar `openspec new change` ni archivar cambios, ni editar artefactos de `openspec/` distintos de `openspec/config.yaml`.
@@ -128,6 +131,16 @@ Comportamientos clave del pre-flight:
 - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), las usa con una recomendacion marcada `(Recomendada)`. En caso contrario presenta una lista numerada en texto plano.
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, y marca cada decision con `Origen: auto-default`. Para `bloqueantes` sin default seguro detiene el comando.
 - Si una duda bloqueante queda `Decision: pendiente`, no ejecuta `openspec instructions apply`.
+
+### `aisdd lane [list | switch <lane-id> | status]`
+
+Selecciona la **linea de trabajo activa** del dev, igual que `git switch` selecciona rama. No mueve codigo ni toca changes: solo dice sobre que lane operan los siguientes `open` / `implement` / `close change`.
+
+- `list` — lanes del roadmap con su perfil, rutas, change abierto (si lo hay) y fase siguiente; marca el activo y lista las barreras pendientes.
+- `switch <lane-id>` — escribe el lane en `openspec/.lane`. Siempre esta permitido, incluso con un change abierto en el lane que dejas: ese change sigue vivo y te espera. El guard de "un change por lane" vive en `open change`, no aqui.
+- `status` (o sin subcomando) — lane activo, su change abierto, su fase siguiente y las barreras que lo bloqueen.
+
+El puntero `openspec/.lane` es **estado local de cada dev** y va en `.gitignore` (lo anade `aisdd init`): dos personas trabajando lanes distintos no deben pisarse el puntero en cada commit. Si el roadmap es `atomic`, el comando avisa de que el proyecto no usa lanes y no crea nada.
 
 ### `aisdd close change <what-you-want-to-build>`
 
@@ -187,7 +200,7 @@ aisdd close change alta-clientes-portal
 
 ## Auditoria y trazabilidad
 
-Cada invocacion de cualquier comando escribe una entrada estructurada en JSON Lines bajo `openspec/audit/YYYY-MM.jsonl` (un fichero por mes natural, modo append-only). El objetivo es permitir auditorias futuras del uso del skill.
+Cada invocacion de cualquier comando que toque artefactos del proyecto escribe una entrada estructurada en JSON Lines bajo `openspec/audit/YYYY-MM.jsonl` (`aisdd lane` queda fuera: solo mueve un puntero local del dev) (un fichero por mes natural, modo append-only). El objetivo es permitir auditorias futuras del uso del skill.
 
 Campos minimos de cada entrada:
 

@@ -78,6 +78,8 @@ aisdd close change <slug>  ← Outcome Validator (valida → archiva)
 
 > **Regla de oro del reparto:** el **AI Lead** abre (`open change`) y valida los specs de **todos** los changes; el **AI Developer** solo implementa (`implement change`) + verifica + corrige bugs; el **Outcome Validator** archiva (`close change`).
 
+> **Si el roadmap es multilane**, este ciclo no cambia: se ejecuta **una vez por lane, en paralelo**. Cada dev elige su línea con `aisdd lane switch <lane-id>` (como `git switch`) y a partir de ahí abre, implementa y cierra dentro de ella. La única regla nueva: **un change abierto por lane**, y las fases `F0`/`FB-NN` (barreras) detienen todos los lanes hasta cerrarse. Ver §3.bis de la metodología completa.
+
 ---
 
 ## 5. Quickstart end-to-end (proyecto nuevo)
@@ -207,7 +209,8 @@ openspec/
 | `aisdd roadmap` | AI Lead | Fasea el desarrollo y genera los prompts por fase |
 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados del change |
 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código |
-| `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change (en multilane, verifica que no salió de las rutas de su lane) |
+| `aisdd lane [list\|switch\|status]` | AI Developer / AI Lead | Selecciona la línea de trabajo activa (solo roadmaps multilane) |
 | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
 | `aisdd uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
 | `aidd hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |

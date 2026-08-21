@@ -1,8 +1,8 @@
 {
   "name": "aidd",
   "displayName": "AIDD — AI Driven Development",
-  "version": "1.14.0",
-  "description": "Conjunto de skills de planificacion y arquitectura asistida por IA (AIDD): Fases 0-2 (client-requirements, requirements, user-stories, user-story-details, prototype-architecture, prototype, style-guide, architecture-proposal, architecture), planificacion de la revision de HU en Excel (hu-review-plan) y capa de entrega Fase 3.5 (project-plan, sprint-planning, con volcado opcional a Jira). Incluye la metodologia AIDD-SDD como referencia.",
+  "version": "1.15.0",
+  "description": "Conjunto de skills de planificacion y arquitectura asistida por IA (AIDD): Fases 0-2 (client-requirements, requirements, user-stories, user-story-details, prototype-architecture, prototype, style-guide, architecture-proposal, architecture), planificacion de la revision de HU en Excel (hu-review-plan) y capa de entrega Fase 3.5 (project-plan, sprint-planning, con volcado opcional a Jira). `sprint-planning` entiende roadmaps multilane: calendario por tramos entre barreras (`max` de las cadenas de cada lane), sprints que toman unidades de varios lanes a la vez, carga vs capacidad por lane y aviso de lanes sin asignacion. Incluye la metodologia AIDD-SDD como referencia.",
   "author": {
     "name": "NTT DATA Spain GDN-e"
   },

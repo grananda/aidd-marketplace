@@ -91,21 +91,33 @@ DEFINITION PHASE
       │
       ▼  (aprobación humana)
 EXECUTION PHASE  ◄─────────────────────────────── KO ─┐
-  Back AI Lead  (open change → specs validados) ──► Back AI Dev
-  Front AI Lead (open change → specs validados) ──► Front AI Dev
-  AI Dev: implement change + verificación + fix bugs   │
-      │                                                │
-      ▼  (por cada change)                             │
+                                                       │
+  ── modo atómico (un solo hilo) ──                     │
+  AI Lead (open change → specs validados) ──► AI Dev    │
+                                                       │
+  ── modo multilane (un hilo por lane) ──               │
+  F0 / barrera FB-NN: bloquea TODOS los lanes           │
+      │                                                 │
+      ├─ lane `back`  ──► Back AI Lead ──► Back AI Dev   │
+      ├─ lane `front` ──► Front AI Lead ──► Front AI Dev │
+      └─ lane `…`     ──► AI Lead      ──► AI Dev        │
+         (en paralelo; un change abierto POR LANE)       │
+                                                       │
+  AI Dev: implement change + verificación + fix bugs    │
+      │                                                 │
+      ▼  (por cada change)                              │
 VALIDATION PHASE ──────────────────────────────────────┘
   Outcome Validator
   → Validación técnica + funcional
   → Aprobación de Merge Request
-  → aisdd close change
-  → Entrega al cliente
+  → aisdd close change  (verifica que el change no salió de su lane)
       │
       ▼ (OK)
-  Siguiente change ──► AI Lead (aisdd open change) ──► AI Dev
+  Siguiente change del MISMO lane ──► AI Lead (aisdd open change) ──► AI Dev
+  Los demás lanes no se detienen: siguen su propio ciclo en paralelo.
 ```
+
+> **Los dos modos.** El faseado por defecto es **atómico**: un único change abierto en todo el proyecto. `aisdd roadmap` puede en cambio fraccionar el roadmap en **lanes** — líneas de trabajo con rutas de código y specs **disjuntas** — y entonces hay un change abierto **por lane**, ejecutándose en paralelo. El invariante que protege la metodología no cambia: dentro de cada superficie de decisión sigue habiendo **un solo hilo**. Lo que se paraleliza son las superficies, no el hilo. Ver §3.bis.
 
 ---
 
@@ -132,6 +144,8 @@ El rol de mayor nivel conceptual. Combina Product Owner y arquitecto de producto
 
 En proyectos full stack, el AI Lead se desdobla en **Front AI Lead** y **Back AI Lead**, cada uno responsable de su capa. **No implementa código.**
 
+> En roadmaps **multilane** (§3.bis) el desdoble deja de ser solo organizativo: cada Lead conduce **su lane**, con un change abierto propio, en paralelo con los demás. Las fases `F0` y las barreras `FB-NN` no pertenecen a ningún lane — las abre el Lead que posea el contrato compartido, y detienen a todos.
+
 | Responsabilidad | Comandos / Detalle |
 |---|---|
 | **Inicializa Native AI Specs** | Ejecuta `aisdd init`: instala/verifica OpenSpec, comprueba `booster-ux`/`booster-uml`, registra los comandos en `AGENTS.md` y vuelca el contexto inicial a `openspec/config.yaml` |
@@ -146,6 +160,8 @@ En proyectos full stack, el AI Lead se desdobla en **Front AI Lead** y **Back AI
 ### AI Developer (Front / Back)
 
 Implementa el código a partir de los specs **ya abiertos y validados por el AI Lead**. **No abre changes. No toma decisiones de arquitectura. No habla con el Lead directamente.**
+
+> En modo **multilane**, cada Dev trabaja sobre el lane que tenga activo (`aisdd lane switch`) y solo escribe dentro de las **rutas de ese lane** — `aisdd close change` lo verifica. Si durante la implementación descubre que el **contrato compartido** es insuficiente, eso no se arregla sobre la marcha: es una corrección de **nivel 4**, se detiene y se escala al dueño del contrato, porque otros lanes están construyendo sobre ese mismo supuesto.
 
 | Responsabilidad | Comandos / Detalle |
 |---|---|
@@ -188,6 +204,60 @@ Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadm
 | **Hace consumible el plan por un equipo Scrum** | Traduce la planificación AI-native a recursos y calendario que un equipo humano gestiona en su día a día |
 
 > Capa **autónoma de OpenSpec**: parte de los documentos (`arquitectura-base.md`, `roadmap.md`, detalle de historias). Si existen changes de OpenSpec, los usa como detalle adicional, pero la unidad de planificación sigue siendo el change/historia del roadmap. En equipos pequeños, el AI Delivery Manager puede ser el mismo humano que actúa de AI Lead.
+
+---
+
+## 3.bis. Lanes: paralelismo sin romper el invariante
+
+### El problema
+
+El ciclo `open change → implement change → close change` es **secuencial por diseño**, y la razón es real: al cerrar un change se consolidan sus decisiones en `decisions.md`. Dos changes vivos sobre la **misma superficie de decisión** producirían specs que se contradicen, y nada lo detectaría.
+
+El efecto colateral aparece en cuanto el equipo crece. Con el desdoble Front/Back de roles, un change que solo toca backend deja al **Front AI Dev parado**, y viceversa. Que un Lead espere es coherente —su trabajo es especificar, no implementar—; que un Dev espere no lo es. La metodología escalaba con el **tamaño del change**, no con el **tamaño del equipo**.
+
+### La solución: fraccionar la superficie, no el hilo
+
+`aisdd roadmap` puede generar el roadmap en **modo multilane**: fraccionado en **lanes** (líneas de trabajo) cuyas superficies de decisión son **disjuntas**. Dentro de cada lane sigue habiendo **un único hilo**; lo que corre en paralelo son los lanes entre sí.
+
+El invariante se conserva palabra por palabra: *ningún change trabaja sobre decisiones que desconoce*. Simplemente deja de haber una sola superficie.
+
+### Anatomía
+
+| Tipo de fase | Identificador | Concurrencia |
+|---|---|---|
+| **Foundation** | `F0` | Secuencial. Bloquea todos los lanes. |
+| **Fase de lane** | `F-<lane-id>-NN` (p. ej. `F-Data-Manager-01`) | Paralela entre lanes; secuencial dentro de un lane. |
+| **Barrera** | `FB-NN` | Secuencial. Bloquea **todos** los lanes. |
+
+`F0` y las barreras son los únicos momentos en que el proyecto vuelve a ser mono-hilo. Todo lo que afecte a más de un lane —cambio de contrato, migración, permisos, rollout— pertenece a una barrera, nunca a una fase de lane.
+
+### Las tres condiciones
+
+Un corte en lanes solo es válido si se cumplen las tres. Si alguna falla, el modo correcto es `atomic`:
+
+1. **Rutas disjuntas.** Cada lane declara sus rutas de código; ninguna se solapa. `aisdd close change` lo **verifica** antes de archivar.
+2. **Specs disjuntas.** Ningún `spec.md` lo escriben dos lanes.
+3. **Contrato previo.** Lo que los lanes comparten —esquema de datos, contrato de API, eventos, tipos— queda fijado **antes** de que arranquen, en `F0` o en una barrera, y tiene **dueño**.
+
+La tercera es la que hace el trabajo. Back y front no son independientes por naturaleza: se **fabrica** su independencia con un contrato acordado de antemano, que es exactamente cómo la industria lleva décadas separando ambas capas. Sin contrato previo no hay lanes, hay dos equipos descoordinados.
+
+### Criterio de corte
+
+**Primero la independencia técnica; el rol del dev solo como desempate** cuando hay varios cortes técnicamente válidos. Nunca al revés: un corte que respeta el organigrama pero deja rutas compartidas no es un compromiso aceptable, es un corte inválido.
+
+Advertencia práctica: **`data` rara vez es un lane separado de `back`** — comparten esquema y migraciones, luego comparten superficie de decisión. Los cortes limpios suelen ser pocos y grandes, no muchos y finos. Y el número de lanes viable nunca supera el número de devs de implementación disponibles: un lane sin quien lo conduzca no aporta paralelismo y sí una superficie más que vigilar.
+
+### Qué cambia en la operativa
+
+- **`aisdd lane [list | switch | status]`** selecciona la línea de trabajo activa, igual que `git switch` selecciona rama. Es estado **local de cada dev** (`openspec/.lane`, ignorado por git), lo que permite que una misma persona salte entre lanes.
+- **`aisdd open change`** admite un change abierto **por lane**, y rechaza abrir un segundo en el mismo. Una barrera exige que **ningún** lane tenga trabajo en vuelo.
+- **`aisdd close change`** comprueba que el change no escribió fuera de las rutas de su lane. Es donde la independencia deja de ser una promesa del faseado.
+- **Correcciones nivel 4**: una corrección que toca el contrato compartido **no es local**. Es una **parada coordinada** de los lanes hermanos y una revisión del contrato por su dueño. Cuesta caro a propósito: si fuera barato, los lanes podrían contradecirse gratis.
+- **`aidd sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
+
+### Cuándo NO usar lanes
+
+Con un solo dev de implementación; sin `arquitectura-base.md` que soporte el corte; cuando los módulos no dan rutas disjuntas; o cuando el contrato compartido no se puede fijar antes de que los lanes arranquen. `atomic` no es el modo degradado: es el modo correcto cuando el corte no es defendible.
 
 ---
 

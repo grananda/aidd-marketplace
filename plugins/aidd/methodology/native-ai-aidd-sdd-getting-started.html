@@ -17,6 +17,7 @@
       --block: #b00020; --warn: #b58a25; --essential: #e8590c;
       --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
       --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
+      --lane: #2f7d4f; --barrier: #d98a00;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) { 
@@ -29,6 +30,7 @@
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+        --lane: #8fd694; --barrier: #ffb340;
  }
     }
     :root[data-theme="dark"] { 
@@ -41,6 +43,7 @@
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+        --lane: #8fd694; --barrier: #ffb340;
  }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -98,7 +101,7 @@
       background: var(--panel); color: var(--text-soft); font-size: 1rem; cursor: pointer;
       box-shadow: var(--shadow); line-height: 1; }
     .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
-    .diagram.offline::after { content: "Diagrama Mermaid sin renderizar (CDN no disponible; el codigo fuente se muestra arriba)";
+    .diagram.offline::after { content: "Diagrama Mermaid sin renderizar (falta mermaid.min.js junto al HTML y la CDN no responde; el codigo fuente se muestra arriba)";
       display: block; margin-top: 10px; font-size: .8rem; color: var(--warn); }
     /* KPI dashboard */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
@@ -115,6 +118,8 @@
     .kpi-warn { border-left-color: var(--warn); } .kpi-warn .kpi-value { color: var(--warn); }
     .kpi-muted { border-left-color: var(--line-strong); } .kpi-muted .kpi-value { color: var(--muted); }
     .kpi-eff { border-left-color: var(--eff-m); } .kpi-eff .kpi-value { color: var(--eff-m); }
+    .kpi-lane { border-left-color: var(--lane); } .kpi-lane .kpi-value { color: var(--lane); }
+    .kpi-barrier { border-left-color: var(--barrier); } .kpi-barrier .kpi-value { color: var(--barrier); }
     /* Chips */
     .chip { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
       vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
@@ -124,6 +129,8 @@
     .chip-us { color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
     .chip-block { color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }
     .chip-essential { color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }
+    .chip-lane { color: var(--lane); background: color-mix(in srgb, var(--lane) 14%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-barrier { color: #fff; background: var(--barrier); border-color: var(--barrier); font-family: "SF Mono",Menlo,monospace; }
     .swatch { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
       vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
       box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }
@@ -178,7 +185,7 @@
   <div class="layout">
     <nav class="toc" aria-label="Indice"><p class="toc-title">En esta pagina</p><ol><li><a href="#1-qu-es-esto-en-una-frase">1. ¿Qué es esto en una frase?</a></li><li><a href="#2-requisitos-previos">2. Requisitos previos</a></li><li><a href="#3-instalaci-n-e-inicializaci-n">3. Instalación e inicialización</a></li><li><a href="#4-el-flujo-completo-de-un-vistazo">4. El flujo completo de un vistazo</a></li><li><a href="#5-quickstart-end-to-end-proyecto-nuevo">5. Quickstart end-to-end (proyecto nuevo)</a></li><li><a href="#6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar">6. El pre-flight de dudas (lo que más sorprende al empezar)</a></li><li><a href="#7-artefactos-que-vas-a-ver">7. Artefactos que vas a ver</a></li><li><a href="#8-comandos-de-referencia">8. Comandos de referencia</a></li><li><a href="#9-errores-t-picos-al-empezar">9. Errores típicos al empezar</a></li><li><a href="#10-siguientes-pasos">10. Siguientes pasos</a></li></ol></nav>
     <main>
-<header class="doc-header"><h1 id="native-ai-aidd-sdd-getting-started">Native AI · AIDD-SDD — Getting Started</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-07-11 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p></header>
+<header class="doc-header"><h1 id="native-ai-aidd-sdd-getting-started">Native AI · AIDD-SDD — Getting Started</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-08-21 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p></header>
 <p><strong>Guía de arranque rápido</strong> para desarrollar con la metodología <strong>AIDD-SDD</strong>: los skills <code>aidd</code> (planificación, diseño y entrega) sobre el proceso <em>Spec-Driven Development</em>, y el skill <code>aisdd-specs</code> (ejecución sobre OpenSpec).</p>
 <blockquote>Documento de referencia completo: <a href="native-ai-aidd-sdd.md">native-ai-aidd-sdd.md</a>. Esta guía es el camino corto para ponerte en marcha en una tarde.</blockquote>
 <hr>
@@ -220,6 +227,7 @@ aisdd close change &lt;slug&gt;  ← Outcome Validator (valida → archiva)
         │
         ▼  siguiente change</code></pre>
 <blockquote><strong>Regla de oro del reparto:</strong> el <strong>AI Lead</strong> abre (<code>open change</code>) y valida los specs de <strong>todos</strong> los changes; el <strong>AI Developer</strong> solo implementa (<code>implement change</code>) + verifica + corrige bugs; el <strong>Outcome Validator</strong> archiva (<code>close change</code>).</blockquote>
+<blockquote><strong>Si el roadmap es multilane</strong>, este ciclo no cambia: se ejecuta <strong>una vez por lane, en paralelo</strong>. Cada dev elige su línea con <code>aisdd lane switch &lt;lane-id&gt;</code> (como <code>git switch</code>) y a partir de ahí abre, implementa y cierra dentro de ella. La única regla nueva: <strong>un change abierto por lane</strong>, y las fases <code><span class="chip chip-barrier">F0</span></code>/<code>FB-NN</code> (barreras) detienen todos los lanes hasta cerrarse. Ver §3.bis de la metodología completa.</blockquote>
 <hr>
 </section>
 <section class="doc-section" id="5-quickstart-end-to-end-proyecto-nuevo">
@@ -291,7 +299,7 @@ openspec/
 </section>
 <section class="doc-section" id="8-comandos-de-referencia">
 <h2><a class="anchor" href="#8-comandos-de-referencia" aria-label="Enlace">#</a>8. Comandos de referencia</h2>
-<div class="table-wrap"><table><thead><tr><th>Comando</th><th>Quién</th><th>Para qué</th></tr></thead><tbody><tr><td><code>aisdd init</code></td><td>AI Lead</td><td>Inicializa OpenSpec + dependencias + <code>AGENTS.md</code></td></tr><tr><td><code>aisdd roadmap</code></td><td>AI Lead</td><td>Fasea el desarrollo y genera los prompts por fase</td></tr><tr><td><code>aisdd open change &lt;slug&gt;</code></td><td>AI Lead</td><td>Pre-flight + genera specs validados del change</td></tr><tr><td><code>aisdd implement change &lt;slug&gt;</code></td><td>AI Developer</td><td>Pre-flight + implementa el código</td></tr><tr><td><code>aisdd close change &lt;slug&gt;</code></td><td>Outcome Validator</td><td>Valida y archiva el change</td></tr><tr><td><code>aisdd prototype-ux [&lt;slug&gt;]</code></td><td>Architect / Developer</td><td>Prototipos UX (booster-ux)</td></tr><tr><td><code>aisdd uml &lt;slug&gt;</code></td><td>Cualquiera</td><td>Diagramas HTML del change (booster-uml)</td></tr><tr><td><code>aidd hu-review-plan</code></td><td>AI Architect / Delivery</td><td>Excel de planificación de la revisión de HU <code>docs/xlsx/plan-revision-hu.xlsx</code> (Detalle HU, Dashboard, Leyenda, Gantt)</td></tr><tr><td><code>aidd project-plan</code></td><td>AI Delivery Manager</td><td>Plan de recursos <code>docs/planificacion-proyecto.md</code> (capa Delivery, v4)</td></tr><tr><td><code>aidd sprint-planning</code></td><td>AI Delivery Manager</td><td>Reparto en sprints <code>docs/sprint-plan.md</code> (capa Delivery, v4)</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Comando</th><th>Quién</th><th>Para qué</th></tr></thead><tbody><tr><td><code>aisdd init</code></td><td>AI Lead</td><td>Inicializa OpenSpec + dependencias + <code>AGENTS.md</code></td></tr><tr><td><code>aisdd roadmap</code></td><td>AI Lead</td><td>Fasea el desarrollo y genera los prompts por fase</td></tr><tr><td><code>aisdd open change &lt;slug&gt;</code></td><td>AI Lead</td><td>Pre-flight + genera specs validados del change</td></tr><tr><td><code>aisdd implement change &lt;slug&gt;</code></td><td>AI Developer</td><td>Pre-flight + implementa el código</td></tr><tr><td><code>aisdd close change &lt;slug&gt;</code></td><td>Outcome Validator</td><td>Valida y archiva el change (en multilane, verifica que no salió de las rutas de su lane)</td></tr><tr><td>`aisdd lane [list\</td><td>switch\</td><td>status]`</td><td>AI Developer / AI Lead</td><td>Selecciona la línea de trabajo activa (solo roadmaps multilane)</td></tr><tr><td><code>aisdd prototype-ux [&lt;slug&gt;]</code></td><td>Architect / Developer</td><td>Prototipos UX (booster-ux)</td></tr><tr><td><code>aisdd uml &lt;slug&gt;</code></td><td>Cualquiera</td><td>Diagramas HTML del change (booster-uml)</td></tr><tr><td><code>aidd hu-review-plan</code></td><td>AI Architect / Delivery</td><td>Excel de planificación de la revisión de HU <code>docs/xlsx/plan-revision-hu.xlsx</code> (Detalle HU, Dashboard, Leyenda, Gantt)</td></tr><tr><td><code>aidd project-plan</code></td><td>AI Delivery Manager</td><td>Plan de recursos <code>docs/planificacion-proyecto.md</code> (capa Delivery, v4)</td></tr><tr><td><code>aidd sprint-planning</code></td><td>AI Delivery Manager</td><td>Reparto en sprints <code>docs/sprint-plan.md</code> (capa Delivery, v4)</td></tr></tbody></table></div>
 <hr>
 </section>
 <section class="doc-section" id="9-errores-t-picos-al-empezar">
@@ -308,7 +316,7 @@ openspec/
   </div>
   <script>
     // Theme toggle (auto -> claro -> oscuro), persisted per browser. Classic script:
-    // must keep working even without network (the Mermaid CDN import lives apart).
+    // must keep working even without network (the Mermaid loader lives apart).
     (function () {
       const KEY = 'booster-docs-theme';
       const btn = document.getElementById('themeToggle');
@@ -347,20 +355,53 @@ openspec/
       document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
     })();
   </script>
-  <script type="module">
-    // Mermaid via CDN, best-effort: offline the diagrams stay as readable source
-    // with a notice instead of silently breaking the page's other scripts.
-    if (document.querySelector('.mermaid')) {
-      try {
-        const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
-        const dark = document.documentElement.dataset.theme === 'dark'
-          || (document.documentElement.dataset.theme !== 'light'
-              && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
-      } catch (e) {
-        document.querySelectorAll('.diagram').forEach(d => d.classList.add('offline'));
+  <script>
+    // Mermaid loader, best-effort and fail-visible.
+    //
+    // Uses the SELF-CONTAINED bundle (mermaid.min.js), never the ESM entry: the
+    // ESM build lazy-loads one chunk per diagram type at render time, so a single
+    // blocked request behind a corporate proxy leaves the diagrams silently blank
+    // -- and it fails inside Mermaid's async render, out of reach of any try/catch
+    // around the import.
+    //
+    // Order: the local copy next to this HTML first (works offline, over file://
+    // and behind a
+    // proxy), then the CDN. Classic <script> tags, so onerror actually fires and
+    // the fallback chain is real. If everything fails, the source stays visible
+    // with a notice instead of an empty gap.
+    (function () {
+      if (!document.querySelector('.mermaid')) return;
+      // Same pinned version on both ends, so the CDN fallback cannot drift from
+      // the local asset this script provisions.
+      var sources = ['mermaid.min.js',
+                     'https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js'];
+      function fail() {
+        document.querySelectorAll('.diagram').forEach(function (d) {
+          d.classList.add('offline');
+        });
       }
-    }
+      function start() {
+        try {
+          var dark = document.documentElement.dataset.theme === 'dark'
+            || (document.documentElement.dataset.theme !== 'light'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          mermaid.initialize({ startOnLoad: false, securityLevel: 'strict',
+                               theme: dark ? 'dark' : 'default' });
+          // Explicit run() instead of startOnLoad: it returns a promise, so a
+          // render error is catchable rather than swallowed.
+          mermaid.run({ querySelector: '.mermaid' }).catch(fail);
+        } catch (e) { fail(); }
+      }
+      function load(i) {
+        if (i >= sources.length) { fail(); return; }
+        var s = document.createElement('script');
+        s.src = sources[i];
+        s.onload = start;
+        s.onerror = function () { load(i + 1); };
+        document.head.appendChild(s);
+      }
+      load(0);
+    })();
   </script>
 </body>
 </html>
