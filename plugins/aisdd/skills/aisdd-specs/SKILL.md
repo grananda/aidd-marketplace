@@ -1,9 +1,9 @@
 ---
 name: aisdd-specs
-description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente y, en **proyectos ya en marcha**, analiza el codigo para sembrar las **specs base** de OpenSpec (`openspec/specs/<capability>/spec.md`) con marcas `UNKNOWN` y `LEGACY`, de modo que los changes posteriores apliquen deltas sobre una linea base en vez de partir de cero; `open change` comprueba antes del pre-flight que hay contexto de proyecto util y lo pide si falta, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` comparten un mismo pre-flight de dudas (una sola seccion con variantes `[APERTURA]`/`[IMPLEMENTACION]`) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec: las dudas **bloqueantes se preguntan siempre y sin limite**, y cuantas preferencias y confirmaciones se plantean se configura por proyecto en la seccion `preflight` de `openspec/config.yaml` (`all` o un entero); lo que queda fuera del limite se resuelve con el default y se registra como `Origen: auto-default`. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente y, en **proyectos ya en marcha**, analiza el codigo para sembrar las **specs base** de OpenSpec (`openspec/specs/<capability>/spec.md`) con marcas `UNKNOWN` y `LEGACY`, de modo que los changes posteriores apliquen deltas sobre una linea base en vez de partir de cero; `open change` comprueba antes del pre-flight que hay contexto de proyecto util y lo pide si falta, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` comparten un mismo pre-flight de dudas (una sola seccion con variantes `[APERTURA]`/`[IMPLEMENTACION]`) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec: las dudas **bloqueantes se preguntan siempre y sin limite**, y cuantas preferencias y confirmaciones se plantean se configura por proyecto en la seccion `preflight` de `openspec/config.yaml` (`all` o un entero); lo que queda fuera del limite se resuelve con el default y se registra como `Origen: auto-default`. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local); el skill incluye scripts Python sin dependencias — `audit.py`, `agents_block.py` y `check_mojibake.py` — que ejecutan de forma determinista la auditoria, los bloques idempotentes de `AGENTS.md` y la deteccion de mojibake, con degradacion a la prosa del documento si Python no esta disponible. Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.11.0"
+  version: "1.12.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -310,7 +310,7 @@ El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca 
    <!-- END aisdd-specs commands -->
    ```
 
-4. Si ya existe un bloque entre `<!-- BEGIN aisdd-specs commands ... -->` y `<!-- END aisdd-specs commands -->`, reemplazalo integramente por la version actual. **Migracion**: si en su lugar existe un bloque legacy `<!-- BEGIN native-ai-specs commands ... -->` / `<!-- END ... -->` (de la version `sdd` anterior), **reemplazalo** por el bloque `aisdd-specs` (no dejes ambos). Si no existe ninguno, anade el nuevo al final del fichero precedido de una linea en blanco.
+4. **Registra el bloque con `agents_block.py`** (marker `commands`), que hace el reemplazo idempotente por ti — ver "Scripts del skill". Si no puedes ejecutarlo, hazlo a mano: si ya existe un bloque entre `<!-- BEGIN aisdd-specs commands ... -->` y `<!-- END aisdd-specs commands -->`, reemplazalo integramente por la version actual. **Migracion**: si en su lugar existe un bloque legacy `<!-- BEGIN native-ai-specs commands ... -->` / `<!-- END ... -->` (de la version `sdd` anterior), **reemplazalo** por el bloque `aisdd-specs` (no dejes ambos). Si no existe ninguno, anade el nuevo al final del fichero precedido de una linea en blanco.
 5. Sustituye `<skill_version>` por la version real del frontmatter del skill.
 6. Incluye `AGENTS.md` en los `output_files` de la entrada de auditoria de este comando.
 
@@ -648,7 +648,7 @@ El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como
    - **`waves`**: anade el numero de oleadas y una linea recordando que **las oleadas no las verifica ningun comando**; el reparto real entre developers es del equipo.
    - **`multilane`**: anade una tabla de lanes (`lane-id`, rutas, perfil), el dueno del contrato compartido, y una linea operativa: `Selecciona tu linea con` `aisdd lane switch <lane-id>`; `un change abierto por lane.`
 
-3. Si ya existe un bloque entre `<!-- BEGIN aisdd-specs roadmap ... -->` y `<!-- END aisdd-specs roadmap -->`, **reemplazalo integramente**. Si no existe, anadelo al final del fichero precedido de una linea en blanco.
+3. **Registra el bloque con `agents_block.py`** (marker `roadmap`) — ver "Scripts del skill". A mano: si ya existe un bloque entre `<!-- BEGIN aisdd-specs roadmap ... -->` y `<!-- END aisdd-specs roadmap -->`, **reemplazalo integramente**; si no existe, anadelo al final precedido de una linea en blanco.
 4. **No toques nada mas del fichero.** En particular, no reordenes ni reescribas el bloque `<!-- BEGIN aisdd-specs commands -->`: son bloques distintos con ciclos de vida distintos (uno lo gestiona `init`, este lo gestiona `roadmap`).
 5. Los valores deben **coincidir** con los de `openspec/config.yaml` (`roadmap.mode`, `roadmap.parallel_developers`, `roadmap.lanes`). `config.yaml` es la fuente de verdad; este bloque es su vista legible. Si al re-ejecutar detectas que divergian, gana `config.yaml` y dilo en el resumen.
 6. Incluye `AGENTS.md` en los `output_files` de la entrada de auditoria de este comando, junto a `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y `openspec/config.yaml`.
@@ -1132,6 +1132,50 @@ En modo `multilane`, `open change` anade ademas el `lane-id` como **etiqueta** d
 
 Toda accion de Jira se refleja en el resumen del comando (claves de issue afectadas y transicion aplicada) y se anota en la entrada de auditoria (`output_files`/`notes`). Si una accion de Jira falla, **no bloquees** el resultado funcional del comando OpenSpec: informa el fallo en el resumen y deja el estado reconstruible.
 
+## Scripts del skill
+
+El skill trae tres scripts en `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/`. Cubren las tres mecanicas que antes eran **prosa que el agente debia ejecutar bien cada vez**: componer la entrada de auditoria, reemplazar un bloque delimitado y detectar mojibake. Las tres son exactas o no son — y una sola equivocacion no deja rastro de cuando ocurrio.
+
+| Script | Sustituye a | Invocado desde |
+|---|---|---|
+| `audit.py` | Composicion manual de la entrada JSONL, hashes y purga | Todos los comandos que escriben auditoria |
+| `agents_block.py` | Reemplazo manual de bloques en `AGENTS.md` | `aisdd init` (bloque `commands`), `aisdd roadmap` (bloque `roadmap`) |
+| `check_mojibake.py` | Nada (capacidad nueva) | Verificacion final, sobre los artefactos escritos |
+
+Solo requieren **Python 3 y biblioteca estandar**: sin dependencias que instalar.
+
+**Degradacion.** Si `python3` no esta disponible o el script falla, **no bloquees el comando**: haz el trabajo segun la prosa de las secciones correspondientes —que se mantiene como especificacion— y dilo en el resumen. Los scripts son la via preferente por ser deterministas, no un requisito duro. La especificacion es el documento; el script es su implementacion.
+
+### `audit.py`
+
+Recibe por stdin (o `--entry <fichero>`) el JSON con lo que **solo el agente sabe** y el script rellena `id`, `timestamp`, los hashes y la purga:
+
+```bash
+echo '<json>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
+```
+
+- `input_files` y `output_files` se pasan como **listas de rutas relativas**; el script las convierte en `[{path, sha256}]` y calcula los agregados con la formula de "Calculo de hashes".
+- Una ruta que no exista **no aborta**: se omite y se reporta en `warnings`. Perder la entrada entera por una ruta mal escrita es peor que registrarla incompleta y avisar. **Revisa los `warnings` y menciona en el resumen los ficheros omitidos.**
+- Devuelve por stdout `{audit_file, id, purged, warnings}`. Usa ese `id` y esa ruta en la verificacion final.
+
+### `agents_block.py`
+
+```bash
+echo '<contenido sin marcadores>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/agents_block.py" <marker> --root <projectRoot>
+```
+
+`<marker>` es `commands` o `roadmap`. Crea `AGENTS.md` si falta, reemplaza el bloque si existe y lo anade al final si no, **sin tocar el resto del fichero ni el otro bloque**. Migra automaticamente un bloque legacy `native-ai-specs <marker>` al nombre actual. Devuelve `{file, action, marker}` con `action` = `created` | `replaced` | `appended` | `migrated`.
+
+### `check_mojibake.py`
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/check_mojibake.py" [--fix] <fichero...>
+```
+
+Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Pasalo sobre los artefactos que el comando haya escrito (`proposal.md`, `design.md`, `spec.md`, `decisions.md`, documentos de `docs/`): son texto en espanol con tildes, generado por el agente y leido despues por otras herramientas.
+
+Codigo de salida `1` si queda mojibake. Con `--fix` repara in situ, token a token y **solo cuando el resultado mejora**. El caracter de reemplazo `U+FFFD` se detecta pero **no se puede reparar**: ahi la informacion original ya se perdio, y hay que regenerar el fichero.
+
 ## Auditoria y trazabilidad
 
 Cada comando del skill debe registrar una entrada de auditoria estructurada para permitir auditorias futuras del uso del skill. El objetivo es trazar quien ejecuto que comando, sobre que entrada, con que prompt y modelo, y que salida o decision humana se produjo. La auditoria es obligatoria para todos los comandos.
@@ -1191,9 +1235,12 @@ Reglas para los campos:
 - `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
-- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.11.0:implement-change/preflight`, `1.11.0:open-change/preflight`, `1.11.0:roadmap`, `1.11.0:close-change`, `1.11.0:init`, `1.11.0:prototype-ux`, `1.11.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
+- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.12.0:implement-change/preflight`, `1.12.0:open-change/preflight`, `1.12.0:roadmap`, `1.12.0:close-change`, `1.12.0:init`, `1.12.0:prototype-ux`, `1.12.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 
 ### Calculo de hashes
+
+> **Via preferente: `audit.py`.** Le pasas las rutas y el hace todo lo de abajo. Esta especificacion se mantiene porque es el contrato que el script implementa, y porque hay que poder cumplirla a mano si no se puede ejecutar Python.
+
 
 - En PowerShell: `Get-FileHash -Algorithm SHA256 <path>`.
 - En Bash o entornos POSIX: `sha256sum <path>` o `shasum -a 256 <path>`.
@@ -1247,3 +1294,4 @@ Al terminar cualquier comando, informa:
 - errores o tareas manuales pendientes
 - documentación faltante (en caso de que aplique)
 - **en modo `multilane`**: lane activo, resultado de la verificacion de independencia si hubo cierre, y barreras pendientes que bloqueen al resto de lanes
+- si pasaste `check_mojibake.py` sobre los artefactos escritos: el resultado, y **que ficheros quedan con mojibake sin reparar** (los que tengan `U+FFFD` hay que regenerarlos, no se pueden arreglar)

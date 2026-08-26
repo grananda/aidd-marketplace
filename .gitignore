@@ -3,4 +3,9 @@ node_modules/
 
 # Python bytecode (compilado, artefacto derivado; se regenera solo)
 __pycache__/
-*.pyc
+*.py[cod]
+
+# Paquete de referencia de upstream, descomprimido para comparar versiones.
+# Material de otro proyecto: no forma parte del marketplace.
+native-ai-specs-v*/
+native-ai-specs-v*.zip
