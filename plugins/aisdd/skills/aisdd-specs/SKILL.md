@@ -718,14 +718,14 @@ Comun a ambos:
 
 ### 4. Presupuesto de preguntas
 
-Lee `roadmap`-independiente: la seccion **`preflight`** de `openspec/config.yaml` (ver "Configuracion del pre-flight"). Con ella, selecciona que dudas se presentan, **en este orden**:
+Lee la seccion **`preflight`** de `openspec/config.yaml` (ver "Configuracion del pre-flight"). Con ella, selecciona que dudas se presentan al usuario, **en este orden**:
 
 1. **Todas las dudas `bloqueante` reales, sin limite.** No se descartan, no se agrupan hasta desdibujarlas y no se sustituyen por una recomendacion automatica. Una bloqueante es, por definicion, aquella sin la cual no puedes producir un spec solido: caparlas cambia correccion por comodidad.
 2. Hasta el valor de `preferencias` en dudas `preferencia`, **ordenadas por impacto**. Con `all`, todas.
 3. Hasta el valor de `confirmaciones` en dudas `confirmacion`, ordenadas por impacto. Con `all`, todas.
 4. Las `preferencia` y `confirmacion` que queden fuera del limite **no se pierden**: aplica el default recomendado y registralas en `decisions.md` con `Origen: auto-default`.
 
-**Pregunta solo dudas reales.** El limite es un techo, nunca una cuota: si hay una duda, pregunta una; si no hay ninguna, no preguntes nada (ver paso 9). Nunca rellenes el presupuesto con asuntos ya decididos ni con confirmaciones triviales.
+**Pregunta solo dudas reales.** El limite es un techo, nunca una cuota: si hay una duda, pregunta una; si no hay ninguna, no preguntes nada (ver el punto 9 de esta seccion). Nunca rellenes el presupuesto con asuntos ya decididos ni con confirmaciones triviales.
 
 **Limite de la interfaz.** Si la plataforma no admite tantas preguntas en una sola interaccion (por ejemplo `AskUserQuestion`, que acepta unas pocas por llamada), **divide en tandas consecutivas**. Nunca omitas una duda bloqueante por ese limite: es un limite de presentacion, no de contenido.
 
