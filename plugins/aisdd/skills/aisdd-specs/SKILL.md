@@ -233,7 +233,7 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    - desarrollo nuevo
    - desarrollo ya existente
 6. Si es nuevo, resume la inicializacion y los siguientes pasos.
-7. Si es existente, ejecuta el flujo **"Onboarding de proyecto existente"** (seccion propia, mas abajo) y, dentro de el, solicita/auto-detecta los markdown del proyecto en **dos grupos**:
+7. Si es existente, solicita/auto-detecta los markdown del proyecto, en **dos grupos**:
    - **Diseno y definicion** (funcional, tecnica y de arquitectura): p. ej. `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/detalle-historias-usuario.md`, `docs/arquitectura-base.md`, `docs/propuesta-arquitectura-base.md`, `docs/guia-estilos.md`.
    - **Capa de entrega (AIDD)** — **no la ignores**: `docs/planificacion-proyecto.md` (recursos, equipo, esfuerzo humano vs IA), `docs/sprint-plan.md` (sprints, capacidad, asignaciones), `docs/plan-revision-hu.md` (estado de validacion de HU) y `docs/jira-sync.md` (mapeo HU<->Story<->change). Busca estos ficheros en `docs/` y, si existen, inclúyelos; si no, no pasa nada (son opcionales).
 8. Cuando tengas las rutas, actualiza `config.yaml` de OpenSpec con ese contexto inicial. Manten el formato YAML existente; crea/actualiza `project_context` con **dos sub-listas** para que los comandos posteriores sepan que existe cada plano:
@@ -250,22 +250,23 @@ Inicializa AISDD (OpenSpec) en el proyecto.
        - docs/jira-sync.md
    ```
    Si ya existe un `project_context` plano (formato antiguo), conserva su contenido y reorganizalo en estas dos sub-listas sin perder rutas.
-9. **Siembra la configuracion del pre-flight.** Anade a `openspec/config.yaml` la seccion `preflight` con los valores por defecto, si no existe ya:
+9. **Si es existente, siembra las specs base.** Con la documentacion ya recogida (paso 7) y volcada a `config.yaml` (paso 8), ejecuta el flujo **"Onboarding de proyecto existente"** de la seccion siguiente. En proyecto **nuevo** saltate este paso: no hay codigo que fotografiar.
+10. **Siembra la configuracion del pre-flight.** Anade a `openspec/config.yaml` la seccion `preflight` con los valores por defecto, si no existe ya:
    ```yaml
    preflight:
      preferencias: all      # all | entero >= 0
      confirmaciones: all    # all | entero >= 0
    ```
    Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight"). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
-10. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido"). Son avisos, no errores: continua igualmente.
-11. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
-12. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
+11. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido"). Son avisos, no errores: continua igualmente.
+12. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
+13. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 ### Onboarding de proyecto existente: specs base
 
 Cuando el proyecto ya esta en marcha, el objetivo es **capturar su estado actual como specs base de OpenSpec**, para que los changes posteriores tengan contra que contrastar. Sin esto, el primer `aisdd open change` genera specs sin linea base: no puede saber que ya existe, y acaba especificando de nuevo lo que el codigo ya hace.
 
-Ejecuta este flujo tras `openspec init` y tras recoger la documentacion (pasos 7-8).
+Lo invoca el **paso 9 de `aisdd init`**, ya con la documentacion recogida y volcada a `config.yaml`. No lo ejecutes por tu cuenta desde otro comando.
 
 **La regla que gobierna todo el flujo: esto es una fotografia de lo que HAY, no de lo que deberia haber.** La tentacion de "arreglar mientras documentas" es el fallo tipico de este paso, y produce specs que describen un sistema que no existe. Si algo esta mal hecho, se marca `LEGACY` y se deja como esta; corregirlo es trabajo de un change posterior.
 
