@@ -167,7 +167,9 @@ En proyectos full stack, el AI Lead se desdobla en **Front AI Lead** y **Back AI
 
 ### AI Developer (Front / Back)
 
-Implementa el código a partir de los specs **ya abiertos y validados por el AI Lead**. **No abre changes. No toma decisiones de arquitectura. No habla con el Lead directamente.**
+Implementa el código a partir de los specs **ya abiertos y validados por el AI Lead**. **No abre changes. No toma decisiones de arquitectura.**
+
+> Antes esta lista incluía «no habla con el Lead directamente». Se ha retirado: la intención era proteger el contexto acotado del Developer, no establecer una cadena de mando, pero redactada así funcionaba como jerarquía en una organización que no la tiene. Lo que se conserva es el reparto de trabajo: que el Developer participe en decidir que un problema se eleva **no** le convierte en responsable de rehacer la spec, que sigue siendo del Lead.
 
 > En modo **multilane**, cada Dev trabaja sobre el lane que tenga activo (`aisdd lane switch`) y solo escribe dentro de las **rutas de ese lane** — `aisdd close change` lo verifica. Si durante la implementación descubre que el **contrato compartido** es insuficiente, eso no se arregla sobre la marcha: es una corrección de **nivel 4**, se detiene y se escala al dueño del contrato, porque otros lanes están construyendo sobre ese mismo supuesto.
 
@@ -192,10 +194,10 @@ Capa de diagnóstico, QA técnico y funcional. Es el único rol que puede escala
 | **Revisión técnica** | Revisa el código generado por la IA en busca de errores, deuda o malas prácticas |
 | **Validación de estándares y patrones** | Comprueba que el código sigue la arquitectura y guía de estilos definidas |
 | **Verifica trazabilidad** | Comprueba que `decisions.md` del change refleja las decisiones reales y que existe entrada de auditoría en `openspec/audit/` |
-| **Diagnostica la naturaleza del problema** | Determina si un problema es de implementación (→ Dev), una decisión técnica no documentada (→ se resuelve dentro del change), de spec (→ Lead) o arquitectónico (→ Lead para escalar al Architect) |
+| **Diagnostica junto al Developer** | Cada uno tiene la mitad de la información: el Validator ha visto fallar el criterio, el Developer sabe por qué el código hace lo que hace. Determina si un problema es de implementación (→ Dev), una decisión técnica no documentada (→ se resuelve dentro del change), de spec (→ Lead) o arquitectónico (→ Lead para escalar al Architect) |
 | **Resuelve en el change** | Decisiones técnicas que ningún documento AIDD fijaba: se registran como `Tipo: correccion` en `decisions.md` y el ciclo continúa, sin escalar ni re-aplicar el change (ver "Regla de corte") |
 | **Devuelve al AI Developer** | Solo para problemas de implementación — con descripción, criterio que falla y evidencia |
-| **Reporta al AI Lead** | Cuando detecta problemas de spec o arquitectónicos que superan el scope del Developer |
+| **Eleva al AI Lead, de común acuerdo con el Developer** | Para problemas de spec o arquitectónicos que superan el scope del Developer. La elevación se acuerda entre ambos para que ninguno se entere después de una decisión que le afecta. **Si no hay acuerdo, se eleva igualmente registrando las dos posturas**: que quien validó y quien implementó discrepen es información que el Lead necesita, no algo que ocultarle hasta resolverlo |
 | **Aprobación de Merge Requests** | Es la firma final antes de que el change se integre en la rama principal |
 | **Archiva el change validado** | Ejecuta `aisdd close change <slug>` (envuelve `openspec archive`) |
 | **Lanza el siguiente change** | Tras archivar, habilita al **AI Lead** para que abra y valide el siguiente change (`aisdd open change`) y lo entregue al Developer |
@@ -763,10 +765,13 @@ Diagnostica la naturaleza de cada problema
    │   Problema de   Decisión técnica      Problema de spec
    │   implementación  no documentada      o arquitectónico
    │         │             │                     │
-   │   → Dev corrige   → Se resuelve y     → Reporta al AI Lead
-   │     (itera hasta    se registra en      Lead reabre/ajusta el
-   │      OK)            decisions.md        change o escala al
-   │                     El ciclo sigue      Architect
+   │   → Dev corrige   → Se resuelve y     → Validator y Dev lo
+   │     (itera hasta    se registra en        acuerdan y lo elevan
+   │      OK)            decisions.md          al Lead (si discrepan,
+   │                     El ciclo sigue        se eleva con ambas
+   │                                           posturas). El Lead
+   │                                           reabre/ajusta el change
+   │                                           o escala al Architect
    ▼
 Outcome Validator aprueba el Merge Request
         │
@@ -856,10 +861,18 @@ Diagnóstico de problemas — clasifica cada problema encontrado:
 
 | Tipo | Criterio | Acción |
 |---|---|---|
-| Implementación | El código no funciona o no cumple un criterio | Devuelve al AI Developer con descripción, criterio que falla y evidencia |
-| Spec del change | Los artefactos del change son incorrectos o ambiguos | Reporta al AI Lead para que reabra/re-proponga el change |
-| Impacto en specs futuras | El comportamiento real del change afecta a changes siguientes | Reporta al AI Lead con análisis del impacto |
-| Arquitectónico | El problema está en la arquitectura base, no en este change | Reporta al AI Lead para que escale al AI Architect |
+| Implementación | El código no funciona o no cumple un criterio | Devuelve al AI Developer con descripción, criterio que falla y evidencia. **Sin ceremonia**: es el ciclo normal |
+| Spec del change | Los artefactos del change son incorrectos o ambiguos | Se eleva al AI Lead **de común acuerdo con el Developer** para que reabra/re-proponga el change |
+| Impacto en specs futuras | El comportamiento real del change afecta a changes siguientes | Se eleva al AI Lead **de común acuerdo**, con análisis del impacto |
+| Arquitectónico | El problema está en la arquitectura base, no en este change | Se eleva al AI Lead **de común acuerdo**, y él evalúa si escala al AI Architect |
+
+**Cómo funciona el acuerdo.** El consenso aplica solo a **cruzar la frontera hacia el Lead**, no al ciclo normal: un bug de implementación corriente se devuelve al Developer y se arregla, como siempre. Lo que se acuerda es elevar, porque es ahí donde uno de los dos podría quedarse fuera de una decisión que le afecta.
+
+Si Validator y Developer **no se ponen de acuerdo** —uno sostiene que la spec está mal, el otro que la spec está bien y es un bug suyo— **se eleva igualmente, con las dos posturas registradas**. Sin esa regla el change se queda parado esperando a que alguien ceda, y además el desacuerdo entre quien definió la validación y quien escribió el código es exactamente lo que el Lead necesita saber.
+
+**Deja rastro.** Para que «nada ocurre a espaldas de nadie» sea comprobable y no una norma social, la elevación se anota en el `decisions.md` del change: quién la plantea, qué tipo de problema es y, si hay discrepancia, la postura de cada uno. Es el mismo sitio y el mismo criterio que ya usan las correcciones.
+
+> Esta es la misma idea que el **nivel 4** de corrección (contrato compartido), que obliga a una parada coordinada en vez de un arreglo silencioso: ninguna decisión que afecte a otro se toma sin que ese otro se entere.
 
 Si todo está correcto:
 - Aprueba el Merge Request
@@ -1167,3 +1180,4 @@ Tabla de cambios aplicados o pendientes de decisión sobre esta metodología. Si
 | 011 | Fase 4 / Correcciones | **Aplicado** | Se añade una **tercera rama** al diagnóstico del Outcome Validator: **decisión técnica no documentada**, que se resuelve dentro del change (entrada `Tipo: correccion` en `decisions.md`) sin escalar al Architect, sin reescribir los specs y sin volver a aplicar el change. La acompaña una **regla de corte** explícita: un documento AIDD solo se corrige cuando la decisión lo deja **desmentido**, y solo se corrige ese documento. `correccion` se suma a los tipos de `decisions.md` y al esquema de auditoría | El árbol de diagnóstico era binario (implementación vs spec/arquitectura), así que un detalle que ningún documento había fijado —una incompatibilidad de versiones descubierta al validar, un matiz visual fuera de la guía de estilos— caía por defecto en la rama cara: revisar la arquitectura, reescribir los specs y re-aplicar el change, con riesgo de pisar código ya escrito. La tercera rama hace el coste de la corrección proporcional a su alcance real conservando la trazabilidad mínima en `decisions.md`; el tipo propio la hace **contable** en `openspec/audit/*.jsonl` (correcciones por change es un indicador de la calidad de los specs, consumible por `aidd-metrics`). |
 | 012 | Fase 4 / Correcciones | **Aplicado** | Se añade el skill **`aisdd-amend`** (`aisdd amend change [descripcion]`): el usuario describe una modificación, el skill escribe el delta en los artefactos del change ya abierto (criterios en `spec.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) e implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply`. Toma una **baseline de build y tests antes de tocar nada** para separar con evidencia lo que rompe la enmienda de lo que ya estaba roto. Asume la documentación AIDD al día (no la valida) y no reconcilia cambios manuales del working tree | El registro #011 dio el criterio para clasificar correcciones, pero no una vía de ejecución: una corrección que además exigía tocar los specs del change se quedaba sin herramienta, y el humano acababa re-aplicando el change entero sobre un árbol ya implementado. La baseline resuelve el problema de fondo: el agente no conoce el trabajo manual previo, así que la única forma honesta de afirmar "no hay regresiones" es medir antes y después en lugar de suponerlo. |
 | 013 | Medicion / Fase 4 | **Aplicado** | `aidd-metrics` deja de ser ciego a AISDD: lee `openspec/audit/*.jsonl` (opcional, con `--audit`/`--no-audit`, y degrada sin error si no existe) y añade a `docs/kpis-ia.md` las **correcciones por change**, el **porcentaje de decisiones que la IA resolvió sin preguntar** y el **lead time real `open change` -> `close change`** | El informe medía velocidad (tiempo atendido, churn, código entregado) pero declaraba él mismo que "velocidad sin calidad es media foto". El eje de calidad ya estaba escrito en la auditoría desde el registro #011 y nadie lo leía. Las correcciones son retrabajo de **especificación**, complementario al churn (retrabajo de **código**): churn alto con correcciones bajas es refactor legítimo; correcciones altas con churn bajo significa specs flojas que alguien absorbió adivinando. El coste fue un parser y dos tablas; la alternativa era instrumentar una fuente nueva para un dato que ya existía. |
+| 014 | Roles / Fase 4 | **Aplicado** | El Outcome Validator y el AI Developer **diagnostican juntos** cada fallo, y la elevación al AI Lead se **acuerda entre ambos**; si discrepan, se eleva igualmente con las dos posturas registradas en `decisions.md`. Se retira del Developer la restricción «no habla con el Lead directamente» | Cada uno tiene la mitad de la información: el Validator ha visto fallar el criterio, el Developer sabe por qué el código hace lo que hace. El acuerdo evita que cualquiera de los dos se entere después de una decisión que le afecta, y elevar el desacuerdo evita que el change se quede parado esperando a que alguien ceda. La restricción retirada protegía el contexto del Developer, pero redactada así funcionaba como jerarquía en una organización horizontal; el reparto de trabajo se conserva (rehacer la spec sigue siendo del Lead) |
