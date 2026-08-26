@@ -45,7 +45,7 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | Fase | Comando | Rol | Genera / hace |
 |------|---------|-----|---------------|
 | 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**) |
-| 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` u `multilane`) |
+| 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` o `multilane`) |
 | 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
 | 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
 | 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
@@ -70,6 +70,8 @@ lane import     │          │ F-import-01   │           │          │
 
 **Columnas = oleadas** (cuándo se puede trabajar a la vez). **Filas = lanes** (de quién es cada parte del código).
 
+`F0` y las `FB-NN` **ocupan la columna entera**: tocan lo que comparten todos los lanes (el contrato, una migración, el rollout) y por eso los detienen a todos. Dicho de otro modo, **una barrera no es más que una oleada de ancho 1 con propiedad declarada**.
+
 | Modo | Qué paraleliza | Garantía | Cuándo |
 |------|----------------|----------|--------|
 | `atomic` | Nada | Total, por construcción | Un dev, o sin base para separar. **Default** |
@@ -84,7 +86,7 @@ Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `
 - Proyecto con módulos de rutas separadas y varios devs → **`multilane`**.
 - Un solo dev, o sin base para separar superficies → **`atomic`**.
 
-Detalle completo, con un ejemplo del mismo proyecto faseado en los tres modos, en §3.bis de la metodología.
+Detalle completo, con un ejemplo del mismo proyecto faseado en los tres modos y sus calendarios reales, en **§3.bis** de `plugins/aisdd/methodology/native-ai-aidd-sdd.md` (y su `.html` hermano).
 
 #### Cuánto pregunta el pre-flight
 
