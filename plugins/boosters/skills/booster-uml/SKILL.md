@@ -1,6 +1,9 @@
 ---
 name: booster-uml
 description: Genera un HTML con diagramas UML en Mermaid para un change de OpenSpec. Usar cuando el usuario pida `aisdd uml`, diagramas UML, casos de uso, actividad, secuencia o estado a partir de `openspec/changes/{change-id}/`, o cuando haya que documentar visualmente un cambio OpenSpec sin modificar sus artefactos funcionales.
+metadata:
+  author: NTT DATA Spain GDN-e
+  version: "1.0.0"
 ---
 
 # booster-uml
