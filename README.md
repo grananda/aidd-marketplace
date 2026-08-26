@@ -367,6 +367,11 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
 
 ## Mantenimiento
 
+- **Cuándo partir un `SKILL.md` en `references/`**: se parte cuando se cumplen **las dos** condiciones —más de ~400 líneas **y** dos o más puntos de entrada que no comparten flujo—. Con un solo comando no se parte por grande que sea: ese flujo se ejecuta entero, así que dividirlo carga las mismas líneas *más* el índice.
+
+  Hoy solo `aisdd-specs` las cumple (8 comandos): es índice de 94 líneas + `references/*.md` por comando. El siguiente skill por tamaño tiene 322 líneas y un único comando, y en los cuatro más grandes la sección «Flujo del comando» ocupa el 70-75 % — no hay nada condicional que merezca quedarse sin cargar.
+
+  A vigilar: `aidd-sprint-planning` lleva dentro el volcado opcional a Jira. Si esa parte crece y el skill se acerca a las 400-500 líneas, pasaría a haber dos caminos reales (planificar y volcar) y la división tendría sentido.
 - **Versionado**: cada `plugin.json` fija `version` (semver). **Sube la versión al publicar cambios**; si no, los usuarios ya instalados no recibirán las novedades (Claude Code los cree en la misma versión). Tras subir cambios, los usuarios actualizan con `/plugin marketplace update aidd-sdd`.
 - **Regenerar los HTML de metodología** (obligatorio si se edita un `.md` de `methodology/`; la copia de `aisdd` es un espejo, se sobreescribe con `cp`):
 

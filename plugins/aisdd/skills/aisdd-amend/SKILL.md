@@ -1,9 +1,9 @@
 ---
 name: aisdd-amend
-description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/`. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
+description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
@@ -20,7 +20,7 @@ Responde y documenta en espanol siempre que sea posible. Conserva en ingles nomb
 
 Un change abierto recibe modificaciones que sus specs no contemplaban: una version que cambia, un campo mas en un formulario, un endpoint que devuelve otra cosa, un color. Re-ejecutar `openspec instructions apply` sobre un arbol ya implementado reinterpreta el change entero y arriesga rehacer trabajo y pisar ficheros. Este skill es la via alternativa: **especifica el delta y ejecuta solo el delta**.
 
-Es el brazo operativo de la "Regla de corte" de la metodologia (niveles de correccion), documentada en el skill `aisdd-specs`, seccion "Correcciones durante la implementacion".
+Es el brazo operativo de la "Regla de corte" de la metodologia (niveles de correccion), documentada en el skill `aisdd-specs`, en `references/implement-change.md` ("Correcciones durante la implementacion").
 
 ### Limites explicitos (no los cruces)
 
@@ -216,7 +216,15 @@ Si Jira no esta configurado, omite el bloque sin error.
 
 ## Auditoria y trazabilidad
 
-Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `aisdd-specs`, seccion "Auditoria y trazabilidad"): fichero `openspec/audit/YYYY-MM.jsonl`, append-only, una entrada por invocacion.
+Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `aisdd-specs`, `references/audit.md`): fichero `openspec/audit/YYYY-MM.jsonl`, append-only, una entrada por invocacion.
+
+**Usa el script**, igual que el resto de comandos AISDD: `audit.py` de `aisdd-specs` compone la entrada, calcula los hashes y aplica la purga de forma determinista (ver `aisdd-specs`, `references/scripts.md`). Componerla a mano es la via de respaldo si Python no esta disponible.
+
+```bash
+echo '<json>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
+```
+
+Si el plugin `aisdd` no esta instalado junto a este skill, compon la entrada a mano segun `references/audit.md` y dilo en el resumen.
 
 Particularidades de este comando:
 

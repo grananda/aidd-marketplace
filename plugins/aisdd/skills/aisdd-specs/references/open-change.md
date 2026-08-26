@@ -1,0 +1,49 @@
+# `aisdd open change`
+
+> Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
+
+## `aisdd open change [what-you-want-to-build]`
+
+> Alias: `native-ai open change [what-you-want-to-build]`.
+
+Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase previa de pre-flight para resolver dudas antes de generar los specs.
+
+> **El faseado es normativo.** El alcance del change lo fijan su **fase del roadmap** (`hus`, `change_hint` en `config.yaml`) y la **ventana de su sprint** (`docs/sprint-plan.md`). No propongas **adelantar HU de fases o sprints posteriores**, ni "aprovechar" el change para cubrir criterios de otras HU, ni ampliar el alcance mas alla de lo faseado — aunque parezca eficiente. Si detectas una oportunidad real de adelanto o una dependencia mal faseada, **no la conviertas en pregunta del pre-flight**: registrala como observacion en el resumen final y remite al re-faseado formal (`aisdd roadmap` y/o `aidd sprint-planning`), que es donde se decide el CUANDO. Un change no debe contener specs de HU fuera de su fase. Solo el usuario, por iniciativa propia y explicita, puede ordenar saltarse el faseado.
+>
+> **En modo `multilane`, el lane tambien es normativo.** Un change pertenece al lane de su fase y no se salta de lane "de paso". Cambiar de linea de trabajo es un acto explicito del usuario (`aisdd lane switch`), nunca una decision tuya durante un `open change`.
+
+0. **Guard de apertura.** Antes de nada, lee `openspec/config.yaml` y ejecuta `openspec list` para conocer los changes vivos. La comprobacion de `depends_on` aplica en **los tres modos**; el guard de concurrencia por lane, solo en `multilane`:
+   - **Solo `multilane` — resuelve el lane objetivo**: el de la fase que corresponde al change (campo `lane` de `phases[]`). Si el usuario no dio slug y hay que deducir la fase, usa el lane activo de `openspec/.lane` como criterio.
+   - **Solo `multilane` — si el lane objetivo no es el lane activo**, detente y pide al usuario que ejecute `aisdd lane switch <lane-id>` primero. No cambies el puntero tu mismo: es estado del dev, y cambiarlo en silencio le deja trabajando en una linea que no eligio.
+   - **Solo `multilane` — si ese lane ya tiene un change abierto**, detente. Un lane = un hilo. Nombra el change vivo y remite a cerrarlo (`aisdd close change`) o enmendarlo (`aisdd amend change`). Que otros lanes tengan changes abiertos es normal y **no** bloquea.
+   - **Solo `multilane` — si la fase es una barrera (`barrier: true`, ids `F0` o `FB-NN`)**, exige que **ningun** lane tenga changes abiertos. Si alguno lo tiene, detente y lista cuales: una barrera toca superficie compartida y no puede convivir con trabajo de lane en vuelo.
+   - **Dependencias de la fase (los tres modos).** Si la fase trae `depends_on`, comprueba que **todas** esas fases estan ya archivadas. Si alguna sigue abierta o sin empezar, detente y dilo: abrir un change cuyas dependencias no han cerrado produce specs sobre algo que aun no existe. Nombra la fase que falta y quien la lleva (su lane, si lo hay).
+   - **En modo `waves`** no hay guard de concurrencia: las oleadas son planificacion, no control de ejecucion, y **ningun comando comprueba el ancho `N`**. Aplica solo la comprobacion de `depends_on` anterior. Si detectas que hay mas changes abiertos que `parallel_developers`, **dilo como aviso** en el resumen y continua: es informacion util para el equipo, no un error que te corresponda bloquear.
+   - **En modo `atomic`** no hay guard de concurrencia y **no lo anadas**: si el proyecto permitia abrir un segundo change, lo sigue permitiendo. Aplica la comprobacion de `depends_on` y, si `openspec list` devuelve algun otro change abierto, **anotalo en el resumen** — que changes son y desde cuando — sin bloquear ni pedir confirmacion. Es informacion, no un gate.
+     El riesgo sigue vivo a proposito: dos changes abiertos sobre la misma superficie pueden producir decisiones que se contradigan, y en `atomic` nada lo impide. Si el arquitecto quiere esa garantia, la via es `multilane` (rutas declaradas y verificadas) o, con menos ceremonia, `waves`. Dilo asi en el aviso: el modo `atomic` no promete aislamiento.
+1. Si el usuario aporta `<what-you-want-to-build>`, usalo literalmente como descripcion o identificador del cambio.
+2. Si no lo aporta, deriva un identificador breve y estable desde el objetivo descrito por el usuario.
+3. **Comprueba que hay contexto de proyecto antes del pre-flight.** Si `openspec/config.yaml` no existe, esta vacio o no tiene contexto util (sin `project_context`, o con rutas que ya no existen):
+   - Pide al usuario la documentacion de **arquitectura** y **funcional** disponible (rutas de fichero o carpeta, o el contenido directamente).
+   - Rellena con ella `project_context` en `openspec/config.yaml`, conservando el formato y **sin tocar otras claves** (`roadmap`, `preflight`, `jira`, `audit`).
+   - Si ademas `openspec/specs/` esta vacio y el proyecto tiene codigo, **avisa**: lo correcto es ejecutar `aisdd init` como proyecto existente para sembrar las specs base (ver "Onboarding de proyecto existente"). Este comando **no** las genera — abrir un change no es el sitio para fotografiar el estado actual. Puedes continuar si el usuario lo pide, advirtiendo de que las specs saldran sin linea base.
+   - Si ya hay contexto util, no preguntes nada y sigue.
+   - Incluye `openspec/config.yaml` en los `output_files` de la auditoria si lo has tocado.
+4. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[APERTURA]**.
+5. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
+   ```bash
+   openspec new change <what-you-want-to-build>
+   ```
+6. **Enmiendas pendientes de esta fase (solo `multilane`).** Si la fase trae `amended_by` en `config.yaml`, otro lane enmendo el contrato compartido **mientras esta fase esperaba**. Antes de redactar specs, lee el `decisions.md` del change indicado (archivado o vivo), incorpora ese delta a los specs de este change y dilo en el resumen. Es el unico mecanismo que evita que un lane rezagado implemente contra un contrato ya desmentido; si lo ignoras, la marca no sirve de nada. Una vez incorporado, **retira la marca** de `config.yaml`.
+7. Localiza los artefactos generados del cambio: `design.md`, `proposal.md` y ficheros `spec.md`. Alimentalos con las decisiones recogidas en el pre-flight (alcance, dominios, integraciones, modelo de datos, criterios de aceptacion). **En modo `multilane`**, anota ademas en `proposal.md` una linea `Lane: <lane-id>` y las **rutas permitidas** del lane: son el contrato que `aisdd close change` verificara al cerrar, y el implementador debe conocerlas antes de escribir codigo.
+8. **Diagramas UML solo si el change lo amerita.** Evalua el contenido de `proposal.md`/`design.md`/`spec.md` y lanza `booster-uml` unicamente cuando los diagramas aporten comprension real:
+   - **Si lo amerita** (basta con cumplir uno): interaccion entre varios componentes/actores/sistemas (secuencia), entidades de dominio nuevas o relaciones que cambian (clases/ER), ciclo de vida o maquina de estados, flujo con ramificaciones o decisiones no triviales (actividad), o una integracion externa nueva.
+   - **No lo amerita**: scaffolding/foundation puro, cambios de configuracion o dependencias, textos/estilos, docs-only, un bugfix puntual o renombrados — en estos casos **omite** la generacion con una linea en el resumen ("Diagramas UML omitidos: el change no los amerita") y recuerda que `aisdd uml <slug>` los genera bajo demanda en cualquier momento.
+   - **En caso de duda, genera** (el coste es bajo y el humano puede ignorarlos). Si el usuario pide explicitamente diagramas siempre o nunca, su preferencia manda sobre este criterio.
+9. **Enlace con Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)" (`references/jira.md`)):
+   - Identifica la(s) **HU** que realiza este change a partir de `docs/roadmap.md`, `docs/mapa-historias-usuario.md` y `docs/jira-sync.md`. Si no es deducible con confianza, preguntalo (cuenta dentro del presupuesto de pre-flight).
+   - Anota la(s) HU en `proposal.md` (p. ej. una linea "Historias: HU-03, HU-05").
+   - **Resuelve el modo de cada HU** (ver "Modelo de datos en Jira"): si la HU se realiza **solo con este change** (modo Story directa), **no crees sub-tarea** — registra el mapeo change -> HU en `docs/jira-sync.md` y deja la Story en To Do. Si la HU se reparte entre **2 o mas changes** (modo sub-tarea), crea la **sub-tarea de este change** bajo la Story de esa HU (tipo `subtask_issue_type`) si no existe; no la dupliques.
+   - Registra en `docs/jira-sync.md` la fila/celda de cada HU implicada (clave de sub-tarea solo en modo sub-tarea) con estado `to_do`. No muevas de columna aqui (eso es `implement`/`close`).
+   - Si una HU no tiene Story todavia (aun no se volco el plan), anota el change en el registro como pendiente de Story y avisa en el resumen.
+10. Reporta el identificador del cambio, rutas creadas, decisiones del pre-flight grabadas en `openspec/changes/<change>/decisions.md`, la decision sobre los diagramas UML (ruta del HTML si se generaron; motivo de la omision si no) y, si aplico, la sub-tarea de Jira creada y enlazada.
