@@ -1,9 +1,9 @@
 ---
 name: aisdd-specs
-description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Soporta roadmaps **multilane**: `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -62,18 +62,53 @@ No planifiques solo por el modelo. Ajusta tambien por el tamano real del context
 
 Si el contexto funcional y tecnico es muy grande para el presupuesto estimado, aumenta el numero de fases aunque el modelo sea `alto`.
 
-## Lanes (lineas de trabajo paralelas)
+## Modos de faseado (paralelismo)
 
 Por defecto, AISDD es **mono-hilo**: un change abierto a la vez. Esa regla existe por una razon concreta — al cerrar un change se consolidan decisiones en `decisions.md`, y dos changes vivos sobre la **misma superficie de decision** producirian specs que se contradicen sin que nada lo detecte.
 
-El **modo multilane** conserva ese invariante y a la vez permite trabajo paralelo: el roadmap se fracciona en **lanes** (lineas de trabajo) cuyas superficies de decision son **disjuntas**. Dentro de cada lane sigue habiendo **un unico hilo**; lo que se paraleliza son los lanes entre si.
+Hay **tres modos** de fasear. El modo se decide en `aisdd roadmap` y queda registrado en `openspec/config.yaml` (`roadmap.mode`). Los demas comandos lo leen; **no lo preguntan de nuevo**.
 
-### Los dos modos
+| Modo | Que paraleliza | Garantia de coherencia | Cuando |
+|---|---|---|---|
+| **`atomic`** | Nada. Un change abierto en todo el proyecto. | Total, por construccion. | Un solo dev, o cuando no hay base para cortar con garantias. **Es el default.** |
+| **`waves`** (oleadas) | Hasta `N` fases a la vez, una por dev, respetando dependencias. | **Ninguna.** Ordena, no protege. | Equipo con `N` devs y fases claramente separables, cuando no se puede o no se quiere declarar superficies disjuntas. |
+| **`multilane`** (lanes) | `N` lineas de trabajo persistentes, un change abierto **por lane**. | Declarada y **verificada** al cerrar. | Cuando el corte en superficies disjuntas es defendible. |
 
-- **`atomic` (road atomico)**: comportamiento clasico. Un change abierto en todo el proyecto. Es el **default** cuando no hay informacion suficiente para cortar lanes con garantias.
-- **`multilane` (highway)**: N lanes con un change abierto **por lane**. Requiere que el corte sea defendible (ver "Criterios de corte de lanes").
+**La diferencia de fondo entre `waves` y `multilane`** merece entenderse antes de elegir:
 
-El modo se decide en `aisdd roadmap` y queda registrado en `openspec/config.yaml` (`roadmap.mode`). Los demas comandos lo leen; **no lo preguntan de nuevo**.
+- Una **oleada** es una **tanda temporal**: un corte del calendario dentro del cual caben `N` fases sin dependencias entre si. La oleada se agota y desaparece; un dev toma cualquier fase libre de la oleada siguiente. Nada declara que esas `N` fases toquen ficheros distintos: **es responsabilidad del que fasea que no se pisen**, y nada lo comprueba.
+- Un **lane** es una **linea persistente** con rutas y specs propias declaradas. Dura todo el proyecto, un dev se queda en el, y `aisdd close change` **verifica** que el change no salio de sus rutas.
+
+Dicho de otro modo: **las oleadas resuelven el orden; los lanes resuelven ademas la coherencia.** Con `waves`, el invariante de "un hilo por superficie de decision" **no esta protegido por el tooling** — se confia en el criterio del arquitecto al fasear. Es un intercambio legitimo (menos ceremonia, ninguna red de seguridad) y por eso el modo se elige de forma explicita, no por defecto.
+
+### Modo `waves` (oleadas)
+
+Faseado en tandas, tal como lo define la metodologia de referencia.
+
+1. `aisdd roadmap` pregunta cuantos **AI Developers trabajaran en paralelo** (`parallel_developers`, por defecto `1`).
+2. Con `parallel_developers: 1` el roadmap es **secuencial**: una fase tras otra. Equivale a `atomic`.
+3. Con `N > 1` el roadmap se organiza en **oleadas**: dentro de cada oleada, hasta `N` fases pueden ejecutarse a la vez (una por developer), **respetando las dependencias entre fases**.
+4. Cada fase declara su `wave` (numero de oleada) y su `depends_on` (fases de las que depende). Una fase **no puede estar en la misma oleada que una fase de la que depende**, ni en una anterior.
+5. Con suficientes fases paralelizables, gran parte del desarrollo avanza con `N` tracks simultaneos; las fases dependientes caen en oleadas sucesivas.
+
+Reglas al construir las oleadas:
+
+- **La oleada 1 no puede tener dependencias externas**: son las fases que arrancan sin esperar a nada. Si ninguna fase cumple eso, el faseado esta mal.
+- **Ancho maximo `N`**: una oleada nunca lleva mas de `parallel_developers` fases. Si sobran fases sin dependencias, van a la oleada siguiente.
+- **No rellenes oleadas**: una oleada con una sola fase es legitima si las dependencias lo imponen (es el equivalente de una barrera). Dilo explicitamente en vez de mover fases para cuadrar el ancho.
+- **`foundation` va sola en la oleada 1** cuando existe: hasta que la base no esta operativa, no hay nada que paralelizar.
+
+Limitaciones que hay que conocer al elegir este modo, y que conviene decirle al usuario cuando lo escoja:
+
+- **Ningun comando de ejecucion conoce las oleadas.** `open change`, `implement change` y `close change` no comprueban ni la oleada ni el ancho `N`. La oleada es un artefacto de planificacion, no un control de ejecucion.
+- **Nada verifica que dos fases de la misma oleada no se pisen.** No hay rutas declaradas ni verificacion al cerrar.
+- **Una correccion que afecte a otra fase en vuelo no escala** (no existe el nivel 4 de `multilane`): se resuelve como correccion local y el otro developer puede no enterarse.
+
+Si esas tres limitaciones no son aceptables para el proyecto, el modo correcto es `multilane`.
+
+### Modo `multilane` (lanes)
+
+Conserva el invariante y a la vez permite trabajo paralelo: el roadmap se fracciona en **lanes** (lineas de trabajo) cuyas superficies de decision son **disjuntas**. Dentro de cada lane sigue habiendo **un unico hilo**; lo que se paraleliza son los lanes entre si.
 
 ### Anatomia de un roadmap multilane
 
@@ -98,11 +133,45 @@ Lo que hace disjuntos dos lanes que por dominio no lo serian (tipicamente back y
 
 ### Criterios de corte de lanes
 
-Un corte de lanes es valido cuando se cumplen las tres condiciones. Si alguna falla, **no hay lanes**: usa `atomic`.
+Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
+
+Las condiciones 1 y 2 **no se negocian**: dos lanes que escriben los mismos ficheros o las mismas specs no son dos lanes, y ninguna declaracion los convierte en tales.
+
+La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo compartido se puede fijar de antemano — ver "Lanes con dependencias".
+
+### Lanes con dependencias (escalon intermedio)
+
+El objetivo es **lanes independientes**, y esa sigue siendo la primera opcion. Pero forzar la independencia total cuando el dominio no la permite lleva a uno de dos males: inventar barreras artificiales que serializan mas de lo necesario, o caer a `atomic` y perder todo el paralelismo. Cuando la planificacion independiente no sea viable, hay un tercer camino.
+
+**Escalera de decision.** Baja un peldano solo cuando el anterior no sea viable, y deja constancia del motivo:
+
+1. **Lanes independientes** — sin ninguna dependencia entre fases de lanes distintos fuera de `F0` y las barreras. **Preferido siempre.**
+2. **Lanes con dependencias declaradas** — una fase de un lane declara `depends_on` sobre una fase de otro lane. Se acepta, con las condiciones de abajo.
+3. **Reagrupar** — si un lane depende del otro en casi todas sus fases, no son dos lanes: fusionalos en uno.
+4. **`waves` o `atomic`** — si al reagrupar queda un solo lane util, el modo multilane no aporta nada.
+
+**Condiciones para aceptar una dependencia cross-lane.** Se cumplen todas, o se sube un peldano:
+
+- **Declarada, no implicita.** La fase destino lleva `depends_on: [<id de la fase origen>]` en `config.yaml` y aparece en la seccion "Dependencias cross-lane" de `docs/roadmap.md`. Una dependencia que no esta declarada es un error de faseado, no una dependencia aceptada.
+- **Puntual, no estructural.** Afecta a fases concretas, no a la relacion entre los dos lanes. Si el lane B depende del lane A en la mayoria de sus fases, estas en el peldano 3: reagrupa.
+- **Con coste explicito.** Declara **cuanto tiempo queda bloqueado** el lane destino y **que puede hacer mientras**. Si la respuesta es "nada", la dependencia esta convirtiendo un dev en un dev parado y hay que reordenar las fases del lane destino para que trabaje en otra cosa entre medias.
+- **Sin ciclos.** El grafo de `depends_on` entre lanes debe ser aciclico. Si A espera a B y B espera a A, el corte esta mal: reagrupa.
+- **Las rutas siguen disjuntas.** Una dependencia es de **orden**, nunca de **superficie**. El lane destino espera a que la fase origen cierre, pero sigue escribiendo solo en sus propias rutas. Una dependencia cross-lane **no** autoriza a tocar ficheros del otro lane.
+
+**Dependencia vs barrera** — la distincion que decide cual usar:
+
+| | Dependencia cross-lane | Barrera `FB-NN` |
+|---|---|---|
+| A quien detiene | Solo al lane destino | A **todos** los lanes |
+| Que cambia | El orden de dos fases | El contrato compartido |
+| Rutas | Cada lane sigue en las suyas | Toca superficie compartida |
+| Cuando | El lane B necesita que exista algo del lane A | Hay que renegociar lo que todos comparten |
+
+Regla practica: si lo que falta es **codigo o un artefacto concreto** del otro lane, es una dependencia. Si lo que cambia es **el contrato**, es una barrera. Modelar como barrera lo que era una dependencia detiene a lanes que no tenian por que parar.
 
 Orden de prioridad al decidir el corte:
 
@@ -232,7 +301,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - suma fases si hay migraciones de datos, seguridad, permisos, integraciones externas o rollout gradual
    - resta fases solo cuando dos bloques sean claramente dependientes y pequenos
 6. Diseña las fases para que cada una pueda abrirse como uno o pocos changes OpenSpec con contexto acotado. Cada fase debe poder entenderse con un subconjunto manejable de requisitos, arquitectura y codigo.
-7. **Decide el modo del roadmap** (`atomic` o `multilane`) segun la seccion "Decision de modo y corte de lanes". Si sale `multilane`, el corte en lanes condiciona todo lo que viene despues: nomenclatura de fases, agrupacion de prompts y estructura de `config.yaml`.
+7. **Resuelve los parametros de paralelismo** segun la seccion "Decision de modo de faseado": cuantos devs trabajan en paralelo (`parallel_developers`) y cual de los tres modos se usa (`atomic`, `waves` o `multilane`). El modo condiciona todo lo que viene despues: nomenclatura e identificadores de fase, agrupacion de prompts y estructura de `config.yaml`.
 8. Cuando tengas contexto suficiente, actua con este rol y objetivo:
    ```text
    Actua con el rol de planificador experto de desarrollos de software.
@@ -242,7 +311,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 10. Genera `docs/roadmap.md` con:
    - presupuesto de contexto asumido y justificacion
    - complejidad estimada
-   - **modo del roadmap** (`atomic` o `multilane`) y su justificacion en una linea
+   - **modo del roadmap** (`atomic`, `waves` o `multilane`), **`parallel_developers`** asumido y la justificacion de ambos en una linea
    - fases ordenadas
    - objetivo de cada fase
    - alcance y exclusiones
@@ -251,6 +320,8 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - criterios de cierre
    - riesgo de contexto por fase: `bajo`, `medio` o `alto`
    - **si hay `docs/sprint-plan.md`**: a que **sprint(s)** corresponde cada fase, el **esfuerzo agregado** de la fase (humano vs IA, tomado de `planificacion-proyecto.md`/`sprint-plan.md` si estan) y una seccion **"Conflictos de alineacion roadmap<->sprint"** con lo que el presupuesto de contexto obligo a desviar del plan de sprints (ver "Alineacion con la capa de entrega").
+   - **dependencias por fase** (`depends_on`): de que fases previas depende cada una. Es el grafo que sostiene tanto las oleadas como las dependencias cross-lane; declaralo siempre, tambien en `atomic`, aunque ahi sea trivial.
+   - **si el modo es `waves`**: la **organizacion en oleadas** y, por cada fase, su numero de oleada y de que fases depende. Anade una vista de la oleada completa (que fases corren a la vez y con que dev).
    - **si el modo es `multilane`**: las dos secciones adicionales descritas en "Secciones de lanes en `docs/roadmap.md`", y el identificador de cada fase segun la nomenclatura `F0` / `F-<lane-id>-NN` / `FB-NN`.
 11. Genera `docs/prompts-roadmap-native-ai.md` con los prompts que deben ejecutarse hasta finalizar el desarrollo, usando solo estos comandos del skill:
    - `aisdd open change <what-you-want-to-build>`
@@ -266,15 +337,42 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - el prompt exacto para abrir el change con `aisdd open change <what-you-want-to-build>`
    - el prompt exacto para implementar con `aisdd implement change <what-you-want-to-build>`
    - el prompt exacto para cerrar con `aisdd close change <what-you-want-to-build>`
-13. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
-14. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
-15. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
-16. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente.
-17. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 16.
+13. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
+14. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
+15. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
+16. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
+17. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente.
+18. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 17.
 
-### Decision de modo y corte de lanes
+### Decision de modo de faseado
 
-Este paso decide si el roadmap sera `atomic` (un change abierto en todo el proyecto) o `multilane` (un change abierto por lane). Lee antes la seccion "Lanes (lineas de trabajo paralelas)", que define el modelo; aqui esta el procedimiento.
+Este paso decide entre los tres modos (`atomic`, `waves`, `multilane`) y fija `parallel_developers`. Lee antes la seccion "Modos de faseado (paralelismo)", que define el modelo; aqui esta el procedimiento.
+
+**0. Resuelve `parallel_developers` primero.** Es el dato del que dependen los otros dos modos, y se resuelve igual para ambos:
+
+- Si `openspec/config.yaml` ya trae `roadmap.parallel_developers` de una ejecucion anterior, proponlo como default.
+- Si existe `docs/planificacion-proyecto.md`, cuenta los perfiles **de implementacion** con dedicacion real (no cuentes Lead, Architect ni Outcome Validator: no conducen changes) y proponlo, diciendo de donde sale.
+- Si no hay ninguna de las dos fuentes, **preguntalo**. Default `1`.
+
+Con `parallel_developers: 1` no hay nada que decidir: el modo es `atomic` y el roadmap es secuencial. Dilo y sigue.
+
+**0.bis. Elige modo.** Con `parallel_developers > 1`, presenta la eleccion al usuario con `AskUserQuestion` si la plataforma lo soporta, exponiendo el intercambio real y **con una recomendacion**:
+
+- Recomienda **`multilane`** si `docs/arquitectura-base.md` existe y su descomposicion por modulos da rutas disjuntas. Es el unico modo con garantia verificada.
+- Recomienda **`waves`** si no hay base para cortar superficies disjuntas (sin `arquitectura-base.md`, o modulos que comparten rutas) pero si hay fases claramente separables y varios devs. Advierte de forma explicita de sus tres limitaciones (ver "Modo `waves`"): ningun comando conoce las oleadas, nada verifica que dos fases de la misma oleada no se pisen, y una correccion no escala a los demas.
+- Recomienda **`atomic`** si ninguna de las dos se sostiene. No es un fracaso.
+
+Si el usuario elige `waves`, salta al paso "Construccion de las oleadas". Si elige `multilane`, sigue con los pasos 1-7.
+
+**Configuracion previa.** Si `openspec/config.yaml` ya trae `roadmap.mode`, proponlo como default en la pregunta (el proyecto ya eligio antes). Cambiar de modo entre ejecuciones esta permitido, pero **avisa de lo que implica**: pasar de `multilane` a `waves` o `atomic` deja sin efecto los `paths` y la verificacion de `close change`; pasar a `multilane` obliga a declarar rutas para todas las fases.
+
+**Construccion de las oleadas (solo modo `waves`).**
+
+1. Construye el grafo de dependencias entre fases (`depends_on`).
+2. **Oleada 1**: todas las fases sin dependencias, hasta un maximo de `parallel_developers`. Si existe `foundation`, va sola en la oleada 1.
+3. **Oleada k+1**: las fases cuyas dependencias esten todas en oleadas <= k, hasta el maximo de ancho.
+4. Repite hasta colocar todas las fases. Si una fase nunca es colocable, hay un **ciclo** en `depends_on`: corrigelo antes de escribir nada.
+5. Comprueba el ancho real de cada oleada. Si la media queda muy por debajo de `parallel_developers`, dilo: el faseado no es paralelizable y quiza `parallel_developers` esta sobreestimado, o las fases estan mal cortadas.
 
 **1. Calcula el numero de lanes viable. No lo adivines ni lo preguntes en frio.**
 
@@ -317,12 +415,31 @@ En modo `multilane`, `docs/roadmap.md` incluye dos secciones adicionales.
 
 Cierra la seccion con el **numero de lanes y su calculo** (`min(modulos, devs)`), y con el **dueno del contrato compartido**.
 
-**"Dependencias cross-lane"** — el punto de control del faseado:
+**"Dependencias cross-lane"** — el punto de control del faseado. Una fila por dependencia, con:
 
-- toda dependencia entre fases de lanes distintos, con origen y destino
-- la barrera `FB-NN` que la resuelve
+- fase **origen** y fase **destino** (y sus lanes)
+- **como se resuelve**: una barrera `FB-NN`, o una **dependencia declarada** (`depends_on`)
+- si es dependencia declarada: **cuanto queda bloqueado** el lane destino y **que hace mientras**
 
-Regla: **una dependencia cross-lane fuera de una barrera es un error de faseado, no una nota**. Si al redactar esta seccion aparece una, vuelve a cortar: o las fases implicadas van al mismo lane, o lo compartido sube a una barrera. Si aun asi decides dejarla (porque el usuario lo pide), marcala como `[RIESGO]` con el impacto explicito: el lane destino quedara bloqueado esperando al origen, que es exactamente el tiempo muerto que el modo multilane pretende eliminar.
+Regla de lectura de esta seccion, en este orden:
+
+1. **Sin dependencias cross-lane** — el corte es limpio. Es el objetivo.
+2. **Resuelta por barrera** — lo compartido se renegocia en `FB-NN`. Correcto cuando lo que cambia es el contrato.
+3. **Dependencia declarada** (`depends_on`) — aceptable bajo las condiciones de "Lanes con dependencias": puntual, aciclica, con coste explicito y **sin compartir rutas**. Correcto cuando lo que falta es codigo o un artefacto concreto del otro lane.
+4. **Dependencia no declarada** — esto si es un **error de faseado**. Si al redactar la seccion descubres una dependencia que no esta en `depends_on` ni resuelta por barrera, no la anotes como nota al pie: declarala o vuelve a cortar.
+
+Marca `[RIESGO]` cualquier dependencia declarada cuyo lane destino **no tenga otra cosa que hacer** mientras espera: eso es un dev parado, que es exactamente lo que el modo multilane pretende eliminar. Reordena las fases del lane destino antes de aceptarla.
+
+Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fases) para que el desajuste se vea de un vistazo y `aidd sprint-planning` pueda secuenciarlo.
+
+### Seccion de oleadas en `docs/roadmap.md`
+
+En modo `waves`, `docs/roadmap.md` incluye una seccion **"Oleadas"** con:
+
+- una entrada por oleada, en orden, con las fases que la componen y su `depends_on`
+- el **ancho** de cada oleada frente a `parallel_developers` (p. ej. `3/3`, `1/3`), para que se vea donde el faseado paraleliza y donde no
+- el motivo de las oleadas de ancho 1 (dependencias, no falta de trabajo)
+- una advertencia final, literal, de que **las oleadas no las verifica ningun comando**: el reparto real entre developers es responsabilidad del equipo, y nada impide abrir dos changes de la misma oleada que se pisen
 
 ### Alineacion con la capa de entrega (sprint-plan)
 
@@ -336,6 +453,8 @@ Si existe `docs/sprint-plan.md`, el roadmap **se pliega a los sprints ya planifi
 - **Conflictos (no romper el plan)**: cuando el presupuesto de contexto obligue a partir una HU en varios changes que **no caben** en su sprint, o a cortar a mitad de un bloque, **no reescribas el sprint-plan**: registra el desajuste en la seccion **"Conflictos de alineacion roadmap<->sprint"** de `docs/roadmap.md` (que HU se parte, en cuantos changes, que sprint desborda) para que el humano re-ejecute `aidd sprint-planning` y re-empaquete (re-faseado seguro: mueve HU, no recrea issues). AISDD **no** modifica `docs/sprint-plan.md`.
 
 Si **no** hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo explicitamente en `docs/roadmap.md` (faseado no alineado a sprints).
+
+En modo `waves` se anade una regla: **una oleada es una frontera de sprint natural** — todas sus fases pueden correr a la vez y la siguiente no arranca hasta que cierra. Haz coincidir cortes de sprint con cambios de oleada siempre que el contexto lo permita, y anota el ancho de cada oleada para que el sprint-plan pueda contrastar carga contra capacidad.
 
 En modo `multilane` se anaden dos reglas:
 
@@ -355,7 +474,8 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      generated_at: <YYYY-MM-DD>
      context_budget: bajo | medio | alto
      complexity: baja | media | alta
-     mode: atomic | multilane          # ausente o `atomic` = comportamiento clasico
+     mode: atomic | waves | multilane  # ausente o `atomic` = comportamiento clasico
+     parallel_developers: <entero >= 1>   # devs que trabajan a la vez; 1 => secuencial
      contract_owner: <rol/persona>     # solo si mode: multilane
      lanes:                            # solo si mode: multilane
        - id: <lane-id>                 # kebab-case, estable; clave de union con sprint-plan y openspec/.lane
@@ -366,11 +486,13 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
        roadmap: docs/roadmap.md
        prompts: docs/prompts-roadmap-native-ai.md
      phases:
-       - id: 1                    # atomic: correlativo. multilane: F0 | F-<lane-id>-NN | FB-NN
+       - id: 1                    # atomic/waves: correlativo. multilane: F0 | F-<lane-id>-NN | FB-NN
          name: <nombre de la fase>
          objective: <objetivo en una linea>
          context_risk: bajo | medio | alto
          change_hint: <slug estable para `aisdd open change`>   # clave de union roadmap<->sprint<->Jira
+         depends_on: [<ids de fases previas>]   # grafo de dependencias; [] si no depende de ninguna
+         wave: <numero de oleada>   # solo si mode: waves
          lane: <lane-id>            # solo si mode: multilane; vacio en fases F0 y FB-NN
          barrier: false             # solo si mode: multilane; true en FB-NN y en F0
          paths: [<...>]             # solo si mode: multilane; subconjunto de los paths de su lane
@@ -384,13 +506,15 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
 
    El `change_hint` es el **slug estable** que sirve de clave de union entre el roadmap, el sprint-plan y Jira; no lo cambies entre re-ejecuciones si la fase es la misma (para no romper el mapeo ni las sub-tareas ya creadas).
 
-   Las claves de lane (`mode`, `contract_owner`, `lanes`, y `lane`/`barrier`/`paths` en cada fase) son **aditivas**: un `config.yaml` de un roadmap anterior sin ellas sigue siendo valido y se interpreta como `mode: atomic`. No las escribas en modo atomico.
+   Todas las claves de paralelismo son **aditivas**: un `config.yaml` de un roadmap anterior sin ellas sigue siendo valido y se interpreta como `mode: atomic` con `parallel_developers: 1`. Escribe solo las que apliquen al modo elegido — `wave` solo en `waves`; `contract_owner`, `lanes`, `lane`, `barrier` y `paths` solo en `multilane`. **`depends_on` se escribe siempre**, en los tres modos: es el grafo del que salen las oleadas y las dependencias cross-lane, y en `atomic` documenta el orden real en vez de dejarlo implicito en la numeracion.
 
 4. El numero de entradas de `phases` debe coincidir exactamente con las fases de `docs/roadmap.md`, en el mismo orden y con los mismos nombres.
 5. Si ya existia una seccion `roadmap` de una ejecucion anterior, sustituyela integramente por la nueva (el roadmap mas reciente manda). No fusiones fases antiguas con nuevas. **Excepcion: conserva los `amended_by`** de las fases que sobrevivan con el mismo `change_hint` — son enmiendas ya aplicadas en otro lane que la fase todavia no ha recogido, y perderlas deja al lane implementando contra un contrato desmentido. Si una fase marcada desaparece del nuevo faseado, dilo en el resumen.
 6. Manten YAML valido: indentacion con espacios (no tabs), valores con caracteres especiales entre comillas, UTF-8 sin BOM.
-7. **En modo `multilane`, valida antes de escribir**: (a) todo `phases[].lane` existe en `lanes[]`; (b) las fases con `barrier: true` no tienen `lane`; (c) los `paths` de cada fase de lane son subconjunto de los de su lane (las barreras no declaran `paths`); (d) ningun `paths` de un lane es prefijo de los de otro. Si alguna falla, no escribas el fichero: corrige el faseado primero.
-8. Incluye `openspec/config.yaml` en los `output_files` de la entrada de auditoria de este comando, junto a `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`.
+7. **Valida `depends_on` en cualquier modo antes de escribir**: (a) todo id referenciado existe en `phases`; (b) el grafo es **aciclico**; (c) ninguna fase depende de otra posterior en el orden del documento. Si alguna falla, no escribas: corrige el faseado.
+8. **En modo `waves`, valida ademas**: (a) toda fase tiene `wave`; (b) ninguna oleada supera `parallel_developers` fases; (c) ninguna fase comparte oleada con una de la que depende, ni esta en una anterior.
+9. **En modo `multilane`, valida ademas**: (a) todo `phases[].lane` existe en `lanes[]`; (b) las fases con `barrier: true` no tienen `lane`; (c) los `paths` de cada fase de lane son subconjunto de los de su lane (las barreras no declaran `paths`); (d) ningun `paths` de un lane es prefijo de los de otro. Si alguna falla, no escribas el fichero: corrige el faseado primero.
+10. Incluye `openspec/config.yaml` en los `output_files` de la entrada de auditoria de este comando, junto a `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`.
 
 ### Criterios de particion para el roadmap
 
@@ -443,12 +567,14 @@ Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase p
 >
 > **En modo `multilane`, el lane tambien es normativo.** Un change pertenece al lane de su fase y no se salta de lane "de paso". Cambiar de linea de trabajo es un acto explicito del usuario (`aisdd lane switch`), nunca una decision tuya durante un `open change`.
 
-0. **Guard de concurrencia (solo si `roadmap.mode` es `multilane`).** Antes de nada, lee `openspec/config.yaml` y ejecuta `openspec list` para conocer los changes vivos. Despues:
-   - **Resuelve el lane objetivo**: el de la fase que corresponde al change (campo `lane` de `phases[]`). Si el usuario no dio slug y hay que deducir la fase, usa el lane activo de `openspec/.lane` como criterio.
-   - **Si el lane objetivo no es el lane activo**, detente y pide al usuario que ejecute `aisdd lane switch <lane-id>` primero. No cambies el puntero tu mismo: es estado del dev, y cambiarlo en silencio le deja trabajando en una linea que no eligio.
-   - **Si ese lane ya tiene un change abierto**, detente. Un lane = un hilo. Nombra el change vivo y remite a cerrarlo (`aisdd close change`) o enmendarlo (`aisdd amend change`). Que otros lanes tengan changes abiertos es normal y **no** bloquea.
-   - **Si la fase es una barrera (`barrier: true`, ids `F0` o `FB-NN`)**, exige que **ningun** lane tenga changes abiertos. Si alguno lo tiene, detente y lista cuales: una barrera toca superficie compartida y no puede convivir con trabajo de lane en vuelo.
-   - En modo `atomic` este paso no aplica; se mantiene la regla clasica de un unico change abierto en el proyecto.
+0. **Guard de apertura.** Antes de nada, lee `openspec/config.yaml` y ejecuta `openspec list` para conocer los changes vivos. La comprobacion de `depends_on` aplica en **los tres modos**; el guard de concurrencia por lane, solo en `multilane`:
+   - **Solo `multilane` — resuelve el lane objetivo**: el de la fase que corresponde al change (campo `lane` de `phases[]`). Si el usuario no dio slug y hay que deducir la fase, usa el lane activo de `openspec/.lane` como criterio.
+   - **Solo `multilane` — si el lane objetivo no es el lane activo**, detente y pide al usuario que ejecute `aisdd lane switch <lane-id>` primero. No cambies el puntero tu mismo: es estado del dev, y cambiarlo en silencio le deja trabajando en una linea que no eligio.
+   - **Solo `multilane` — si ese lane ya tiene un change abierto**, detente. Un lane = un hilo. Nombra el change vivo y remite a cerrarlo (`aisdd close change`) o enmendarlo (`aisdd amend change`). Que otros lanes tengan changes abiertos es normal y **no** bloquea.
+   - **Solo `multilane` — si la fase es una barrera (`barrier: true`, ids `F0` o `FB-NN`)**, exige que **ningun** lane tenga changes abiertos. Si alguno lo tiene, detente y lista cuales: una barrera toca superficie compartida y no puede convivir con trabajo de lane en vuelo.
+   - **Dependencias de la fase (los tres modos).** Si la fase trae `depends_on`, comprueba que **todas** esas fases estan ya archivadas. Si alguna sigue abierta o sin empezar, detente y dilo: abrir un change cuyas dependencias no han cerrado produce specs sobre algo que aun no existe. Nombra la fase que falta y quien la lleva (su lane, si lo hay).
+   - **En modo `waves`** no hay guard de concurrencia: las oleadas son planificacion, no control de ejecucion, y **ningun comando comprueba el ancho `N`**. Aplica solo la comprobacion de `depends_on` anterior. Si detectas que hay mas changes abiertos que `parallel_developers`, **dilo como aviso** en el resumen y continua: es informacion util para el equipo, no un error que te corresponda bloquear.
+   - En modo `atomic` no hay guard de concurrencia. Aplica solo la comprobacion de `depends_on`.
 1. Si el usuario aporta `<what-you-want-to-build>`, usalo literalmente como descripcion o identificador del cambio.
 2. Si no lo aporta, deriva un identificador breve y estable desde el objetivo descrito por el usuario.
 3. Ejecuta el **pre-flight de dudas para apertura** segun la seccion siguiente.
@@ -893,7 +1019,7 @@ Reglas para los campos:
 - `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
-- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.5.0:implement-change/preflight`, `1.5.0:open-change/preflight`, `1.5.0:roadmap`, `1.5.0:close-change`, `1.5.0:init`, `1.5.0:prototype-ux`, `1.5.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
+- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.6.0:implement-change/preflight`, `1.6.0:open-change/preflight`, `1.6.0:roadmap`, `1.6.0:close-change`, `1.6.0:init`, `1.6.0:prototype-ux`, `1.6.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 
 ### Calculo de hashes
 

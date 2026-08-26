@@ -117,7 +117,15 @@ VALIDATION PHASE ─────────────────────
   Los demás lanes no se detienen: siguen su propio ciclo en paralelo.
 ```
 
-> **Los dos modos.** El faseado por defecto es **atómico**: un único change abierto en todo el proyecto. `aisdd roadmap` puede en cambio fraccionar el roadmap en **lanes** — líneas de trabajo con rutas de código y specs **disjuntas** — y entonces hay un change abierto **por lane**, ejecutándose en paralelo. El invariante que protege la metodología no cambia: dentro de cada superficie de decisión sigue habiendo **un solo hilo**. Lo que se paraleliza son las superficies, no el hilo. Ver §3.bis.
+> **Los tres modos.** El faseado por defecto es **atómico**: un único change abierto en todo el proyecto. `aisdd roadmap` ofrece además dos formas de paralelizar, y la elección es explícita:
+>
+> | Modo | Qué paraleliza | Garantía |
+> |---|---|---|
+> | **`atomic`** | Nada | Total, por construcción |
+> | **`waves`** (oleadas) | Hasta `N` fases a la vez, una por dev, respetando dependencias | **Ninguna** — ordena, no protege |
+> | **`multilane`** (lanes) | `N` líneas persistentes con rutas y specs disjuntas | Declarada y **verificada** al cerrar |
+>
+> El invariante que protege la metodología no cambia en `multilane`: dentro de cada superficie de decisión sigue habiendo **un solo hilo**; lo que se paraleliza son las superficies. En `waves` ese invariante **no lo protege el tooling** — se confía en el criterio del arquitecto al fasear. Ver §3.bis.
 
 ---
 
@@ -207,7 +215,7 @@ Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadm
 
 ---
 
-## 3.bis. Lanes: paralelismo sin romper el invariante
+## 3.bis. Paralelismo: oleadas y lanes
 
 ### El problema
 
@@ -215,7 +223,17 @@ El ciclo `open change → implement change → close change` es **secuencial por
 
 El efecto colateral aparece en cuanto el equipo crece. Con el desdoble Front/Back de roles, un change que solo toca backend deja al **Front AI Dev parado**, y viceversa. Que un Lead espere es coherente —su trabajo es especificar, no implementar—; que un Dev espere no lo es. La metodología escalaba con el **tamaño del change**, no con el **tamaño del equipo**.
 
-### La solución: fraccionar la superficie, no el hilo
+### Dos soluciones, distinta garantía
+
+Hay dos formas de paralelizar, y conviene no confundirlas porque protegen cosas distintas.
+
+**Oleadas (`waves`).** El roadmap pregunta cuántos AI Developers trabajan en paralelo (`parallel_developers`) y agrupa las fases en **tandas**: dentro de cada oleada caben hasta `N` fases sin dependencias entre sí, una por developer; la siguiente oleada no arranca hasta que la actual cierra. Es un artefacto de **planificación**: resuelve el **orden** y hace visible cuánto trabajo puede correr a la vez.
+
+Lo que las oleadas **no** hacen: no declaran qué toca cada fase, no verifican nada al cerrar, y ningún comando de ejecución las conoce. Que dos fases de la misma oleada no se pisen es responsabilidad de quien fasea. Es un intercambio legítimo —cero ceremonia, cero red de seguridad— y por eso el modo se elige explícitamente.
+
+**Lanes (`multilane`).** La solución cuando esa red de seguridad hace falta.
+
+### La solución de los lanes: fraccionar la superficie, no el hilo
 
 `aisdd roadmap` puede generar el roadmap en **modo multilane**: fraccionado en **lanes** (líneas de trabajo) cuyas superficies de decisión son **disjuntas**. Dentro de cada lane sigue habiendo **un único hilo**; lo que corre en paralelo son los lanes entre sí.
 
@@ -255,9 +273,24 @@ Advertencia práctica: **`data` rara vez es un lane separado de `back`** — com
 - **Correcciones nivel 4**: una corrección que toca el contrato compartido **no es local**. Es una **parada coordinada** de los lanes hermanos y una revisión del contrato por su dueño. Cuesta caro a propósito: si fuera barato, los lanes podrían contradecirse gratis.
 - **`aidd sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
 
-### Cuándo NO usar lanes
+### Lanes con dependencias
 
-Con un solo dev de implementación; sin `arquitectura-base.md` que soporte el corte; cuando los módulos no dan rutas disjuntas; o cuando el contrato compartido no se puede fijar antes de que los lanes arranquen. `atomic` no es el modo degradado: es el modo correcto cuando el corte no es defendible.
+Los lanes se prefieren **independientes**, y esa sigue siendo la primera opción. Pero forzar la independencia total donde el dominio no la permite lleva a inventar barreras artificiales —que serializan más de lo necesario— o a renunciar al paralelismo. Por eso hay un escalón intermedio: una fase de un lane puede declarar `depends_on` sobre una fase de otro.
+
+Se acepta si es **puntual** (no la relación entre los dos lanes: si B espera a A casi siempre, no son dos lanes, fusiónalos), **acíclica**, **con coste explícito** (cuánto espera el lane destino y qué hace mientras) y —lo importante— **sin compartir rutas**: una dependencia es de **orden**, nunca de **superficie**. El lane que espera sigue escribiendo solo en lo suyo.
+
+No confundir con una barrera: si lo que falta es **código o un artefacto** del otro lane, es una dependencia y solo detiene al lane destino; si lo que cambia es **el contrato**, es una barrera y los detiene a todos. Modelar como barrera lo que era una dependencia para a gente que no tenía por qué parar.
+
+### Cómo elegir modo
+
+| Situación | Modo |
+|---|---|
+| Un solo dev de implementación | `atomic` |
+| Varios devs, y `arquitectura-base.md` da módulos con rutas disjuntas | `multilane` |
+| Varios devs, pero sin base para declarar superficies disjuntas | `waves`, asumiendo sus límites |
+| El contrato compartido no se puede fijar antes de arrancar | `atomic` |
+
+`atomic` no es el modo degradado: es el correcto cuando el corte no es defendible. Y `waves` no es un `multilane` de segunda: es la opción honesta cuando quieres paralelizar sin poder prometer aislamiento — siempre que el equipo sepa que la garantía no está.
 
 ---
 

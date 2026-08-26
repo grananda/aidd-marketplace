@@ -217,9 +217,13 @@ ESSENTIAL_RE = re.compile(r"\[\s*(?:IMPRESCINDIBLE|ESENCIAL)\s*\]", re.IGNORECAS
 # the class stays permissive; the trailing digits keep it from eating ordinary prose.
 LANE_PHASE_RE = re.compile(r"\bF-([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)-(\d{1,3})\b")
 BARRIER_PHASE_RE = re.compile(r"\b(FB-\d{1,3}|F0)\b")
-# "[CONFLICTO DE FASEADO]" -- a cross-lane dependency outside a barrier, which the
-# sprint plan flags as a phasing error rather than a note.
+# "[CONFLICTO DE FASEADO]" -- a cross-lane dependency that is neither declared via
+# depends_on nor resolved by a barrier; the sprint plan flags it as a phasing error.
 LANE_CONFLICT_RE = re.compile(r"\[\s*CONFLICTO DE FASEADO\s*\]", re.IGNORECASE)
+# Waves ("oleadas"): the alternative parallelism mode, where phases are grouped into
+# batches of up to parallel_developers instead of persistent lanes. Matches the wave
+# label the roadmap and sprint plan write ("Oleada 2", "oleada 2").
+WAVE_RE = re.compile(r"\bOleadas?\s+(\d{1,2})\b", re.IGNORECASE)
 
 MOSCOW = {
     "must": ("Must", "chip-must"),
@@ -270,6 +274,7 @@ def decorate_chips(escaped: str) -> str:
     escaped = LANE_PHASE_RE.sub(r'<span class="chip chip-lane">F-\1-\2</span>', escaped)
     escaped = LANE_CONFLICT_RE.sub(
         '<span class="chip chip-block">CONFLICTO DE FASEADO</span>', escaped)
+    escaped = WAVE_RE.sub(r'<span class="chip chip-barrier">Oleada \1</span>', escaped)
     return escaped
 
 
@@ -418,8 +423,12 @@ def _lane_kpis(markdown: str, doc_type: str) -> list[dict]:
     # Case-folded: a doc that writes both "F-api-01" and "F-API-02" means one lane,
     # not two -- the lane id is the same key the roadmap and the sprint plan share.
     lanes = {m.group(1).lower() for m in LANE_PHASE_RE.finditer(markdown)}
+    waves = {int(m.group(1)) for m in WAVE_RE.finditer(markdown)}
+
+    # waves and lanes are alternative modes, so a doc normally shows one or the other.
     if not lanes:
-        return []
+        return ([{"value": len(waves), "label": "Oleadas", "tone": "barrier"}]
+                if waves else [])
 
     kpis = [{"value": len(lanes), "label": "Lanes", "tone": "lane"}]
 
