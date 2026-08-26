@@ -10,7 +10,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | Plugin | Contenido | Para qué sirve |
 |--------|-----------|----------------|
 | `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
-| `aisdd` | `aisdd-specs` + metodología | Ejecutar con OpenSpec: roadmap (consciente del sprint-plan) y ciclo open/implement/close change, pre-flight de dudas, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
+| `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `aisdd`.** |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
@@ -45,13 +45,64 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | Fase | Comando | Rol | Genera / hace |
 |------|---------|-----|---------------|
 | 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**) |
-| 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` (fasea por contexto, **alineado al `sprint-plan.md`** si existe) |
-| 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding) |
+| 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` u `multilane`) |
+| 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
 | 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
 | 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
 | 4 | `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| 4 | `aisdd lane [list \| switch \| status]` | AI Developer / AI Lead | Selecciona la **línea de trabajo activa** (solo roadmaps `multilane`), como `git switch` con las ramas |
 | 2 / 4 (aux) | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
 | aux | `aisdd uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
+
+#### Cómo paralelizar el trabajo (tres modos)
+
+Por defecto el ciclo es **mono-hilo**: un change abierto a la vez. Con varios developers eso deja a casi todos esperando, así que `aisdd roadmap` pregunta cuántos trabajan en paralelo y ofrece dos formas de repartir. **No compiten: son ejes perpendiculares.**
+
+```
+                Oleada 1    Oleada 2         Oleada 3    Oleada 4
+                ───────────────────────────────────────────────────
+lane api        │          │ F-api-01      │           │          │
+lane portal     │   F0     │ F-portal-01   │  FB-01    │  FB-02   │
+lane import     │          │ F-import-01   │           │          │
+                ───────────────────────────────────────────────────
+                   1/3          3/3            1/3        1/3
+```
+
+**Columnas = oleadas** (cuándo se puede trabajar a la vez). **Filas = lanes** (de quién es cada parte del código).
+
+| Modo | Qué paraleliza | Garantía | Cuándo |
+|------|----------------|----------|--------|
+| `atomic` | Nada | Total, por construcción | Un dev, o sin base para separar. **Default** |
+| `waves` (oleadas) | Hasta `N` fases a la vez, respetando dependencias | **Ninguna** — ordena, no protege | Varios devs sin superficies declarables |
+| `multilane` (lanes) | `N` líneas persistentes, un change **por lane** | Declarada y **verificada** al cerrar | Módulos con rutas de código disjuntas |
+
+Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `multilane`, `aisdd close change` comprueba que el change no escribió fuera de las rutas de su lane, y una corrección que toca el contrato compartido para a los lanes hermanos en vez de resolverse en silencio.
+
+**Regla rápida:**
+
+- Roadmap ya diseñado y validado que no quieres alterar → **`waves` anotado** (se añade sin re-fasear: conserva nombres de fase, así que no rompe el enlace con el sprint-plan ni con Jira).
+- Proyecto con módulos de rutas separadas y varios devs → **`multilane`**.
+- Un solo dev, o sin base para separar superficies → **`atomic`**.
+
+Detalle completo, con un ejemplo del mismo proyecto faseado en los tres modos, en §3.bis de la metodología.
+
+#### Cuánto pregunta el pre-flight
+
+`open change` e `implement change` no actúan a ciegas: antes resuelven las ambigüedades reales con el humano y las persisten en `decisions.md`.
+
+- Las **bloqueantes se preguntan siempre, sin límite**. Son, por definición, aquellas sin las que no se puede producir un spec sólido: caparlas cambia corrección de la especificación por comodidad.
+- Cuántas **preferencias** y **confirmaciones** se plantean lo decide cada proyecto:
+
+  ```yaml
+  # openspec/config.yaml
+  preflight:
+    preferencias: all      # all | entero >= 0
+    confirmaciones: all
+  ```
+
+  Lo que queda fuera del límite no se pierde: se resuelve con el default recomendado y queda registrado con `Origen: auto-default`.
+
+`aisdd init` siembra la sección con los valores por defecto y no la sobrescribe si ya existe.
 
 #### Cuando aparece un cambio a mitad de un change
 
@@ -62,6 +113,7 @@ No todo cambio cuesta lo mismo. La pregunta que decide el coste **no** es "¿cam
 | 1. Implementación | El spec es correcto y el código no lo cumple | Solo el código |
 | 2. Decisión no documentada | Ningún documento fijaba ese detalle | Una entrada `Tipo: correccion` en `decisions.md`, y sigues |
 | 3. Contradicción documental | Un documento sellado afirma lo contrario | **Ese** documento, y solo ese, re-sellado por su skill |
+| 4. Contrato compartido *(solo `multilane`)* | La corrección toca aquello sobre lo que trabajan otros lanes | Nada por tu cuenta: **parada coordinada** y revisión por el dueño del contrato |
 
 El caso 2 es el habitual (una incompatibilidad de versiones que aparece al validar, un matiz visual que la guía no recogía) y **no** se escala al Architect ni se re-aplica el change. Si además hay que tocar los specs (criterios o tareas nuevas), la vía es **`aisdd amend change`**: escribe el delta y lo implementa sin re-ejecutar el change entero sobre un árbol ya trabajado. Toma una baseline de build y tests **antes** de tocar nada, para separar con evidencia lo que rompe la enmienda de lo que ya estaba roto — así no necesita conocer los cambios manuales que hayas hecho por tu cuenta.
 
