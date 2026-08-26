@@ -11,7 +11,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-03 | Pre-flight configurable por proyecto (bloqueantes sin límite) | aisdd | **implementada** | 2026-08-26 |
 | F-04 | Onboarding de proyecto existente: `init` siembra specs base | aisdd | **implementada** | 2026-08-26 |
 | F-05 | Scripts deterministas para auditoría y bloques de `AGENTS.md` | aisdd | **implementada** | 2026-08-26 |
-| F-06 | Enrutado del Outcome Validator: ¿al Developer o al Lead? | aisdd | propuesta | 2026-08-26 |
+| F-06 | Enrutado del Outcome Validator: elevación por consenso | aisdd | **implementada** | 2026-08-26 |
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | **implementada** | 2026-08-26 |
 
 ---
@@ -91,14 +91,24 @@ Hoy la entrada de auditoría JSONL y los bloques idempotentes de `AGENTS.md` son
 
 ## F-06 — Enrutado del Outcome Validator
 
-**Estado:** propuesta · **Decisión pendiente del propietario de la metodología**
+**Estado:** implementada · **Resuelta con un modelo propio**, ni el nuestro anterior ni el de upstream
 
 Divergencia con `native-ai-specs` v1.6.0 (su decisión 008), no una carencia:
 
 - **Nuestro modelo:** el Outcome Validator reporta al **AI Lead**.
 - **El suyo:** reporta **siempre al AI Developer**, que corrige o eleva al Lead, que a su vez evalúa elevar al Architect.
 
-Su argumento: un único canal de entrada de fallos simplifica la comunicación y mantiene al Developer como dueño de su entrega. Afecta a cómo trabaja la gente, no al código, así que la decisión no es técnica.
+Su argumento: un único canal de entrada de fallos simplifica la comunicación y mantiene al Developer como dueño de su entrega.
+
+**Lo que se decidió.** Ninguna de las dos. La discusión era quién hace el diagnóstico, y la respuesta es que lo hagan **juntos**: cada uno tiene la mitad de la información —el Validator ha visto fallar el criterio, el Developer sabe por qué el código hace lo que hace—.
+
+- Se **retira** del AI Developer la restricción «no habla con el Lead directamente». Su intención era proteger el contexto acotado del Developer, no establecer una cadena de mando, pero redactada así funcionaba como jerarquía en una organización que no la tiene.
+- La **elevación al Lead se acuerda** entre Validator y Developer, para que ninguno se entere después de una decisión que le afecta.
+- **Si no hay acuerdo, se eleva igual** con las dos posturas registradas. Sin esa regla el change se queda parado esperando a que alguien ceda, y el desacuerdo entre quien definió la validación y quien escribió el código es justo lo que el Lead necesita saber.
+- El consenso aplica **solo a cruzar hacia el Lead**, no al ciclo normal: un bug de implementación se devuelve al Developer y se arregla sin ceremonia.
+- La elevación **deja rastro** en el `decisions.md` del change, para que «nada a espaldas de nadie» sea comprobable y no una norma social.
+
+Es la misma idea que el nivel 4 de corrección (contrato compartido): ninguna decisión que afecte a otro se toma sin que ese otro se entere.
 
 ## F-07 — Partir `aisdd-specs/SKILL.md` en `references/*.md`
 
