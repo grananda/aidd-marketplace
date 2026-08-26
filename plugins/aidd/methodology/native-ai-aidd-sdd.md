@@ -889,16 +889,20 @@ Paso 2: Reconciliación (humano)
         ▼
 Paso 3: Inicialización (AI Lead)
   aisdd init  → responde "desarrollo ya existente"
-                    y aporta rutas de docs funcionales/técnicos/arquitectura
-                    (se vuelcan a config.yaml: project_context)
+                    · aporta rutas de docs funcionales/técnicos/arquitectura
+                      (se vuelcan a config.yaml: project_context)
+                    · analiza el código y siembra las SPECS BASE en
+                      openspec/specs/<capability>/spec.md, con marcas
+                      UNKNOWN y LEGACY, para revisión humana
   aisdd roadmap  → fasea el trabajo pendiente
-  aisdd open/implement/close change 'legacy-sync'
-                    → registra el estado actual como primer change
         │
         ▼
 Paso 4: Incorporación al flujo normal
-  Toda nueva funcionalidad sigue el ciclo AI-Native
+  Toda nueva funcionalidad sigue el ciclo AI-Native, aplicando
+  deltas SOBRE las specs base en vez de partir de cero
 ```
+
+> **Ya no hace falta un change `legacy-sync`.** Antes se registraba el estado actual abriendo, implementando y cerrando un change de onboarding. Con `aisdd init` sembrando las specs base directamente, ese change sobraba: orquestaba un ciclo completo para no entregar nada, y confundía "fotografiar lo que hay" con "construir algo". El estado actual no es un cambio; es el punto de partida.
 
 **Prompt de documentación inversa (AI Architect):**
 ```prompt
