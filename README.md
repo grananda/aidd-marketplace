@@ -365,6 +365,30 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
 
 **Vistas HTML.** Junto a cada `.md` de metodología hay un `.html` homónimo (misma carpeta) renderizado con `booster-docs`, para lectura humana cómoda con índice navegable — [native-ai-aidd-sdd.html](plugins/aidd/methodology/native-ai-aidd-sdd.html), [getting-started](plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html) y [native-ai-aiad.html](plugins/aiad/methodology/native-ai-aiad.html). El Markdown sigue siendo la **única fuente de verdad**.
 
+## Publicación y CI
+
+El marketplace tiene una **versión global** en el fichero `VERSION` de la raíz. No sustituye a las versiones de cada `plugin.json` —esas siguen marcando qué reinstala el usuario—, sino que agrupa un conjunto de cambios en algo publicable.
+
+La numeración **arranca en `1.6.0` y continúa la de `native-ai-specs` v1.6.0**, del que este marketplace es la continuación mantenida. Empezar en `1.0.0` habría dado a entender que es un producto distinto y más joven de lo que realmente es.
+
+**Para publicar**: sube `VERSION` en la misma PR que cambia lo que sea. Al mergear a `main`, el workflow `release.yml` comprueba si existe la etiqueta `v<VERSION>` y, si no existe, crea la etiqueta y el release. La puerta es la etiqueta y no la rama, así que el workflow es idempotente: puedes mergear varias PRs sin tocar `VERSION` y no pasará nada, y re-ejecutarlo no duplica releases.
+
+Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, y empiezan por las tablas de **qué plugins y qué skills cambian de versión**. Es lo único que le importa a quien consume el marketplace: si tiene que reinstalar algo y qué.
+
+**Olvidarse de subir `VERSION`** es el fallo evidente de tener una versión manual, así que `validate.yml` lo comprueba en cada PR: si algún `plugin.json` cambia de versión y `VERSION` no, falla con el motivo.
+
+Ese mismo workflow corre en cada PR y en `main`:
+
+| Comprobación | Qué evita |
+|---|---|
+| `check_manifests.py` | Que `marketplace.json` apunte a un plugin inexistente, o que un plugin en disco no esté declarado. Rompe la instalación de todos y no falla hasta que alguien lo intenta |
+| `check_skills.py` | `SKILL.md` sin frontmatter válido, con `name` que no coincide con su directorio o sin `description`: el skill no se carga, o el modelo no sabe cuándo invocarlo |
+| `check_generated_html.py` | Que un `.html` de metodología no coincida con su `.md`, y que las copias de `aidd/` y `aisdd/` se desincronicen |
+| `py_compile` | Un script Python que no compila |
+| `check_mojibake.py` | UTF-8 mal codificado en los markdown, usando el propio script del skill |
+
+El de los HTML merece un comentario, porque el desfase se produce **sin que nadie edite el `.md`**: basta con cambiar `render_docs_html.py`. Así fue como el HTML de la metodología AIAD se quedó atrás durante dos PRs sin que se notara.
+
 ## Mantenimiento
 
 - **Cuándo partir un `SKILL.md` en `references/`**: se parte cuando se cumplen **las dos** condiciones —más de ~400 líneas **y** dos o más puntos de entrada que no comparten flujo—. Con un solo comando no se parte por grande que sea: ese flujo se ejecuta entero, así que dividirlo carga las mismas líneas *más* el índice.

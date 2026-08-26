@@ -13,6 +13,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-05 | Scripts deterministas para auditoría y bloques de `AGENTS.md` | aisdd | **implementada** | 2026-08-26 |
 | F-06 | Enrutado del Outcome Validator: elevación por consenso | aisdd | **implementada** | 2026-08-26 |
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | **implementada** | 2026-08-26 |
+| F-08 | Versión global + CI de release y validación | marketplace | **implementada** | 2026-08-26 |
 
 ---
 
@@ -117,3 +118,15 @@ Es la misma idea que el nivel 4 de corrección (contrato compartido): ninguna de
 El `SKILL.md` supera las 1.200 líneas y se carga entero aunque el 90% no aplique al comando en curso. Upstream lo tiene partido en un fichero por comando (`roadmap.md`, `open-change.md`, `preflight.md`…).
 
 Sin cambio funcional. **Debe ir la última y en solitario**: mueve todo el fichero, así que cualquier rama viva en paralelo se vuelve irreconciliable.
+
+## F-08 — Versión global, release automático y validación en CI
+
+**Estado:** implementada · **Versión:** marketplace 1.6.0 · **Añadida:** 2026-08-26
+
+Versión global en `VERSION` (la raíz), independiente de las de cada plugin: agrupa un conjunto de cambios en algo publicable. **Arranca en `1.6.0`**, continuando la numeración de `native-ai-specs` v1.6.0, del que este marketplace es la continuación: empezar en 1.0.0 habría sugerido que es un producto distinto y más joven de lo que es. `release.yml` la lee al mergear a `main` y publica si la etiqueta `v<VERSION>` no existe todavía — la puerta es la etiqueta y no la rama, así que es idempotente.
+
+Las notas empiezan por las tablas de qué plugins y skills cambian de versión, que es lo único que necesita saber quien consume el marketplace.
+
+`validate.yml` cubre el punto débil de una versión manual (olvidar subirla) y cuatro comprobaciones de coherencia que hasta ahora se hacían a mano en cada PR: manifiestos, frontmatter de skills, HTML de metodología regenerado y sincronizado entre copias, compilación de los scripts y ausencia de mojibake.
+
+Al escribirlo encontró dos desfases reales que llevaban tiempo sin detectarse: `booster-uml` no tenía `metadata.version`, y el HTML de la metodología AIAD se había quedado atrás porque cambió el renderer y solo se regeneraban los de AIDD/AISDD.

@@ -17,6 +17,7 @@
       --block: #b00020; --warn: #b58a25; --essential: #e8590c;
       --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
       --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
+      --lane: #2f7d4f; --barrier: #d98a00;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) { 
@@ -29,6 +30,7 @@
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+        --lane: #8fd694; --barrier: #ffb340;
  }
     }
     :root[data-theme="dark"] { 
@@ -41,6 +43,7 @@
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+        --lane: #8fd694; --barrier: #ffb340;
  }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -98,7 +101,7 @@
       background: var(--panel); color: var(--text-soft); font-size: 1rem; cursor: pointer;
       box-shadow: var(--shadow); line-height: 1; }
     .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
-    .diagram.offline::after { content: "Diagrama Mermaid sin renderizar (CDN no disponible; el codigo fuente se muestra arriba)";
+    .diagram.offline::after { content: "Diagrama Mermaid sin renderizar (falta mermaid.min.js junto al HTML y la CDN no responde; el codigo fuente se muestra arriba)";
       display: block; margin-top: 10px; font-size: .8rem; color: var(--warn); }
     /* KPI dashboard */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-top: 20px; }
@@ -115,6 +118,8 @@
     .kpi-warn { border-left-color: var(--warn); } .kpi-warn .kpi-value { color: var(--warn); }
     .kpi-muted { border-left-color: var(--line-strong); } .kpi-muted .kpi-value { color: var(--muted); }
     .kpi-eff { border-left-color: var(--eff-m); } .kpi-eff .kpi-value { color: var(--eff-m); }
+    .kpi-lane { border-left-color: var(--lane); } .kpi-lane .kpi-value { color: var(--lane); }
+    .kpi-barrier { border-left-color: var(--barrier); } .kpi-barrier .kpi-value { color: var(--barrier); }
     /* Chips */
     .chip { display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
       vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
@@ -124,6 +129,8 @@
     .chip-us { color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }
     .chip-block { color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }
     .chip-essential { color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }
+    .chip-lane { color: var(--lane); background: color-mix(in srgb, var(--lane) 14%, transparent); font-family: "SF Mono",Menlo,monospace; }
+    .chip-barrier { color: #fff; background: var(--barrier); border-color: var(--barrier); font-family: "SF Mono",Menlo,monospace; }
     .swatch { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
       vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
       box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }
@@ -178,7 +185,7 @@
   <div class="layout">
     <nav class="toc" aria-label="Indice"><p class="toc-title">En esta pagina</p><ol><li><a href="#1-philosophy-ia-in-the-loop">1. Philosophy — ia-in-the-loop</a></li><li><a href="#2-where-aiad-fits-in-the-marketplace">2. Where AIAD fits in the marketplace</a></li><li><a href="#3-where-openspec-fits">3. Where OpenSpec fits</a></li><li><a href="#4-the-us-change-bridge-switching-between-aiad-and-sdd">4. The US &lt;-&gt; change bridge — switching between AIAD and SDD</a></li><li><a href="#5-skill-catalog-11-skills-5-groups">5. Skill catalog (11 skills, 5 groups)</a></li><li><a href="#6-the-human-first-split-of-work">6. The human-first split of work</a></li><li><a href="#7-the-authorship-journal">7. The authorship journal</a></li><li><a href="#8-automation-the-right-primitive-for-each-capability">8. Automation: the right primitive for each capability</a></li><li><a href="#9-roadmap">9. Roadmap</a></li></ol></nav>
     <main>
-<header class="doc-header"><h1 id="native-ai-aiad-ai-augmented-development-ia-in-the-loop">Native AI · AIAD — AI-Augmented Development (ia-in-the-loop)</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-07-11 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p></header>
+<header class="doc-header"><h1 id="native-ai-aiad-ai-augmented-development-ia-in-the-loop">Native AI · AIAD — AI-Augmented Development (ia-in-the-loop)</h1><p class="doc-meta"><span class="badge">Documento AIDD</span> <span class="dot">&middot;</span> Vista generada el 2026-08-26 <span class="dot">&middot;</span> <span class="sot">El .md es la fuente de verdad</span></p></header>
 <p><strong>Version:</strong> 0.1</p>
 <p><strong>Date:</strong> 2026-06-27</p>
 <p><strong>Tooling base:</strong> <code>aiad-*</code> skills — on-demand augmentation for human-first development.</p>
@@ -286,7 +293,7 @@ EXECUTION --------------------------------------------------------
   </div>
   <script>
     // Theme toggle (auto -> claro -> oscuro), persisted per browser. Classic script:
-    // must keep working even without network (the Mermaid CDN import lives apart).
+    // must keep working even without network (the Mermaid loader lives apart).
     (function () {
       const KEY = 'booster-docs-theme';
       const btn = document.getElementById('themeToggle');
@@ -325,20 +332,53 @@ EXECUTION --------------------------------------------------------
       document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
     })();
   </script>
-  <script type="module">
-    // Mermaid via CDN, best-effort: offline the diagrams stay as readable source
-    // with a notice instead of silently breaking the page's other scripts.
-    if (document.querySelector('.mermaid')) {
-      try {
-        const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
-        const dark = document.documentElement.dataset.theme === 'dark'
-          || (document.documentElement.dataset.theme !== 'light'
-              && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        mermaid.initialize({ startOnLoad: true, securityLevel: 'strict', theme: dark ? 'dark' : 'default' });
-      } catch (e) {
-        document.querySelectorAll('.diagram').forEach(d => d.classList.add('offline'));
+  <script>
+    // Mermaid loader, best-effort and fail-visible.
+    //
+    // Uses the SELF-CONTAINED bundle (mermaid.min.js), never the ESM entry: the
+    // ESM build lazy-loads one chunk per diagram type at render time, so a single
+    // blocked request behind a corporate proxy leaves the diagrams silently blank
+    // -- and it fails inside Mermaid's async render, out of reach of any try/catch
+    // around the import.
+    //
+    // Order: the local copy next to this HTML first (works offline, over file://
+    // and behind a
+    // proxy), then the CDN. Classic <script> tags, so onerror actually fires and
+    // the fallback chain is real. If everything fails, the source stays visible
+    // with a notice instead of an empty gap.
+    (function () {
+      if (!document.querySelector('.mermaid')) return;
+      // Same pinned version on both ends, so the CDN fallback cannot drift from
+      // the local asset this script provisions.
+      var sources = ['mermaid.min.js',
+                     'https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.min.js'];
+      function fail() {
+        document.querySelectorAll('.diagram').forEach(function (d) {
+          d.classList.add('offline');
+        });
       }
-    }
+      function start() {
+        try {
+          var dark = document.documentElement.dataset.theme === 'dark'
+            || (document.documentElement.dataset.theme !== 'light'
+                && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          mermaid.initialize({ startOnLoad: false, securityLevel: 'strict',
+                               theme: dark ? 'dark' : 'default' });
+          // Explicit run() instead of startOnLoad: it returns a promise, so a
+          // render error is catchable rather than swallowed.
+          mermaid.run({ querySelector: '.mermaid' }).catch(fail);
+        } catch (e) { fail(); }
+      }
+      function load(i) {
+        if (i >= sources.length) { fail(); return; }
+        var s = document.createElement('script');
+        s.src = sources[i];
+        s.onload = start;
+        s.onerror = function () { load(i + 1); };
+        document.head.appendChild(s);
+      }
+      load(0);
+    })();
   </script>
 </body>
 </html>

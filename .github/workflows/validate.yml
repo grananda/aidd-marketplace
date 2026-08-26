@@ -1,0 +1,61 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # La version global se olvida sola. Si algun plugin cambia de version y
+      # VERSION no, el release saldria sin reflejar el cambio (o no saldria).
+      - name: La version global acompana a los plugins
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          CHANGED=$(git diff --name-only "$BASE"...HEAD -- 'plugins/*/.claude-plugin/plugin.json')
+          [ -z "$CHANGED" ] && { echo "Ningun plugin.json tocado."; exit 0; }
+          BUMPED=""
+          for f in $CHANGED; do
+            OLD=$(git show "$BASE:$f" 2>/dev/null | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])' 2>/dev/null || echo "")
+            NEW=$(python3 -c 'import json;print(json.load(open("'"$f"'"))["version"])')
+            [ "$OLD" != "$NEW" ] && BUMPED="$BUMPED $f($OLD->$NEW)"
+          done
+          [ -z "$BUMPED" ] && { echo "Plugins tocados pero sin cambio de version."; exit 0; }
+          echo "Plugins con version nueva:$BUMPED"
+          if git diff --quiet "$BASE"...HEAD -- VERSION; then
+            echo "::error::Algun plugin cambio de version pero VERSION sigue igual ($(cat VERSION)). Subela: es la que dispara el release."
+            exit 1
+          fi
+          echo "VERSION -> $(cat VERSION). Correcto."
+
+      - name: Manifiestos validos y rutas existentes
+        run: python3 .github/scripts/check_manifests.py
+
+      - name: Frontmatter de los skills
+        run: python3 .github/scripts/check_skills.py
+
+      # Los .html de metodologia son generados. Si el .md cambia y el .html no,
+      # la documentacion publicada miente.
+      - name: HTML de metodologia regenerado
+        run: python3 .github/scripts/check_generated_html.py
+
+      - name: Scripts Python compilan
+        run: |
+          find plugins .github/scripts -name '*.py' -not -path '*__pycache__*' -print0 \
+            | xargs -0 python3 -m py_compile && echo "Todos compilan."
+
+      - name: Sin mojibake en los markdown
+        run: |
+          find . -name '*.md' -not -path './.git/*' -not -path './native-ai-specs-v*' -print0 \
+            | xargs -0 python3 plugins/aisdd/skills/aisdd-specs/scripts/check_mojibake.py

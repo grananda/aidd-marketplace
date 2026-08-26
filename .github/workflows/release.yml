@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # La puerta del release no es la rama, es si la etiqueta ya existe. Asi el
+      # workflow es idempotente: se puede re-ejecutar, o mergear varias PRs sin
+      # tocar VERSION, y solo sale release cuando de verdad hay version nueva.
+      - name: Resolver version y decidir si toca release
+        id: v
+        run: |
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "release=false" >> $GITHUB_OUTPUT
+            echo "La etiqueta v$VERSION ya existe: no hay nada que publicar."
+          else
+            echo "release=true" >> $GITHUB_OUTPUT
+            echo "v$VERSION no existe todavia: se publicara."
+          fi
+
+      - name: Validar antes de publicar
+        if: steps.v.outputs.release == 'true'
+        run: |
+          python3 .github/scripts/check_manifests.py
+          python3 .github/scripts/check_skills.py
+          python3 .github/scripts/check_generated_html.py
+
+      # A quien consume el marketplace solo le importa si tiene que reinstalar
+      # algo y que. Eso no se deduce de la lista de commits.
+      - name: Notas de release con los plugins que cambian
+        if: steps.v.outputs.release == 'true'
+        run: python3 .github/scripts/release_notes.py > RELEASE_NOTES.md
+
+      - name: Crear etiqueta y release
+        if: steps.v.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="v${{ steps.v.outputs.version }}"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --notes-file RELEASE_NOTES.md
