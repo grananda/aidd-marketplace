@@ -81,6 +81,10 @@ El comando genera:
 
 Tras generar esos documentos, el comando actualiza `openspec/config.yaml` con una seccion `roadmap` (presupuesto de contexto, complejidad, rutas de los documentos y la lista ordenada de fases con su objetivo, riesgo de contexto y slug sugerido), para que los comandos posteriores dispongan de un indice navegable del roadmap.
 
+Ademas, registra la configuracion de paralelismo (modo, `parallel_developers` y, en `multilane`, los lanes con sus rutas) en un bloque idempotente **propio** de `AGENTS.md` (`<!-- BEGIN/END aisdd-specs roadmap -->`), hermano e independiente del bloque de comandos que gestiona `aisdd init`, para que cualquier agente sepa como se trabaja en paralelo sin abrir `config.yaml`.
+
+**Tamano de los changes**: salvo indicacion contraria, cada fase se dimensiona como un change **pequeno-medio** (quien valida es un humano). Es una preferencia, no una autoridad: no parte una fase si con ello rompe una frontera de sprint o saca una HU de su ventana (ver "Jerarquia de criterios de faseado" en el `SKILL.md`).
+
 Este comando no debe ejecutar `openspec new change` ni archivar cambios, ni editar artefactos de `openspec/` distintos de `openspec/config.yaml`.
 
 El fichero `docs/prompts-roadmap-native-ai.md` debe usar como base operativa estos comandos:

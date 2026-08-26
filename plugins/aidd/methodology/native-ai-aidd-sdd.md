@@ -295,6 +295,10 @@ Ese cuarto caso es el que mejor distingue a los dos: como la oleada es una **ano
 
 `atomic` no es el modo degradado: es el correcto cuando el corte no es defendible. Y `waves` no es un `multilane` de segunda: es la opción honesta cuando quieres paralelizar sin poder prometer aislamiento — siempre que el equipo sepa que la garantía no está.
 
+**Ninguno de los tres impide abrir un segundo change.** `atomic` y `waves` avisan si lo detectan, pero no bloquean: el riesgo de dos changes vivos sobre la misma superficie sigue existiendo y es deliberado. Solo `multilane` lo cierra, porque es el único que declara qué superficie es de quién. Quien quiera cero riesgo, elige `multilane`; quien elija los otros, asume el riesgo a cambio de menos ceremonia.
+
+> **Jerarquía cuando los criterios chocan.** El **sprint** manda sobre el orden y las fronteras; el **presupuesto de contexto**, sobre el tamaño del change; la preferencia por **changes pequeño-medio** afina dentro de lo que esos dos permiten —nunca parte una fase si con ello rompe una frontera de sprint o saca una HU de su ventana—; y el **modo de paralelismo** reparte lo que los tres anteriores ya decidieron, sin cambiar qué entra en cada fase. Cuando chocan, se registra el conflicto en lugar de romper lo ya decidido.
+
 ---
 
 ## 4. Documentos del proyecto
