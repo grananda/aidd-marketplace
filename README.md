@@ -369,6 +369,8 @@ El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodolog
 
 El marketplace tiene una **versión global** en el fichero `VERSION` de la raíz. No sustituye a las versiones de cada `plugin.json` —esas siguen marcando qué reinstala el usuario—, sino que agrupa un conjunto de cambios en algo publicable.
 
+La numeración **arranca en `1.6.0` y continúa la de `native-ai-specs` v1.6.0**, del que este marketplace es la continuación mantenida. Empezar en `1.0.0` habría dado a entender que es un producto distinto y más joven de lo que realmente es.
+
 **Para publicar**: sube `VERSION` en la misma PR que cambia lo que sea. Al mergear a `main`, el workflow `release.yml` comprueba si existe la etiqueta `v<VERSION>` y, si no existe, crea la etiqueta y el release. La puerta es la etiqueta y no la rama, así que el workflow es idempotente: puedes mergear varias PRs sin tocar `VERSION` y no pasará nada, y re-ejecutarlo no duplica releases.
 
 Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, y empiezan por las tablas de **qué plugins y qué skills cambian de versión**. Es lo único que le importa a quien consume el marketplace: si tiene que reinstalar algo y qué.

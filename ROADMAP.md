@@ -121,9 +121,9 @@ Sin cambio funcional. **Debe ir la última y en solitario**: mueve todo el fiche
 
 ## F-08 — Versión global, release automático y validación en CI
 
-**Estado:** implementada · **Versión:** marketplace 1.0.0 · **Añadida:** 2026-08-26
+**Estado:** implementada · **Versión:** marketplace 1.6.0 · **Añadida:** 2026-08-26
 
-Versión global en `VERSION` (la raíz), independiente de las de cada plugin: agrupa un conjunto de cambios en algo publicable. `release.yml` la lee al mergear a `main` y publica si la etiqueta `v<VERSION>` no existe todavía — la puerta es la etiqueta y no la rama, así que es idempotente.
+Versión global en `VERSION` (la raíz), independiente de las de cada plugin: agrupa un conjunto de cambios en algo publicable. **Arranca en `1.6.0`**, continuando la numeración de `native-ai-specs` v1.6.0, del que este marketplace es la continuación: empezar en 1.0.0 habría sugerido que es un producto distinto y más joven de lo que es. `release.yml` la lee al mergear a `main` y publica si la etiqueta `v<VERSION>` no existe todavía — la puerta es la etiqueta y no la rama, así que es idempotente.
 
 Las notas empiezan por las tablas de qué plugins y skills cambian de versión, que es lo único que necesita saber quien consume el marketplace.
 
