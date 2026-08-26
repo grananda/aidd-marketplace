@@ -1,9 +1,9 @@
 ---
 name: aisdd-specs
-description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
+description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` comparten un mismo pre-flight de dudas (una sola seccion con variantes `[APERTURA]`/`[IMPLEMENTACION]`) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec: las dudas **bloqueantes se preguntan siempre y sin limite**, y cuantas preferencias y confirmaciones se plantean se configura por proyecto en la seccion `preflight` de `openspec/config.yaml` (`all` o un entero); lo que queda fuera del limite se resuelve con el default y se registra como `Origen: auto-default`. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.9.0"
+  version: "1.10.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -250,9 +250,16 @@ Inicializa AISDD (OpenSpec) en el proyecto.
        - docs/jira-sync.md
    ```
    Si ya existe un `project_context` plano (formato antiguo), conserva su contenido y reorganizalo en estas dos sub-listas sin perder rutas.
-9. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido"). Son avisos, no errores: continua igualmente.
-10. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
-11. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
+9. **Siembra la configuracion del pre-flight.** Anade a `openspec/config.yaml` la seccion `preflight` con los valores por defecto, si no existe ya:
+   ```yaml
+   preflight:
+     preferencias: all      # all | entero >= 0
+     confirmaciones: all    # all | entero >= 0
+   ```
+   Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight"). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
+10. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido"). Son avisos, no errores: continua igualmente.
+11. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
+12. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 ### Registro de comandos en `AGENTS.md`
 
@@ -666,6 +673,131 @@ El equivalente multilane del mismo ejemplo, con dos lanes (`api` y `portal`):
 
 Fijate en lo que cambia: la fase de contratos deja de ser "la primera" para ser **fundacional y bloqueante**, y las dos fases de construccion dejan de ser consecutivas para ser simultaneas. Permisos y rollout no se reparten entre lanes: se convierten en barreras.
 
+## Pre-flight de dudas (compartido)
+
+Lo usan **`aisdd open change`** e **`aisdd implement change`**. Antes de generar los specs (**[APERTURA]**) o de aplicar las instrucciones de OpenSpec (**[IMPLEMENTACION]**), revisa el contexto y resuelve ambiguedades con el usuario. Esta fase es **obligatoria** en ambos comandos. Lo que difiere entre usos va marcado; el resto aplica igual a los dos.
+
+### 1. Contexto a leer primero
+
+**[APERTURA]** — antes de crear el cambio:
+
+- Objetivo declarado por el usuario y `<what-you-want-to-build>` si llega.
+- Documentacion del proyecto: `docs/` (en especial `docs/roadmap.md` si existe), `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`.
+- Cambios OpenSpec previos en `openspec/changes/` y especificaciones en `openspec/specs/` que toquen el mismo dominio funcional.
+
+**[IMPLEMENTACION]** — artefactos del cambio:
+
+- `openspec/changes/<change>/design.md`, `proposal.md` y todos los `specs/**/spec.md`.
+- Si existen, `tasks.md` y `decisions.md` (decisiones previas del mismo cambio).
+
+### 2. Clasifica las dudas reales
+
+- **bloqueante**: sin respuesta no se puede avanzar. Modelo de datos, contrato de API, autenticacion, integraciones externas, migraciones, permisos; ademas, **[APERTURA]** alcance funcional, dominios afectados y criterios de aceptacion principales.
+- **preferencia**: hay varias opciones validas y la elegida condiciona el resultado (libreria, patron, naming, ubicacion del fichero; **[APERTURA]** tambien la particion en uno o varios changes).
+- **confirmacion**: parece claro pero conviene validar antes de redactar o codificar (actores, canales, plataformas soportadas).
+
+### 3. No preguntes lo que ya esta resuelto
+
+Comun a ambos:
+
+- Convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`).
+- Elecciones triviales y facilmente reversibles (nombres internos, formato de log).
+
+**[APERTURA]**:
+
+- Objetivo y alcance explicitos del usuario o del prompt del roadmap.
+- **El faseado del roadmap y el reparto en sprints**: que HU entran en este change ya esta decidido (fase + sprint). **No ofrezcas adelantar HU de otras fases** ni ampliar el alcance — no es una duda, es una decision ya tomada (ver "El faseado es normativo"). Las dudas de alcance legitimas son sobre el **COMO** de las HU de esta fase, no sobre el QUE ni el CUANDO.
+- Puntos ya cubiertos por specs OpenSpec previas o por cambios relacionados ya cerrados.
+- **En modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada. Incorporalo (paso 5 de `open change`) en vez de preguntarlo.
+- **En modo `multilane`, el contrato compartido**: esquema de datos, contrato de API, eventos y tipos compartidos quedaron fijados en `F0` o en una barrera. **No los renegocies en el pre-flight de una fase de lane** — leelos de las specs archivadas y trabaja contra ellos. Si el contrato resulta insuficiente, eso no es una duda de pre-flight: es un fallo de faseado. Detente, dilo, y remite al dueno del contrato (`roadmap.contract_owner`) y a una barrera.
+
+**[IMPLEMENTACION]**:
+
+- Decisiones cerradas en `design.md` o `proposal.md`.
+- Puntos ya cubiertos por entradas previas de `decisions.md`.
+
+### 4. Presupuesto de preguntas
+
+Lee `roadmap`-independiente: la seccion **`preflight`** de `openspec/config.yaml` (ver "Configuracion del pre-flight"). Con ella, selecciona que dudas se presentan, **en este orden**:
+
+1. **Todas las dudas `bloqueante` reales, sin limite.** No se descartan, no se agrupan hasta desdibujarlas y no se sustituyen por una recomendacion automatica. Una bloqueante es, por definicion, aquella sin la cual no puedes producir un spec solido: caparlas cambia correccion por comodidad.
+2. Hasta el valor de `preferencias` en dudas `preferencia`, **ordenadas por impacto**. Con `all`, todas.
+3. Hasta el valor de `confirmaciones` en dudas `confirmacion`, ordenadas por impacto. Con `all`, todas.
+4. Las `preferencia` y `confirmacion` que queden fuera del limite **no se pierden**: aplica el default recomendado y registralas en `decisions.md` con `Origen: auto-default`.
+
+**Pregunta solo dudas reales.** El limite es un techo, nunca una cuota: si hay una duda, pregunta una; si no hay ninguna, no preguntes nada (ver paso 9). Nunca rellenes el presupuesto con asuntos ya decididos ni con confirmaciones triviales.
+
+**Limite de la interfaz.** Si la plataforma no admite tantas preguntas en una sola interaccion (por ejemplo `AskUserQuestion`, que acepta unas pocas por llamada), **divide en tandas consecutivas**. Nunca omitas una duda bloqueante por ese limite: es un limite de presentacion, no de contenido.
+
+### 5. Formato de las preguntas
+
+- Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), usalo con 2-4 opciones y marca una como `(Recomendada)` cuando tengas criterio.
+- En caso contrario, lista numerada en texto plano, con opciones `a)`, `b)`, `c)` y una recomendacion explicita.
+- Cada duda incluye: **contexto breve** (**[APERTURA]** objetivo del usuario o seccion del roadmap/docs; **[IMPLEMENTACION]** donde aparece en el spec), **por que** se necesita la respuesta y **que impacto** tiene (**[APERTURA]** en los specs; **[IMPLEMENTACION]** en la implementacion).
+
+### 6. Modo no interactivo
+
+Auto mode, CI, sin terminal, o el usuario pide no ser interrumpido:
+
+- No bloquees el comando por dudas no bloqueantes.
+- Toma el default recomendado para cada `preferencia` y `confirmacion`, y marcalo `Origen: auto-default` en `decisions.md`.
+- Para `bloqueantes` sin default seguro, **detente** y reporta las dudas pendientes; no ejecutes el comando OpenSpec (**[APERTURA]** `openspec new change`; **[IMPLEMENTACION]** `openspec instructions apply`).
+
+### 7. Persistencia
+
+Graba todas las respuestas en `openspec/changes/<change>/decisions.md`, una entrada por decision.
+
+**[APERTURA]**: en ese momento el cambio aun no existe en disco. Crea el directorio `openspec/changes/<change>/` antes de escribir, o guarda las decisiones en un buffer y vuelcalas inmediatamente despues de `openspec new change` y antes de redactar `design.md`, `proposal.md` y los `spec.md`.
+
+**[IMPLEMENTACION]**: crea el fichero si no existe.
+
+```markdown
+## <slug-de-la-decision>
+
+- **Fecha**: <YYYY-MM-DD>
+- **Tipo**: bloqueante | preferencia | confirmacion
+- **Origen**: usuario | auto-default
+- **Contexto**: <[APERTURA] objetivo del usuario / docs/roadmap.md / spec previa | [IMPLEMENTACION] design.md / proposal.md / spec.md, seccion o linea>
+- **Pregunta**: <pregunta planteada>
+- **Opciones evaluadas**:
+  - a) <opcion>
+  - b) <opcion>
+- **Decision**: <opcion elegida>
+- **Justificacion**: <una linea con el motivo>
+```
+
+### 8. Dudas aplazadas
+
+Si el usuario rechaza responder o pide aplazar, registra `Decision: pendiente`. Si era **bloqueante**, detente sin ejecutar el comando OpenSpec, informa de las dudas pendientes y termina.
+
+### 9. Sin dudas
+
+Si tras la lectura inicial no detectas dudas reales, registra una unica entrada con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`. **No fuerces preguntas artificiales** solo por cumplir el flujo.
+
+### 10. Cierre
+
+Resume al usuario el conjunto de decisiones tomadas y confirma el siguiente paso: **[APERTURA]** que esas decisiones se reflejaran en `design.md`, `proposal.md` y los `spec.md`; **[IMPLEMENTACION]** que puede arrancar `openspec instructions apply`.
+
+### Configuracion del pre-flight
+
+Cuanto pregunta el pre-flight **se configura por proyecto**, porque el nivel adecuado no es el mismo en un dominio nuevo que en un repo que el equipo lleva meses tocando. Vive en `openspec/config.yaml`, junto al resto de la configuracion del skill:
+
+```yaml
+preflight:
+  preferencias: all      # all | entero >= 0
+  confirmaciones: all    # all | entero >= 0
+```
+
+- **`all`** (default): se plantean todas las dudas de ese tipo.
+- **Un entero**: se plantean como maximo esas; el resto se resuelve con el default recomendado y queda registrado como `auto-default`.
+- **`0`**: no se plantea ninguna de ese tipo; todas se auto-resuelven y se registran.
+
+Reglas:
+
+1. **Estas claves no afectan a las bloqueantes.** No hay forma de configurar que una bloqueante no se pregunte: si existiera, el comando podria generar specs sobre huecos conocidos.
+2. Si falta la seccion `preflight`, si falta una clave o si su valor no es valido, **usa `all`** para lo que falte y **avisa en una linea** para que el usuario pueda corregirlo. No bloquees por configuracion.
+3. `aisdd init` siembra la seccion con los valores por defecto (ver `aisdd init`). Si no esta, el pre-flight funciona igual.
+
 ## `aisdd open change [what-you-want-to-build]`
 
 > Alias: `native-ai open change [what-you-want-to-build]`.
@@ -687,7 +819,7 @@ Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase p
      El riesgo sigue vivo a proposito: dos changes abiertos sobre la misma superficie pueden producir decisiones que se contradigan, y en `atomic` nada lo impide. Si el arquitecto quiere esa garantia, la via es `multilane` (rutas declaradas y verificadas) o, con menos ceremonia, `waves`. Dilo asi en el aviso: el modo `atomic` no promete aislamiento.
 1. Si el usuario aporta `<what-you-want-to-build>`, usalo literalmente como descripcion o identificador del cambio.
 2. Si no lo aporta, deriva un identificador breve y estable desde el objetivo descrito por el usuario.
-3. Ejecuta el **pre-flight de dudas para apertura** segun la seccion siguiente.
+3. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)", variante **[APERTURA]**.
 4. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
    ```bash
    openspec new change <what-you-want-to-build>
@@ -706,57 +838,6 @@ Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase p
    - Si una HU no tiene Story todavia (aun no se volco el plan), anota el change en el registro como pendiente de Story y avisa en el resumen.
 9. Reporta el identificador del cambio, rutas creadas, decisiones del pre-flight grabadas en `openspec/changes/<change>/decisions.md`, la decision sobre los diagramas UML (ruta del HTML si se generaron; motivo de la omision si no) y, si aplico, la sub-tarea de Jira creada y enlazada.
 
-### Pre-flight de dudas para apertura
-
-Antes de generar los specs del cambio, revisa el contexto disponible y resuelve ambiguedades con el usuario. Esta fase es obligatoria para `open change`.
-
-1. Reune y lee el contexto relevante disponible **antes** de crear el cambio:
-   - Objetivo declarado por el usuario y `<what-you-want-to-build>` si llega.
-   - Documentacion del proyecto: `docs/` (en especial `docs/roadmap.md` si existe), `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`.
-   - Cambios OpenSpec previos en `openspec/changes/` y especificaciones en `openspec/specs/` que toquen el mismo dominio funcional.
-2. Detecta dudas reales que afecten al alcance y al diseno del cambio, y clasificalas:
-   - **bloqueante**: sin respuesta no se pueden redactar specs solidos (alcance funcional, dominios afectados, modelo de datos, contrato de API, autenticacion, integraciones externas, migraciones, permisos, criterios de aceptacion principales).
-   - **preferencia**: hay varias opciones validas y la elegida condiciona el diseno (libreria, patron, naming de recursos, particion en uno o varios changes).
-   - **confirmacion**: parece claro pero conviene validar antes de redactar (suposiciones sobre actores, canales, plataformas soportadas).
-3. No preguntes lo que ya esta resuelto:
-   - objetivo y alcance explicitos del usuario o del prompt del roadmap.
-   - **el faseado del roadmap y el reparto en sprints**: que HU entran en este change ya esta decidido (fase + sprint). **No ofrezcas adelantar HU de otras fases** ni ampliar el alcance del change — no es una duda, es una decision ya tomada (ver "El faseado es normativo"). Las dudas de alcance legitimas son sobre el **COMO** de las HU de esta fase, no sobre el QUE ni el CUANDO.
-   - convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`).
-   - elecciones triviales y facilmente reversibles (nombres internos, formato de log).
-   - puntos ya cubiertos por specs OpenSpec previas o por cambios OpenSpec relacionados ya cerrados.
-   - **en modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada, no una duda. Incorporalo (paso 5) en vez de preguntarlo.
-   - **en modo `multilane`, el contrato compartido**: esquema de datos, contrato de API, eventos y tipos compartidos quedaron fijados en `F0` o en una barrera. **No los renegocies en el pre-flight de una fase de lane** — leelos de las specs ya archivadas y trabaja contra ellos. Si el contrato resulta insuficiente para implementar esta fase, eso no es una duda de pre-flight: es un fallo de faseado. Detente, dilo, y remite al dueno del contrato (`roadmap.contract_owner`) y a una barrera.
-4. Presupuesto de preguntas: maximo `7` dudas por cambio — **es un techo, no una cuota**. Pregunta solo las dudas **reales**: si hay una, pregunta una; si no hay ninguna, no preguntes nada y continua (deja constancia de que el pre-flight no detecto dudas). **Nunca rellenes el presupuesto** con preguntas sobre asuntos ya decididos (faseado, docs, specs previas, decisiones del usuario) ni confirmaciones triviales: entorpecen sin aportar. Si detectas mas de 7, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
-5. Formato de las preguntas:
-   - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), usalo con 2-4 opciones y marca una como `(Recomendada)` cuando tengas criterio para sugerirla.
-   - En caso contrario, presenta las dudas como lista numerada en texto plano, con opciones etiquetadas `a)`, `b)`, `c)` y una recomendacion explicita.
-   - Cada duda debe incluir: contexto breve (objetivo del usuario o seccion del roadmap/docs donde aparece), por que se necesita la respuesta y el impacto en los specs.
-6. Modo no interactivo (auto mode, CI, sin terminal o el usuario pide no ser interrumpido):
-   - No bloquees el comando por dudas no bloqueantes.
-   - Toma el default recomendado para cada `preferencia` y `confirmacion`.
-   - Para `bloqueantes` sin default seguro, detente y reporta las dudas pendientes; no ejecutes `openspec new change`.
-   - Marca cada decision autonoma con `Origen: auto-default` en `decisions.md` para que el usuario pueda revisarla despues.
-7. Persistencia: graba todas las respuestas en `openspec/changes/<change>/decisions.md`. Como en este momento el cambio aun no existe en disco, crea el directorio `openspec/changes/<change>/` antes de escribir el fichero, o escribe primero las decisiones en un buffer temporal y vuelcalas a `decisions.md` inmediatamente despues de ejecutar `openspec new change` y antes de redactar el contenido de `design.md`, `proposal.md` y los `spec.md`. Estructura cada entrada asi:
-
-   ```markdown
-   ## <slug-de-la-decision>
-
-   - **Fecha**: <YYYY-MM-DD>
-   - **Tipo**: bloqueante | preferencia | confirmacion | correccion
-   - **Origen**: usuario | auto-default
-   - **Contexto**: <objetivo del usuario / docs/roadmap.md / spec previa, seccion o linea>
-   - **Pregunta**: <pregunta planteada>
-   - **Opciones evaluadas**:
-     - a) <opcion>
-     - b) <opcion>
-   - **Decision**: <opcion elegida>
-   - **Justificacion**: <una linea con el motivo>
-   ```
-
-8. Si el usuario rechaza responder o pide aplazar una duda, registra `Decision: pendiente` y, si era bloqueante, detente sin ejecutar `openspec new change`. Informa al usuario de las dudas pendientes y termina.
-9. Si tras la lectura inicial no detectas dudas reales, registra una unica entrada en `decisions.md` con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight de apertura` y `Decision: continuar`. No fuerces preguntas artificiales solo por cumplir el flujo.
-10. Antes de generar los specs, resume al usuario el conjunto de decisiones tomadas y confirma que esas decisiones se reflejaran en `design.md`, `proposal.md` y los `spec.md` del cambio.
-
 ## `aisdd implement change [what-you-want-to-build]`
 
 > Alias: `native-ai implement change [what-you-want-to-build]`.
@@ -767,7 +848,7 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 2. Si no llega, lista los cambios abiertos con OpenSpec.
 3. Si solo hay un cambio abierto, usalo.
 4. Si hay mas de uno, pregunta cual desea implementar.
-5. Ejecuta el **pre-flight de dudas** segun la seccion siguiente.
+5. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)", variante **[IMPLEMENTACION]**.
 6. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
    ```bash
    openspec instructions apply --change <what-you-want-to-build>
@@ -778,56 +859,6 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
    - Actualiza el estado de cada HU implicada en `docs/jira-sync.md` a `in_progress`.
 8. Si durante la implementacion, o en la validacion posterior, surge un cambio que ningun spec habia especificado (incompatibilidad de versiones, ajuste de configuracion, peticion del usuario sobre la marcha), **no escales por defecto**: clasificalo segun "Correcciones durante la implementacion" y resuelvelo en el nivel que le corresponda.
 9. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente.
-
-### Pre-flight de dudas
-
-Antes de aplicar las instrucciones de OpenSpec, revisa la documentacion del cambio y resuelve ambiguedades con el usuario. Esta fase es obligatoria para `implement change`.
-
-1. Reune y lee los artefactos del cambio:
-   - `openspec/changes/<change>/design.md`
-   - `openspec/changes/<change>/proposal.md`
-   - todos los ficheros `openspec/changes/<change>/specs/**/spec.md`
-   - si existe, `openspec/changes/<change>/tasks.md`
-   - si existe, `openspec/changes/<change>/decisions.md` (decisiones previas del mismo cambio)
-2. Detecta dudas reales que afecten a la implementacion y clasificalas:
-   - **bloqueante**: sin respuesta no se puede empezar (modelo de datos, contrato de API, autenticacion, integraciones externas, migraciones, permisos)
-   - **preferencia**: hay varias opciones validas y la elegida condiciona el resultado (libreria, patron, naming, ubicacion del fichero)
-   - **confirmacion**: parece claro pero conviene validar antes de codificar
-3. No preguntes lo que ya esta resuelto:
-   - decisiones cerradas en `design.md` o `proposal.md`
-   - convenciones documentadas en el repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/`, `config.yaml`)
-   - elecciones triviales y facilmente reversibles (nombres internos, formato de log)
-   - puntos ya cubiertos por entradas previas de `decisions.md`
-4. Presupuesto de preguntas: maximo `7` dudas por cambio — **es un techo, no una cuota**. Pregunta solo las dudas **reales**: si hay una, pregunta una; si no hay ninguna, no preguntes nada y continua (deja constancia de que el pre-flight no detecto dudas). **Nunca rellenes el presupuesto** con preguntas sobre asuntos ya decididos (faseado, docs, specs previas, decisiones del usuario) ni confirmaciones triviales: entorpecen sin aportar. Si detectas mas de 7, prioriza bloqueantes, agrupa relacionadas en una sola pregunta de varias opciones y descarta las de confirmacion de bajo impacto.
-5. Formato de las preguntas:
-   - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), usalo con 2-4 opciones y marca una como `(Recomendada)` cuando tengas criterio para sugerirla.
-   - En caso contrario, presenta las dudas como lista numerada en texto plano, con opciones etiquetadas `a)`, `b)`, `c)` y una recomendacion explicita.
-   - Cada duda debe incluir: contexto breve (donde aparece en el spec), por que se necesita la respuesta y el impacto en la implementacion.
-6. Modo no interactivo (auto mode, CI, sin terminal o el usuario pide no ser interrumpido):
-   - No bloquees el comando por dudas no bloqueantes.
-   - Toma el default recomendado para cada `preferencia` y `confirmacion`.
-   - Para `bloqueantes` sin default seguro, detente y reporta las dudas pendientes; no ejecutes `openspec instructions apply`.
-   - Marca cada decision autonoma con `Origen: auto-default` en `decisions.md` para que el usuario pueda revisarla despues.
-7. Persistencia: graba todas las respuestas en `openspec/changes/<change>/decisions.md`. Crea el fichero si no existe. Estructura cada entrada asi:
-
-   ```markdown
-   ## <slug-de-la-decision>
-
-   - **Fecha**: <YYYY-MM-DD>
-   - **Tipo**: bloqueante | preferencia | confirmacion | correccion
-   - **Origen**: usuario | auto-default
-   - **Contexto**: <referencia a design.md / proposal.md / spec.md, seccion o linea>
-   - **Pregunta**: <pregunta planteada>
-   - **Opciones evaluadas**:
-     - a) <opcion>
-     - b) <opcion>
-   - **Decision**: <opcion elegida>
-   - **Justificacion**: <una linea con el motivo>
-   ```
-
-8. Si el usuario rechaza responder o pide aplazar una duda, registra `Decision: pendiente` y, si era bloqueante, detente sin ejecutar `openspec instructions apply`. Informa al usuario de las dudas pendientes y termina.
-9. Si tras la lectura inicial no detectas dudas reales, registra una unica entrada en `decisions.md` con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`. No fuerces preguntas artificiales solo por cumplir el flujo.
-10. Antes de pasar a la implementacion real, resume al usuario el conjunto de decisiones tomadas y confirma que puede arrancar `openspec instructions apply`.
 
 ### Correcciones durante la implementacion
 
@@ -1131,7 +1162,7 @@ Reglas para los campos:
 - `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
-- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.9.0:implement-change/preflight`, `1.9.0:open-change/preflight`, `1.9.0:roadmap`, `1.9.0:close-change`, `1.9.0:init`, `1.9.0:prototype-ux`, `1.9.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
+- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.10.0:implement-change/preflight`, `1.10.0:open-change/preflight`, `1.10.0:roadmap`, `1.10.0:close-change`, `1.10.0:init`, `1.10.0:prototype-ux`, `1.10.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 
 ### Calculo de hashes
 

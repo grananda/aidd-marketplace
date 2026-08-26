@@ -101,7 +101,7 @@ Los prompts deben incluir el contexto minimo necesario para cada fase y evitar a
 
 Crea un cambio OpenSpec en dos fases:
 
-1. **Pre-flight de dudas**: antes de generar los specs, el agente revisa el contexto disponible (objetivo del usuario, `docs/`, `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`, roadmap si existe y cambios OpenSpec previos) y plantea al usuario las dudas reales que afecten al alcance y al diseño del cambio, con un presupuesto máximo de `7` preguntas. Las respuestas se persisten en `openspec/changes/<change>/decisions.md` para alimentar `design.md`, `proposal.md` y los `spec.md`.
+1. **Pre-flight de dudas**: antes de generar los specs, el agente revisa el contexto disponible (objetivo del usuario, `docs/`, `README.md`, `config.yaml`, `AGENTS.md`, `CLAUDE.md`, roadmap si existe y cambios OpenSpec previos) y plantea al usuario las dudas reales que afecten al alcance y al diseño del cambio. Las **bloqueantes se preguntan siempre, sin límite**; las preferencias y confirmaciones se acotan por proyecto (sección `preflight` de `openspec/config.yaml`). Las respuestas se persisten en `openspec/changes/<change>/decisions.md` para alimentar `design.md`, `proposal.md` y los `spec.md`.
 2. **Creación del cambio**:
 
    ```bash
@@ -115,7 +115,7 @@ Tras crear el cambio, el agente evalua si los diagramas aportan comprension real
 Comportamientos clave del pre-flight:
 
 - No pregunta lo que ya esté resuelto en el objetivo del usuario, en `docs/` (incluido `docs/roadmap.md` si existe), convenciones del repo (`README.md`, `CLAUDE.md`, `AGENTS.md`, `config.yaml`) ni en cambios OpenSpec previos relacionados.
-- Clasifica cada duda como `bloqueante`, `preferencia` o `confirmacion`. Prioriza las `bloqueantes` (alcance, dominios afectados, integraciones, modelo de datos, criterios de aceptación) y agrupa las relacionadas en una sola pregunta de varias opciones.
+- Clasifica cada duda como `bloqueante`, `preferencia` o `confirmacion`. Las `bloqueantes` (alcance, dominios afectados, integraciones, modelo de datos, criterios de aceptación) **se plantean todas**: no se descartan ni se sustituyen por una recomendación automática. Si la interfaz no admite tantas preguntas de una vez, se divide en tandas.
 - Si la plataforma soporta preguntas estructuradas con opciones (por ejemplo `AskUserQuestion` en Claude Code), las usa con una opción marcada `(Recomendada)`. En caso contrario presenta una lista numerada en texto plano.
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, marca cada decisión con `Origen: auto-default` y, si hay `bloqueantes` sin default seguro, detiene el comando sin ejecutar `openspec new change`.
 - Si tras la lectura inicial no detecta dudas reales, registra una única entrada con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`, y procede a crear el cambio.
@@ -124,7 +124,7 @@ Comportamientos clave del pre-flight:
 
 Implementa un cambio en dos fases:
 
-1. **Pre-flight de dudas**: antes de tocar codigo, el agente lee `design.md`, `proposal.md`, los `spec.md` y, si existen, `tasks.md` y `decisions.md` previos del cambio. Detecta dudas reales que afecten a la implementacion, las clasifica como `bloqueante`, `preferencia` o `confirmacion`, y pregunta al usuario con un presupuesto maximo de `7` dudas por cambio. Las respuestas se persisten en `openspec/changes/<change>/decisions.md`.
+1. **Pre-flight de dudas**: antes de tocar codigo, el agente lee `design.md`, `proposal.md`, los `spec.md` y, si existen, `tasks.md` y `decisions.md` previos del cambio. Detecta dudas reales que afecten a la implementacion y las clasifica como `bloqueante`, `preferencia` o `confirmacion`. **El pre-flight es el mismo para ambos comandos**: una sola seccion del `SKILL.md` con variantes `[APERTURA]` / `[IMPLEMENTACION]`, para que las reglas no se desincronicen. Las respuestas se persisten en `openspec/changes/<change>/decisions.md`.
 2. **Aplicacion de instrucciones**:
 
    ```bash
