@@ -4,6 +4,22 @@ Skill para trabajar con especificaciones Native AI usando OpenSpec y coordinar l
 
 > **Alias legacy**: todo comando `aisdd <cmd>` tiene un alias equivalente `native-ai <cmd>` (herencia del antiguo plugin `sdd`). Los proyectos ya iniciados con `native-ai ...` siguen funcionando sin cambios; el prefijo primario y recomendado es `aisdd`.
 
+## Estructura del skill
+
+`SKILL.md` es el **indice**: reglas comunes, presupuesto de contexto y una tabla de que leer para cada tarea. El detalle vive en `references/`, un fichero por comando, y **se carga bajo demanda**.
+
+```
+SKILL.md                    indice + reglas comunes  (94 lineas)
+references/
+  init.md  roadmap.md  parallelism.md  preflight.md
+  open-change.md  implement-change.md  close-change.md  lane.md
+  prototype-ux.md  uml.md  jira.md  audit.md  scripts.md
+scripts/
+  audit.py  agents_block.py  check_mojibake.py
+```
+
+Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 % no aplicara al comando en curso.
+
 ## Resumen comandos
 
 1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
