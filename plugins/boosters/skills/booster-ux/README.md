@@ -121,8 +121,10 @@ El skill **no depende** de tener instalados los skills `impeccable` ni `web-desi
 
 ```text
 booster-ux/
-├── SKILL.md     ← workflow y filosofía
-└── README.md    ← este archivo
+├── SKILL.md                ← workflow y filosofía
+├── README.md               ← este archivo
+├── CONTROL-DE-CAMBIOS.md   ← historial de versiones del skill
+└── TODO.md                 ← pendientes conocidos
 ```
 
 ## Recommended Next Step

@@ -38,7 +38,7 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 
 > `aidd metrics` no es un paso del método: es una capa de observación, **independiente del resto y ejecutable en cualquier momento**. No produce nada que consuma otro comando y no bloquea ninguna fase. Por eso vive aquí y no en la metodología. Ver [Registro de actividad](#registro-de-actividad-opt-in).
 
-### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, skills `aisdd-specs` y `aisdd-amend`)
+### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, 9 comandos, skills `aisdd-specs` y `aisdd-amend`)
 
 > Comandos primarios `aisdd …`; los `native-ai …` siguen funcionando como **alias legacy**. Antes se llamaba plugin `sdd`.
 
