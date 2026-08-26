@@ -10,7 +10,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | Plugin | Contenido | Para qué sirve |
 |--------|-----------|----------------|
 | `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
-| `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
+| `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `aisdd`.** |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
@@ -44,7 +44,7 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 
 | Fase | Comando | Rol | Genera / hace |
 |------|---------|-----|---------------|
-| 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**) |
+| 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**). En **proyecto existente**, siembra además las **specs base** en `openspec/specs/` a partir del código |
 | 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` o `multilane`) |
 | 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
 | 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
@@ -87,6 +87,19 @@ Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `
 - Un solo dev, o sin base para separar superficies → **`atomic`**.
 
 Detalle completo, con un ejemplo del mismo proyecto faseado en los tres modos y sus calendarios reales, en **§3.bis** de `plugins/aisdd/methodology/native-ai-aidd-sdd.md` (y su `.html` hermano).
+
+#### Arrancar sobre un proyecto que ya existe
+
+`aisdd init` pregunta si el desarrollo es nuevo o ya está en marcha. Si está en marcha, analiza el código y la documentación y **siembra las specs base** en `openspec/specs/<capability>/spec.md`: una fotografía del comportamiento **actual real**, no del ideal.
+
+Sin esa línea base, el primer `open change` no puede saber qué existe ya y acaba especificando de cero lo que el código lleva meses haciendo.
+
+- Lo que no se puede inferir con certeza se marca **`UNKNOWN`** — es la salida honesta, no un fallo.
+- Lo que no sigue buenas prácticas se marca **`LEGACY`**: es deuda técnica identificada, e insumo directo del roadmap.
+- Cuando el código y la documentación discrepan, **manda el código**.
+- Antes de escribir nada se acuerda el **alcance** y se propone la **lista de capacidades** para que la confirmes. No sobrescribe specs que ya existan.
+
+A partir de ahí el flujo es el normal: `aisdd roadmap` para fasear lo pendiente y el ciclo de changes aplicando **deltas sobre esas specs base**.
 
 #### Cuánto pregunta el pre-flight
 

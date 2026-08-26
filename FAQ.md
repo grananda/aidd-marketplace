@@ -13,6 +13,8 @@ aisdd init  →  aisdd roadmap  →  por cada change:
                                    aisdd close change     (archivo · Jira: → Done)
 ```
 
+En **proyecto ya existente**, `aisdd init` añade un paso antes: analiza el código y siembra las **specs base** en `openspec/specs/`, para que los changes apliquen deltas sobre el estado real en vez de partir de cero. Con roadmaps `multilane`, cada dev elige su línea con `aisdd lane switch` y el ciclo corre **una vez por lane, en paralelo**.
+
 ---
 
 ## ¿Qué se crea con un `aisdd open change <slug>`?
