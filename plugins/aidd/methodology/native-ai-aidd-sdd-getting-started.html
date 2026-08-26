@@ -294,7 +294,12 @@ aisdd close change alta-de-clientes</code></pre>
 <section class="doc-section" id="6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar">
 <h2><a class="anchor" href="#6-el-pre-flight-de-dudas-lo-que-m-s-sorprende-al-empezar" aria-label="Enlace">#</a>6. El pre-flight de dudas (lo que más sorprende al empezar)</h2>
 <p><code>open change</code> e <code>implement change</code> <strong>no actúan a ciegas</strong>: antes preguntan.</p>
-<ul><li>Máximo <strong>7 preguntas</strong> por change, priorizando las <strong>bloqueantes</strong> (alcance, modelo de datos, contrato de API, integraciones, permisos).</li><li>No repreguntan lo ya resuelto en <code>docs/</code>, <code>AGENTS.md</code> o specs previas.</li><li>Las respuestas se guardan en <code>openspec/changes/&lt;slug&gt;/decisions.md</code>.</li><li>En modo no interactivo aplican el default recomendado y se detienen solo ante bloqueantes sin default seguro.</li></ul>
+<ul><li>Las <strong>bloqueantes</strong> (alcance, modelo de datos, contrato de API, integraciones, permisos) <strong>se preguntan todas, sin límite</strong>: sin ellas no hay spec sólido.</li><li>Cuántas <strong>preferencias</strong> y <strong>confirmaciones</strong> se plantean lo decide cada proyecto en <code>openspec/config.yaml</code>:</li></ul>
+<pre><code>  preflight:
+    preferencias: all      # all | entero &gt;= 0
+    confirmaciones: all</code></pre>
+<p>Lo que queda fuera del límite no se pierde: se resuelve con el default recomendado y queda registrado con <code>Origen: auto-default</code>.</p>
+<ul><li>No repreguntan lo ya resuelto en <code>docs/</code>, <code>AGENTS.md</code> o specs previas.</li><li>Las respuestas se guardan en <code>openspec/changes/&lt;slug&gt;/decisions.md</code>.</li><li>En modo no interactivo aplican el default recomendado y se detienen solo ante bloqueantes sin default seguro.</li></ul>
 <p><strong>Tu trabajo durante el pre-flight:</strong> responder con criterio. Si una duda es de arquitectura, el Developer la <strong>eleva</strong> (no la inventa).</p>
 <hr>
 </section>

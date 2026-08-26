@@ -22,7 +22,7 @@ El objetivo es garantizar **coherencia** entre lo que se define, lo que se dise�
 
 En esta versión, toda la operación sobre especificaciones se canaliza a través del skill **`aisdd-specs`**, que envuelve OpenSpec con tres capas adicionales:
 
-1. **Pre-flight de dudas** — antes de abrir o implementar un change, el agente resuelve ambigüedades reales con el humano (máximo 7 preguntas) y las persiste en `decisions.md`. El *human-in-the-loop* deja de ser una recomendación: es un paso ejecutable del comando.
+1. **Pre-flight de dudas** — antes de abrir o implementar un change, el agente resuelve ambigüedades reales con el humano y las persiste en `decisions.md`. Las **bloqueantes se preguntan siempre, sin límite** —son, por definición, aquellas sin las que no se puede producir un spec sólido—; cuántas preferencias y confirmaciones se plantean lo fija cada proyecto. El *human-in-the-loop* deja de ser una recomendación: es un paso ejecutable del comando.
 2. **Roadmap consciente del contexto** — la planificación se adapta al **presupuesto de contexto** del modelo (bajo/medio/alto): a menor ventana útil, más fases y más estrechas.
 3. **Auditoría obligatoria** — cada comando deja una entrada estructurada con hashes de entrada/salida, versión de prompt, modelo y decisiones humanas en `openspec/audit/`.
 

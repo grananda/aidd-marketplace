@@ -208,7 +208,16 @@ Repite el Paso 5 para cada fase del roadmap hasta terminar.
 
 `open change` e `implement change` **no actúan a ciegas**: antes preguntan.
 
-- Máximo **7 preguntas** por change, priorizando las **bloqueantes** (alcance, modelo de datos, contrato de API, integraciones, permisos).
+- Las **bloqueantes** (alcance, modelo de datos, contrato de API, integraciones, permisos) **se preguntan todas, sin límite**: sin ellas no hay spec sólido.
+- Cuántas **preferencias** y **confirmaciones** se plantean lo decide cada proyecto en `openspec/config.yaml`:
+
+  ```yaml
+  preflight:
+    preferencias: all      # all | entero >= 0
+    confirmaciones: all
+  ```
+
+  Lo que queda fuera del límite no se pierde: se resuelve con el default recomendado y queda registrado con `Origen: auto-default`.
 - No repreguntan lo ya resuelto en `docs/`, `AGENTS.md` o specs previas.
 - Las respuestas se guardan en `openspec/changes/<slug>/decisions.md`.
 - En modo no interactivo aplican el default recomendado y se detienen solo ante bloqueantes sin default seguro.
