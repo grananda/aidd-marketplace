@@ -9,7 +9,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-01 | `aisdd review change` — paso de revisión con Jira In Review + aiad-review | aisdd, aiad | propuesta | 2026-07-11 |
 | F-02 | Paralelismo en el faseado: tres modos (`atomic` / `waves` / `multilane`) | aisdd, aidd, boosters | **implementada** | 2026-08-25 |
 | F-03 | Pre-flight configurable por proyecto (bloqueantes sin límite) | aisdd | **implementada** | 2026-08-26 |
-| F-04 | Onboarding de proyecto existente: `init` siembra specs base | aisdd | aceptada | 2026-08-26 |
+| F-04 | Onboarding de proyecto existente: `init` siembra specs base | aisdd | **implementada** | 2026-08-26 |
 | F-05 | Scripts deterministas para auditoría y bloques de `AGENTS.md` | aisdd | aceptada | 2026-08-26 |
 | F-06 | Enrutado del Outcome Validator: ¿al Developer o al Lead? | aisdd | propuesta | 2026-08-26 |
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | aceptada | 2026-08-26 |
@@ -72,7 +72,7 @@ De paso unifica los dos pre-flights duplicados en una sola sección con variante
 
 ## F-04 — Onboarding de proyecto existente
 
-**Estado:** aceptada · **Origen:** decisiones 011 y 012 de `native-ai-specs` v1.6.0
+**Estado:** implementada · **Versión:** `aisdd` 1.11.0 · **Origen:** decisiones 011 y 012 de `native-ai-specs` v1.6.0
 
 Hoy `aisdd init` sobre un repo en marcha solo registra rutas de documentación en `config.yaml`: se arranca **sin línea base** contra la que contrastar, así que el primer `open change` no tiene con qué comparar.
 
