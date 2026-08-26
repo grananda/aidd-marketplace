@@ -288,7 +288,10 @@ No confundir con una barrera: si lo que falta es **código o un artefacto** del 
 | Un solo dev de implementación | `atomic` |
 | Varios devs, y `arquitectura-base.md` da módulos con rutas disjuntas | `multilane` |
 | Varios devs, pero sin base para declarar superficies disjuntas | `waves`, asumiendo sus límites |
+| **Roadmap ya diseñado y validado que no se quiere alterar** | **`waves` anotado** — no toca el faseado |
 | El contrato compartido no se puede fijar antes de arrancar | `atomic` |
+
+Ese cuarto caso es el que mejor distingue a los dos: como la oleada es una **anotación**, se puede añadir a un roadmap existente sin regenerarlo — conserva nombres de fase y `change_hint`, así que no rompe el enlace con el sprint-plan ni con Jira. Los lanes **no se pueden anotar**: retrofitarlos exige re-fasear, porque el corte determina qué entra en cada fase.
 
 `atomic` no es el modo degradado: es el correcto cuando el corte no es defendible. Y `waves` no es un `multilane` de segunda: es la opción honesta cuando quieres paralelizar sin poder prometer aislamiento — siempre que el equipo sepa que la garantía no está.
 
