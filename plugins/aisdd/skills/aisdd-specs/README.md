@@ -207,6 +207,20 @@ aisdd uml alta-clientes-portal
 aisdd close change alta-clientes-portal
 ```
 
+## Scripts del skill
+
+Tres scripts en `scripts/`, solo con biblioteca estandar de Python 3:
+
+| Script | Que hace |
+|---|---|
+| `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
+| `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
+| `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252 en los artefactos escritos |
+
+Cubren las tres mecanicas que antes eran prosa que el agente debia ejecutar bien **cada vez**. Son exactas o no son, y una equivocacion no deja rastro de cuando ocurrio.
+
+**Degradacion**: si Python no esta disponible o el script falla, el comando no se bloquea — el agente hace el trabajo segun la prosa del `SKILL.md`, que se mantiene como especificacion, y lo dice en el resumen.
+
 ## Auditoria y trazabilidad
 
 Cada invocacion de cualquier comando que toque artefactos del proyecto escribe una entrada estructurada en JSON Lines bajo `openspec/audit/YYYY-MM.jsonl` (`aisdd lane` queda fuera: solo mueve un puntero local del dev) (un fichero por mes natural, modo append-only). El objetivo es permitir auditorias futuras del uso del skill.

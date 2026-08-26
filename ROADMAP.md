@@ -10,7 +10,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-02 | Paralelismo en el faseado: tres modos (`atomic` / `waves` / `multilane`) | aisdd, aidd, boosters | **implementada** | 2026-08-25 |
 | F-03 | Pre-flight configurable por proyecto (bloqueantes sin límite) | aisdd | **implementada** | 2026-08-26 |
 | F-04 | Onboarding de proyecto existente: `init` siembra specs base | aisdd | **implementada** | 2026-08-26 |
-| F-05 | Scripts deterministas para auditoría y bloques de `AGENTS.md` | aisdd | aceptada | 2026-08-26 |
+| F-05 | Scripts deterministas para auditoría y bloques de `AGENTS.md` | aisdd | **implementada** | 2026-08-26 |
 | F-06 | Enrutado del Outcome Validator: ¿al Developer o al Lead? | aisdd | propuesta | 2026-08-26 |
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | aceptada | 2026-08-26 |
 
@@ -81,7 +81,7 @@ Hoy `aisdd init` sobre un repo en marcha solo registra rutas de documentación e
 
 ## F-05 — Scripts deterministas
 
-**Estado:** aceptada · **Origen:** `scripts/*.js` de `native-ai-specs` v1.6.0 (a portar a **Python**, que es lo que usa este repo)
+**Estado:** implementada · **Versión:** `aisdd` 1.12.0 · **Origen:** `scripts/*.js` de `native-ai-specs` v1.6.0, portados a **Python** (que es lo que usa este repo: 6 scripts, ninguno JS)
 
 Hoy la entrada de auditoría JSONL y los bloques idempotentes de `AGENTS.md` son **prosa que el modelo debe ejecutar bien cada vez**. Ya son dos bloques (comandos + roadmap) y el formato de auditoría tiene una docena de campos.
 
