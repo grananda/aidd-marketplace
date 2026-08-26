@@ -91,21 +91,41 @@ DEFINITION PHASE
       │
       ▼  (aprobación humana)
 EXECUTION PHASE  ◄─────────────────────────────── KO ─┐
-  Back AI Lead  (open change → specs validados) ──► Back AI Dev
-  Front AI Lead (open change → specs validados) ──► Front AI Dev
-  AI Dev: implement change + verificación + fix bugs   │
-      │                                                │
-      ▼  (por cada change)                             │
+                                                       │
+  ── modo atómico (un solo hilo) ──                     │
+  AI Lead (open change → specs validados) ──► AI Dev    │
+                                                       │
+  ── modo multilane (un hilo por lane) ──               │
+  F0 / barrera FB-NN: bloquea TODOS los lanes           │
+      │                                                 │
+      ├─ lane `back`  ──► Back AI Lead ──► Back AI Dev   │
+      ├─ lane `front` ──► Front AI Lead ──► Front AI Dev │
+      └─ lane `…`     ──► AI Lead      ──► AI Dev        │
+         (en paralelo; un change abierto POR LANE)       │
+                                                       │
+  AI Dev: implement change + verificación + fix bugs    │
+      │                                                 │
+      ▼  (por cada change)                              │
 VALIDATION PHASE ──────────────────────────────────────┘
   Outcome Validator
   → Validación técnica + funcional
   → Aprobación de Merge Request
-  → aisdd close change
-  → Entrega al cliente
+  → aisdd close change  (verifica que el change no salió de su lane)
       │
       ▼ (OK)
-  Siguiente change ──► AI Lead (aisdd open change) ──► AI Dev
+  Siguiente change del MISMO lane ──► AI Lead (aisdd open change) ──► AI Dev
+  Los demás lanes no se detienen: siguen su propio ciclo en paralelo.
 ```
+
+> **Los tres modos.** El faseado por defecto es **atómico**: un único change abierto en todo el proyecto. `aisdd roadmap` ofrece además dos formas de paralelizar, y la elección es explícita:
+>
+> | Modo | Qué paraleliza | Garantía |
+> |---|---|---|
+> | **`atomic`** | Nada | Total, por construcción |
+> | **`waves`** (oleadas) | Hasta `N` fases a la vez, una por dev, respetando dependencias | **Ninguna** — ordena, no protege |
+> | **`multilane`** (lanes) | `N` líneas persistentes con rutas y specs disjuntas | Declarada y **verificada** al cerrar |
+>
+> El invariante que protege la metodología no cambia en `multilane`: dentro de cada superficie de decisión sigue habiendo **un solo hilo**; lo que se paraleliza son las superficies. En `waves` ese invariante **no lo protege el tooling** — se confía en el criterio del arquitecto al fasear. Ver §3.bis.
 
 ---
 
@@ -132,6 +152,8 @@ El rol de mayor nivel conceptual. Combina Product Owner y arquitecto de producto
 
 En proyectos full stack, el AI Lead se desdobla en **Front AI Lead** y **Back AI Lead**, cada uno responsable de su capa. **No implementa código.**
 
+> En roadmaps **multilane** (§3.bis) el desdoble deja de ser solo organizativo: cada Lead conduce **su lane**, con un change abierto propio, en paralelo con los demás. Las fases `F0` y las barreras `FB-NN` no pertenecen a ningún lane — las abre el Lead que posea el contrato compartido, y detienen a todos.
+
 | Responsabilidad | Comandos / Detalle |
 |---|---|
 | **Inicializa Native AI Specs** | Ejecuta `aisdd init`: instala/verifica OpenSpec, comprueba `booster-ux`/`booster-uml`, registra los comandos en `AGENTS.md` y vuelca el contexto inicial a `openspec/config.yaml` |
@@ -146,6 +168,8 @@ En proyectos full stack, el AI Lead se desdobla en **Front AI Lead** y **Back AI
 ### AI Developer (Front / Back)
 
 Implementa el código a partir de los specs **ya abiertos y validados por el AI Lead**. **No abre changes. No toma decisiones de arquitectura. No habla con el Lead directamente.**
+
+> En modo **multilane**, cada Dev trabaja sobre el lane que tenga activo (`aisdd lane switch`) y solo escribe dentro de las **rutas de ese lane** — `aisdd close change` lo verifica. Si durante la implementación descubre que el **contrato compartido** es insuficiente, eso no se arregla sobre la marcha: es una corrección de **nivel 4**, se detiene y se escala al dueño del contrato, porque otros lanes están construyendo sobre ese mismo supuesto.
 
 | Responsabilidad | Comandos / Detalle |
 |---|---|
@@ -188,6 +212,205 @@ Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadm
 | **Hace consumible el plan por un equipo Scrum** | Traduce la planificación AI-native a recursos y calendario que un equipo humano gestiona en su día a día |
 
 > Capa **autónoma de OpenSpec**: parte de los documentos (`arquitectura-base.md`, `roadmap.md`, detalle de historias). Si existen changes de OpenSpec, los usa como detalle adicional, pero la unidad de planificación sigue siendo el change/historia del roadmap. En equipos pequeños, el AI Delivery Manager puede ser el mismo humano que actúa de AI Lead.
+
+---
+
+## 3.bis. Paralelismo: oleadas y lanes
+
+### El problema
+
+El ciclo `open change → implement change → close change` es **secuencial por diseño**, y la razón es real: al cerrar un change se consolidan sus decisiones en `decisions.md`. Dos changes vivos sobre la **misma superficie de decisión** producirían specs que se contradicen, y nada lo detectaría.
+
+El efecto colateral aparece en cuanto el equipo crece. Con el desdoble Front/Back de roles, un change que solo toca backend deja al **Front AI Dev parado**, y viceversa. Que un Lead espere es coherente —su trabajo es especificar, no implementar—; que un Dev espere no lo es. La metodología escalaba con el **tamaño del change**, no con el **tamaño del equipo**.
+
+### Dos soluciones, distinta garantía
+
+Hay dos formas de paralelizar, y conviene no confundirlas porque protegen cosas distintas.
+
+**Oleadas (`waves`).** El roadmap pregunta cuántos AI Developers trabajan en paralelo (`parallel_developers`) y agrupa las fases en **tandas**: dentro de cada oleada caben hasta `N` fases sin dependencias entre sí, una por developer; la siguiente oleada no arranca hasta que la actual cierra. Es un artefacto de **planificación**: resuelve el **orden** y hace visible cuánto trabajo puede correr a la vez.
+
+Lo que las oleadas **no** hacen: no declaran qué toca cada fase, no verifican nada al cerrar, y ningún comando de ejecución las conoce. Que dos fases de la misma oleada no se pisen es responsabilidad de quien fasea. Es un intercambio legítimo —cero ceremonia, cero red de seguridad— y por eso el modo se elige explícitamente.
+
+**Lanes (`multilane`).** La solución cuando esa red de seguridad hace falta.
+
+### La solución de los lanes: fraccionar la superficie, no el hilo
+
+`aisdd roadmap` puede generar el roadmap en **modo multilane**: fraccionado en **lanes** (líneas de trabajo) cuyas superficies de decisión son **disjuntas**. Dentro de cada lane sigue habiendo **un único hilo**; lo que corre en paralelo son los lanes entre sí.
+
+El invariante se conserva palabra por palabra: *ningún change trabaja sobre decisiones que desconoce*. Simplemente deja de haber una sola superficie.
+
+### Anatomía
+
+| Tipo de fase | Identificador | Concurrencia |
+|---|---|---|
+| **Foundation** | `F0` | Secuencial. Bloquea todos los lanes. |
+| **Fase de lane** | `F-<lane-id>-NN` (p. ej. `F-Data-Manager-01`) | Paralela entre lanes; secuencial dentro de un lane. |
+| **Barrera** | `FB-NN` | Secuencial. Bloquea **todos** los lanes. |
+
+`F0` y las barreras son los únicos momentos en que el proyecto vuelve a ser mono-hilo. Todo lo que afecte a más de un lane —cambio de contrato, migración, permisos, rollout— pertenece a una barrera, nunca a una fase de lane.
+
+### Las tres condiciones
+
+Un corte en lanes solo es válido si se cumplen las tres. Si alguna falla, el modo correcto es `atomic`:
+
+1. **Rutas disjuntas.** Cada lane declara sus rutas de código; ninguna se solapa. `aisdd close change` lo **verifica** antes de archivar.
+2. **Specs disjuntas.** Ningún `spec.md` lo escriben dos lanes.
+3. **Contrato previo.** Lo que los lanes comparten —esquema de datos, contrato de API, eventos, tipos— queda fijado **antes** de que arranquen, en `F0` o en una barrera, y tiene **dueño**.
+
+La tercera es la que hace el trabajo. Back y front no son independientes por naturaleza: se **fabrica** su independencia con un contrato acordado de antemano, que es exactamente cómo la industria lleva décadas separando ambas capas. Sin contrato previo no hay lanes, hay dos equipos descoordinados.
+
+### Criterio de corte
+
+**Primero la independencia técnica; el rol del dev solo como desempate** cuando hay varios cortes técnicamente válidos. Nunca al revés: un corte que respeta el organigrama pero deja rutas compartidas no es un compromiso aceptable, es un corte inválido.
+
+Advertencia práctica: **`data` rara vez es un lane separado de `back`** — comparten esquema y migraciones, luego comparten superficie de decisión. Los cortes limpios suelen ser pocos y grandes, no muchos y finos. Y el número de lanes viable nunca supera el número de devs de implementación disponibles: un lane sin quien lo conduzca no aporta paralelismo y sí una superficie más que vigilar.
+
+### Qué cambia en la operativa
+
+Con `waves`, **nada**: la oleada vive solo en el roadmap y ningún comando de ejecución la conoce. Ese es su límite y su virtud — se adopta sin tocar la forma de trabajar.
+
+Con `multilane`, cinco cosas:
+
+- **`aisdd lane [list | switch | status]`** selecciona la línea de trabajo activa, igual que `git switch` selecciona rama. Es estado **local de cada dev** (`openspec/.lane`, ignorado por git), lo que permite que una misma persona salte entre lanes.
+- **`aisdd open change`** admite un change abierto **por lane**, y rechaza abrir un segundo en el mismo. Una barrera exige que **ningún** lane tenga trabajo en vuelo.
+- **`aisdd close change`** comprueba que el change no escribió fuera de las rutas de su lane. Es donde la independencia deja de ser una promesa del faseado.
+- **Correcciones nivel 4**: una corrección que toca el contrato compartido **no es local**. Es una **parada coordinada** de los lanes hermanos y una revisión del contrato por su dueño. Cuesta caro a propósito: si fuera barato, los lanes podrían contradecirse gratis.
+- **`aidd sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
+
+### Lanes con dependencias
+
+Los lanes se prefieren **independientes**, y esa sigue siendo la primera opción. Pero forzar la independencia total donde el dominio no la permite lleva a inventar barreras artificiales —que serializan más de lo necesario— o a renunciar al paralelismo. Por eso hay un escalón intermedio: una fase de un lane puede declarar `depends_on` sobre una fase de otro.
+
+Se acepta si es **puntual** (no la relación entre los dos lanes: si B espera a A casi siempre, no son dos lanes, fusiónalos), **acíclica**, **con coste explícito** (cuánto espera el lane destino y qué hace mientras) y —lo importante— **sin compartir rutas**: una dependencia es de **orden**, nunca de **superficie**. El lane que espera sigue escribiendo solo en lo suyo.
+
+No confundir con una barrera: si lo que falta es **código o un artefacto** del otro lane, es una dependencia y solo detiene al lane destino; si lo que cambia es **el contrato**, es una barrera y los detiene a todos. Modelar como barrera lo que era una dependencia para a gente que no tenía por qué parar.
+
+### Un ejemplo completo: el mismo proyecto en los tres modos
+
+Portal de alta de clientes, **3 developers**, seis bloques de trabajo:
+
+| | Bloque | Esfuerzo | Toca |
+|---|---|---|---|
+| **A** | Contratos y modelo de datos | 2 d | esquema + tipos compartidos |
+| **B** | API de alta | 5 d | `backend/` |
+| **C** | UI de alta | 4 d | `frontend/` |
+| **D** | Importador CSV | 3 d | `services/import/` |
+| **E** | Permisos y roles | 2 d | los tres |
+| **F** | Observabilidad y rollout | 2 d | los tres |
+
+**Cómo se llama cada bloque en cada modo.** Conviene tenerlo delante, porque es la principal fuente de confusión: `atomic` y `waves` comparten numeración (la oleada es un campo aparte, no cambia el nombre), mientras que `multilane` **renombra** —el identificador tiene que decir a qué línea pertenece la fase, y las que tocan lo compartido pasan a ser barreras:
+
+| Bloque | `atomic` | `waves` | `multilane` |
+|---|---|---|---|
+| A | `F1` | `F1` · oleada 1 | `F0` (barrera) |
+| B | `F2` | `F2` · oleada 2 | `F-api-01` |
+| C | `F3` | `F3` · oleada 2 | `F-portal-01` |
+| D | `F4` | `F4` · oleada 2 | `F-import-01` |
+| E | `F5` | `F5` · oleada 3 | `FB-01` (barrera) |
+| F | `F6` | `F6` · oleada 4 | `FB-02` (barrera) |
+
+#### `atomic` — 18 días, 1 dev activo
+
+```
+A·F1 ──► B·F2 ──► C·F3 ──► D·F4 ──► E·F5 ──► F·F6
+ 2d       5d       4d       3d       2d       2d
+```
+
+Dos developers mirando durante todo el proyecto.
+
+#### `waves` — 11 días, 3 devs
+
+```
+Oleada 1 (1/3)   A·F1  contratos                              2d
+                       depends_on: []
+                       │
+Oleada 2 (3/3)   B·F2  API    C·F3  UI    D·F4  import        5d  ← max(5,4,3)
+                       depends_on: [F1] los tres
+                       │
+Oleada 3 (1/3)   E·F5  permisos                               2d
+                       depends_on: [F2,F3,F4]
+                       │
+Oleada 4 (1/3)   F·F6  rollout                                2d
+```
+
+Mismos nombres que en `atomic`; lo único que se añade es en qué oleada cae cada fase.
+
+**Dónde falla.** Nada dice que B y D no escriban los dos en `backend/clientes/service.ts`. Si lo hacen, dos devs se pisan y **nadie avisó** — ni al fasear, ni al abrir, ni al cerrar. Y si el dev de B descubre que el contrato de A se queda corto, lo corrige en su change: C y D siguen construyendo sobre el contrato viejo sin enterarse.
+
+Las oleadas 3 y 4 son de ancho 1: dos devs ociosos ahí. La oleada al menos lo hace **visible** (`1/3`).
+
+#### `multilane` — 11 días, 3 devs
+
+```
+A·F0  contratos ─────────────────────────────────  2d   BARRERA
+        │
+        ├─ lane api      B·F-api-01     API        5d   paths: backend/
+        ├─ lane portal   C·F-portal-01  UI         4d   paths: frontend/
+        └─ lane import   D·F-import-01  import     3d   paths: services/import/
+        │
+E·FB-01  permisos ───────────────────────────────  2d   BARRERA
+F·FB-02  rollout ────────────────────────────────  2d   BARRERA
+```
+
+La forma es **idéntica** a la de `waves`: mismos bloques, mismo orden, mismos 11 días. Lo único que cambia es que B, C y D declaran **de quién son** (`paths`), y A, E y F —que tocan lo compartido— se convierten en barreras en vez de ser oleadas de ancho 1.
+
+**Dónde muerde la red.** Si `F-import-01` escribe en `backend/clientes/`, `aisdd close change` **falla** y nombra el fichero: o va al lane `api`, o sube a barrera. Y si el dev de `api` ve que el contrato se queda corto, es **nivel 4**: para a `portal` e `import` y lo revisa el dueño del contrato.
+
+#### El resultado
+
+| | `atomic` | `waves` | `multilane` |
+|---|---|---|---|
+| Calendario | 18 d | **11 d** | **11 d** |
+| Devs ocupados en el tramo ancho | 1 | 3 | 3 |
+| ¿Detecta colisión de ficheros? | n/a | **No** | Sí, al cerrar |
+| ¿Un cambio de contrato alcanza a los demás? | n/a | **No** | Sí |
+| Ceremonia | Ninguna | Baja | Media |
+
+**El calendario es idéntico.** Oleadas y lanes llegan al mismo sitio en el mismo tiempo. Lo que cambia es si hay red debajo. Por eso la pregunta no es cuál es mejor, sino **cuánta garantía quieres pagar**.
+
+### Los dos ejes: por qué no compiten
+
+```
+                Oleada 1    Oleada 2         Oleada 3    Oleada 4
+                ───────────────────────────────────────────────────
+lane api        │          │ B·F-api-01    │           │          │
+lane portal     │  A·F0    │ C·F-portal-01 │  E·FB-01  │ F·FB-02  │
+lane import     │          │ D·F-import-01 │           │          │
+                ───────────────────────────────────────────────────
+                   1/3          3/3            1/3        1/3
+```
+
+**Columnas = oleadas** (cuándo). **Filas = lanes** (quién y dónde). A, E y F ocupan toda la columna porque tocan lo compartido: son a la vez oleada de ancho 1 y barrera — de hecho **una barrera no es más que una oleada de ancho 1 con propiedad declarada**.
+
+Se ve entonces que no son alternativas sino ejes perpendiculares: adoptar «solo oleadas» es **quedarse con las columnas y borrar las filas**. Se conserva el calendario; se pierde saber que B solo puede escribir en `backend/` y que alguien lo comprueba.
+
+Tres pruebas para no confundirlos nunca más:
+
+| Pregunta | Oleada | Lane |
+|---|---|---|
+| ¿Puedo borrarlo y recuperar el roadmap original? | **Sí** — es un campo más | **No** — cambió qué entra en cada fase |
+| ¿Cuándo se decide? | **Después** de fasear | **Antes** de fasear |
+| ¿Se puede calcular? | **Sí** — dame `depends_on` y `N` | **No** — hace falta criterio de dominio |
+
+De ahí la consecuencia práctica más útil: **las oleadas se pueden añadir a un roadmap ya hecho sin tocarlo** (`aisdd roadmap` → *anotar*), conservando nombres de fase y `change_hint`, así que no rompen el enlace con el sprint-plan ni con Jira. Los lanes no: retrofitarlos exige re-fasear.
+
+### Cómo elegir modo
+
+| Situación | Modo |
+|---|---|
+| Un solo dev de implementación | `atomic` |
+| Varios devs, y `arquitectura-base.md` da módulos con rutas disjuntas | `multilane` |
+| Varios devs, pero sin base para declarar superficies disjuntas | `waves`, asumiendo sus límites |
+| **Roadmap ya diseñado y validado que no se quiere alterar** | **`waves` anotado** — no toca el faseado |
+| El contrato compartido no se puede fijar antes de arrancar | `atomic` |
+
+Ese cuarto caso es el que mejor distingue a los dos: como la oleada es una **anotación**, se puede añadir a un roadmap existente sin regenerarlo — conserva nombres de fase y `change_hint`, así que no rompe el enlace con el sprint-plan ni con Jira. Los lanes **no se pueden anotar**: retrofitarlos exige re-fasear, porque el corte determina qué entra en cada fase.
+
+`atomic` no es el modo degradado: es el correcto cuando el corte no es defendible. Y `waves` no es un `multilane` de segunda: es la opción honesta cuando quieres paralelizar sin poder prometer aislamiento — siempre que el equipo sepa que la garantía no está.
+
+**Ninguno de los tres impide abrir un segundo change.** `atomic` y `waves` avisan si lo detectan, pero no bloquean: el riesgo de dos changes vivos sobre la misma superficie sigue existiendo y es deliberado. Solo `multilane` lo cierra, porque es el único que declara qué superficie es de quién. Quien quiera cero riesgo, elige `multilane`; quien elija los otros, asume el riesgo a cambio de menos ceremonia.
+
+> **Jerarquía cuando los criterios chocan.** El **sprint** manda sobre el orden y las fronteras; el **presupuesto de contexto**, sobre el tamaño del change; la preferencia por **changes pequeño-medio** afina dentro de lo que esos dos permiten —nunca parte una fase si con ello rompe una frontera de sprint o saca una HU de su ventana—; y el **modo de paralelismo** reparte lo que los tres anteriores ya decidieron, sin cambiar qué entra en cada fase. Cuando chocan, se registra el conflicto en lugar de romper lo ya decidido.
 
 ---
 

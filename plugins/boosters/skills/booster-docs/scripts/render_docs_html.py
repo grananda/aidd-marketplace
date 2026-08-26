@@ -211,6 +211,19 @@ BLOCKING_RE = re.compile(r"\[\s*BLOQUEANTE\s*\]", re.IGNORECASE)
 # prominent -- a red-orange pill and a top-dashboard KPI, as the old [BLOQUEANTE]
 # marker was -- but with a softer word (it is a requirement, not a blocker).
 ESSENTIAL_RE = re.compile(r"\[\s*(?:IMPRESCINDIBLE|ESENCIAL)\s*\]", re.IGNORECASE)
+# Multilane roadmap phase ids (see aisdd-specs, "Lanes"): F-<lane-id>-NN is a lane
+# phase, FB-NN is a barrier that blocks every lane. F0 (foundation) is a barrier too.
+# Lane ids are kebab-case but real roadmaps capitalize them (F-Data-Manager-01), so
+# the class stays permissive; the trailing digits keep it from eating ordinary prose.
+LANE_PHASE_RE = re.compile(r"\bF-([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)-(\d{1,3})\b")
+BARRIER_PHASE_RE = re.compile(r"\b(FB-\d{1,3}|F0)\b")
+# "[CONFLICTO DE FASEADO]" -- a cross-lane dependency that is neither declared via
+# depends_on nor resolved by a barrier; the sprint plan flags it as a phasing error.
+LANE_CONFLICT_RE = re.compile(r"\[\s*CONFLICTO DE FASEADO\s*\]", re.IGNORECASE)
+# Waves ("oleadas"): the alternative parallelism mode, where phases are grouped into
+# batches of up to parallel_developers instead of persistent lanes. Matches the wave
+# label the roadmap and sprint plan write ("Oleada 2", "oleada 2").
+WAVE_RE = re.compile(r"\bOleadas?\s+(\d{1,2})\b", re.IGNORECASE)
 
 MOSCOW = {
     "must": ("Must", "chip-must"),
@@ -255,6 +268,13 @@ def decorate_chips(escaped: str) -> str:
     escaped = US_ID_RE.sub(r'<span class="chip chip-us">\1</span>', escaped)
     escaped = BLOCKING_RE.sub('<span class="chip chip-block">BLOQUEANTE</span>', escaped)
     escaped = ESSENTIAL_RE.sub('<span class="chip chip-essential">IMPRESCINDIBLE</span>', escaped)
+    # Barriers first: FB-01 would otherwise be left untouched by the lane pattern,
+    # but F0 must not be swallowed by a later pass over already-emitted markup.
+    escaped = BARRIER_PHASE_RE.sub(r'<span class="chip chip-barrier">\1</span>', escaped)
+    escaped = LANE_PHASE_RE.sub(r'<span class="chip chip-lane">F-\1-\2</span>', escaped)
+    escaped = LANE_CONFLICT_RE.sub(
+        '<span class="chip chip-block">CONFLICTO DE FASEADO</span>', escaped)
+    escaped = WAVE_RE.sub(r'<span class="chip chip-barrier">Oleada \1</span>', escaped)
     return escaped
 
 
@@ -384,6 +404,43 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
     open_q = len(re.findall(r"^\s*[-*]\s+", _section_body(markdown, "pregunt"), re.MULTILINE))
     if open_q:
         kpis.append({"value": open_q, "label": "Preguntas abiertas", "tone": "warn"})
+
+    kpis.extend(_lane_kpis(markdown, doc_type))
+
+    return kpis
+
+
+def _lane_kpis(markdown: str, doc_type: str) -> list[dict]:
+    """Lane metrics for multilane roadmaps and the sprint plans built on them.
+
+    Only meaningful where phases carry lane ids, so it stays scoped to the two doc
+    types that name them; anywhere else the F-x-NN pattern would be a false positive.
+    Returns [] for atomic roadmaps -- no lane ids, nothing to report.
+    """
+    if doc_type not in ("roadmap", "sprint-plan"):
+        return []
+
+    # Case-folded: a doc that writes both "F-api-01" and "F-API-02" means one lane,
+    # not two -- the lane id is the same key the roadmap and the sprint plan share.
+    lanes = {m.group(1).lower() for m in LANE_PHASE_RE.finditer(markdown)}
+    waves = {int(m.group(1)) for m in WAVE_RE.finditer(markdown)}
+
+    # waves and lanes are alternative modes, so a doc normally shows one or the other.
+    if not lanes:
+        return ([{"value": len(waves), "label": "Oleadas", "tone": "barrier"}]
+                if waves else [])
+
+    kpis = [{"value": len(lanes), "label": "Lanes", "tone": "lane"}]
+
+    barriers = {b.upper() for b in BARRIER_PHASE_RE.findall(markdown)}
+    if barriers:
+        kpis.append({"value": len(barriers), "label": "Barreras", "tone": "barrier"})
+
+    # A cross-lane dependency outside a barrier is a phasing error, not a note: the
+    # target lane sits blocked waiting, which is the very stall multilane removes.
+    conflicts = len(LANE_CONFLICT_RE.findall(markdown))
+    if conflicts:
+        kpis.append({"value": conflicts, "label": "Conflictos de faseado", "tone": "block"})
 
     return kpis
 
@@ -666,6 +723,7 @@ DARK_VARS = """
         --block: #ff7a8a; --warn: #f6d784; --essential: #ff8f4d;
         --prio-high: #ff6b74; --prio-mid: #ffb340; --prio-low: #7fd07f;
         --eff-xs: #5fd0a8; --eff-s: #7fd07f; --eff-m: #ffb340; --eff-l: #ff6b74; --eff-xl: #ff9aa2;
+        --lane: #8fd694; --barrier: #ffb340;
 """
 
 
@@ -721,6 +779,7 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
       --block: #b00020; --warn: #b58a25; --essential: #e8590c;
       --prio-high: #c1121f; --prio-mid: #d98a00; --prio-low: #4a8a4a;
       --eff-xs: #2f8f6b; --eff-s: #4a8a4a; --eff-m: #d98a00; --eff-l: #c1121f; --eff-xl: #7a0a15;
+      --lane: #2f7d4f; --barrier: #d98a00;
     }}
     @media (prefers-color-scheme: dark) {{
       :root:not([data-theme="light"]) {{ {DARK_VARS} }}
@@ -799,6 +858,8 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .kpi-warn {{ border-left-color: var(--warn); }} .kpi-warn .kpi-value {{ color: var(--warn); }}
     .kpi-muted {{ border-left-color: var(--line-strong); }} .kpi-muted .kpi-value {{ color: var(--muted); }}
     .kpi-eff {{ border-left-color: var(--eff-m); }} .kpi-eff .kpi-value {{ color: var(--eff-m); }}
+    .kpi-lane {{ border-left-color: var(--lane); }} .kpi-lane .kpi-value {{ color: var(--lane); }}
+    .kpi-barrier {{ border-left-color: var(--barrier); }} .kpi-barrier .kpi-value {{ color: var(--barrier); }}
     /* Chips */
     .chip {{ display: inline-block; font-size: .74rem; font-weight: 600; padding: 1px 8px; border-radius: 999px;
       vertical-align: baseline; letter-spacing: .02em; white-space: nowrap;
@@ -808,6 +869,8 @@ def build_html(title: str, doc_type: str, markdown: str) -> str:
     .chip-us {{ color: var(--us); background: color-mix(in srgb, var(--us) 12%, transparent); font-family: "SF Mono",Menlo,monospace; }}
     .chip-block {{ color: #fff; background: var(--block); border-color: var(--block); text-transform: uppercase; letter-spacing: .05em; }}
     .chip-essential {{ color: #fff; background: var(--essential); border-color: var(--essential); text-transform: uppercase; letter-spacing: .05em; }}
+    .chip-lane {{ color: var(--lane); background: color-mix(in srgb, var(--lane) 14%, transparent); font-family: "SF Mono",Menlo,monospace; }}
+    .chip-barrier {{ color: #fff; background: var(--barrier); border-color: var(--barrier); font-family: "SF Mono",Menlo,monospace; }}
     .swatch {{ display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .35em;
       vertical-align: -.12em; border: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
       box-shadow: 0 0 0 1px rgba(255,255,255,.35) inset; }}

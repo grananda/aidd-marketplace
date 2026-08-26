@@ -1,9 +1,9 @@
 ---
 name: aidd-sprint-planning
-description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aidd sprint-planning` (alias `aidd planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aidd hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Soporta los tres modos de faseado del roadmap. En **`waves`** (oleadas) cada oleada es un tramo cuya duracion es el `max` de sus fases y una frontera de sprint natural, y su ancho frente a `parallel_developers` revela los tramos con gente ociosa. En **`multilane`**: cuando el faseado viene repartido en lineas de trabajo paralelas (`F0` / `F-<lane>-NN` / barreras `FB-NN`), el calendario deja de ser una unica cadena critica y pasa a ser el `max` de las cadenas de cada lane entre barreras; **cada sprint toma unidades de varios lanes a la vez**, la carga vs capacidad se declara **por lane** ademas de agregada, las barreras son fronteras de sprint naturales, y se avisa de los lanes sin asignacion (dev parado) y de las dependencias cross-lane fuera de barrera (conflicto de faseado que resuelve `aisdd roadmap`). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.4"
+  version: "1.6.0"
 ---
 
 # aidd-sprint-planning (AIDD · Fase 3.5 · paso 3.5.2 · sprints)
@@ -51,6 +51,8 @@ Criterio de salida del paso: existe `docs/sprint-plan.md` con los sprints defini
 - Si falta `docs/planificacion-proyecto.md`, avisa y propon ejecutar antes `aidd project-plan`; sin recursos no hay capacidad contra la que planificar. Puedes continuar con supuestos de equipo explicitos si el usuario lo pide.
 - Si existen changes de OpenSpec (`openspec/changes/`), usalos como detalle adicional de las unidades de trabajo, pero la unidad de planificacion sigue siendo el change/historia del roadmap.
 - **Respeta dependencias y faseado**: F0 (foundation) antes que F1, F1 antes que F2; respeta prerequisitos entre historias (p. ej. una historia que necesita un habilitador tecnico va despues de el). No partas un change entre sprints.
+- **Roadmaps en oleadas (`waves`)**: si el roadmap declara modo `waves`, las fases vienen agrupadas en **oleadas** de hasta `parallel_developers` fases ejecutables a la vez. Cada **oleada es una frontera de sprint natural** y su ancho te dice cuanta carga puede correr en paralelo en ese tramo. A diferencia de los lanes, las oleadas **no garantizan** que las fases de una misma oleada sean independientes entre si: planifica con ellas, pero no asumas aislamiento — si dos fases de la misma oleada tocan lo mismo, el riesgo es real y va a la seccion 6.
+- **Roadmaps multilane**: si `docs/roadmap.md` declara modo `multilane` (o `openspec/config.yaml` tiene `roadmap.mode: multilane`), el faseado viene repartido en **lanes** — lineas de trabajo paralelas e independientes — con fases `F0`, `F-<lane-id>-NN` y barreras `FB-NN`. Esto cambia el dimensionado de forma sustancial (ver "Dimensionado de sprints"): **un sprint contiene unidades de varios lanes a la vez**, y la capacidad deja de ser una cifra agregada. Si el roadmap no declara lanes, todo lo relativo a lanes de este documento no aplica y planificas como siempre.
 - **Las tallas XS/S/M/L/XL son esfuerzo humano clasico, no calendario del sprint**: si el plan de recursos define la IA como recurso (velocity acelerada por IA), estima el **esfuerzo real** comprimido (la IA genera; lo que cuesta es dirigir, revisar y validar) y planifica con el real, no con el bruto.
 - **No rellenes sprints**: dimensiona a la carga real (ver "Dimensionado de sprints"). No asignes "un change = un sprint" por inercia ni estires la duracion para cubrir una talla bruta. Un sprint muy por debajo de capacidad es una senal de relleno; agrupa unidades o acorta la duracion.
 - No inventes unidades de trabajo nuevas. Distribuyes las que ya existen en roadmap/detalle.
@@ -66,6 +68,8 @@ Lee y consolida: `roadmap.md` (fases/changes, dependencias, riesgo de contexto),
 
 Construye la lista de **unidades de trabajo** (change o historia) con su estimacion y sus dependencias antes de repartir.
 
+**Detecta el modo del roadmap** (`atomic`, `waves` o `multilane`). Busca en `docs/roadmap.md` la declaracion de modo y las secciones "Oleadas", "Lanes" y "Dependencias cross-lane"; si tienes acceso a `openspec/config.yaml`, la clave `roadmap.mode` es la fuente mas fiable (junto con `roadmap.lanes` y el campo `lane` de cada fase). Anota siempre el **`depends_on`** de cada fase: es el grafo con el que construiras la seccion 3, en cualquier modo. Si el modo es `waves`, anota ademas la **oleada** de cada fase y el `parallel_developers` declarado. Si el modo es `multilane`, anota por cada unidad **a que lane pertenece** y marca las fases `F0` y `FB-NN` como **barreras** (bloquean a todos los lanes): esa clasificacion condiciona todo el dimensionado posterior. Si no hay declaracion de modo, trata el roadmap como `atomic`.
+
 ### 1.5 Reconciliacion con el plan de revision de HU
 
 Si existe `docs/plan-revision-hu.md`, este skill **no va por libre**: parte de el. Es la antesala directa del reparto en sprints y del volcado a Jira (sprints + personas envueltas).
@@ -79,7 +83,7 @@ Si existe `docs/plan-revision-hu.md`, este skill **no va por libre**: parte de e
 
 Resuelve solo lo imprescindible para distribuir en sprints.
 
-1. Cubre, como minimo: **duracion del sprint**, **capacidad** (nº de personas/perfiles disponibles por sprint, segun el plan de recursos), **fecha de inicio** y **velocity asumida** (si no hay historica, propon una y marcala como supuesto). Para la velocity, pregunta explicitamente si se planifica con **esfuerzo acelerado por IA** o con **esfuerzo bruto humano**, porque cambia el dimensionado por completo (ver "Dimensionado de sprints"). Plantea la **duracion del sprint en funcion de la carga real estimada**, no como dato fijo.
+1. Cubre, como minimo: **duracion del sprint**, **capacidad** (nº de personas/perfiles disponibles por sprint, segun el plan de recursos), **fecha de inicio** y **velocity asumida** (si no hay historica, propon una y marcala como supuesto). Para la velocity, pregunta explicitamente si se planifica con **esfuerzo acelerado por IA** o con **esfuerzo bruto humano**, porque cambia el dimensionado por completo (ver "Dimensionado de sprints"). Plantea la **duracion del sprint en funcion de la carga real estimada**, no como dato fijo. **En roadmaps multilane, la capacidad se pregunta por lane** (cuantas personas de cada perfil hay disponibles en cada linea de trabajo): una cifra global no permite detectar ni un lane saturado ni un lane parado. Si el plan de recursos ya lo resuelve, no lo preguntes.
 2. Clasifica cada hueco en **bloqueante**, **preferencia** o **confirmacion**.
 3. No preguntes lo que roadmap o plan de recursos ya resuelven.
 4. Presupuesto de preguntas: maximo **7** por ejecucion. Prioriza bloqueantes y agrupa relacionadas.
@@ -107,6 +111,36 @@ Antes de repartir, dimensiona con criterio. Dos errores frecuentes a evitar:
 
 > Ejemplo de razonamiento correcto: "el alcance son ~6-8 dias-persona reales con IA; en cadena secuencial son 2 bloques de ~1 semana; hay 2 ciclos porque un gate de validacion con cliente separa F1 de F2, no porque haya 5 changes". Evita el patron inverso: "hay 5 changes, luego 5 sprints".
 
+#### Dimensionado con oleadas (roadmap `waves`)
+
+Las oleadas ya traen el trabajo troceado en tramos paralelizables, asi que el metodo es directo:
+
+1. **Cada oleada es un tramo.** Su duracion es `max(esfuerzo real de sus fases)`, no la suma: corren a la vez.
+2. **El ancho de la oleada acota el paralelismo real.** Una oleada de ancho 1 es un tramo secuencial aunque haya `N` devs; anotalo, porque ahi sobran `N-1` personas.
+3. **Suma los tramos en serie** para el calendario total. Las oleadas no se solapan: la siguiente no arranca hasta que la actual cierra.
+4. **Capacidad**: `parallel_developers` es el techo de fases simultaneas. Si una oleada tiene menos fases que devs, hay **holgura**; si tuviera mas, el roadmap esta mal construido (el ancho no puede superar `parallel_developers`) — senalalo en vez de repartirlo tu.
+5. **Frontera de sprint**: haz coincidir cortes de sprint con cambios de oleada siempre que la capacidad lo permita.
+
+#### Dimensionado con lanes (roadmap `multilane`)
+
+El metodo anterior asume **una unica cadena critica**: "2 personas no paralelizan una cadena secuencial". Con lanes ese supuesto ya no se sostiene — hay **N cadenas simultaneas**, una por lane, y el calendario deja de ser la cadena critica para ser el **maximo de las cadenas entre barreras**.
+
+**Metodo revisado:**
+
+1. **Agrupa las unidades por lane.** Cada lane tiene su propia secuencia de fases (`F-<lane-id>-NN`), que si es secuencial internamente.
+2. **Localiza las barreras**: `F0` al principio y cada `FB-NN`. Trocean el calendario en **tramos**. Dentro de un tramo los lanes corren en paralelo; una barrera los detiene a todos.
+3. **Calcula la duracion de cada tramo** como `max(cadena de cada lane en ese tramo)`, no como la suma. Es la diferencia central respecto al metodo atomico: dos lanes de 4 dias en paralelo son 4 dias de calendario, no 8.
+4. **Suma los tramos y las barreras** para obtener el calendario total. Las barreras se suman en serie porque bloquean a todos.
+5. **Capacidad por lane, no agregada.** Un lane consume la capacidad de **su** perfil asignado; no puedes compensar un lane sobrecargado con la capacidad ociosa de otro, porque los perfiles no son intercambiables (es lo que justificaba el corte de lanes). Declara carga vs capacidad **por lane y por sprint**.
+6. **Detecta el lane critico**: el que marca la duracion de cada tramo. Es donde anadir capacidad tiene efecto; en cualquier otro lane, no cambia nada el calendario.
+7. **Detecta lanes ociosos**: un lane sin unidades asignadas en un sprint es un **dev parado** — exactamente el problema que el modo multilane pretendia resolver. Ver "6. Riesgos".
+
+**Las barreras son cortes duros.** Encajan directamente en el paso 3 del metodo general (fijar el numero de ciclos por cortes duros): cada `FB-NN` es una frontera de sprint natural, porque detiene todos los lanes igual que lo hace un gate de validacion.
+
+> Ejemplo de razonamiento correcto con lanes: "dos lanes (`api`, `portal`); tramo 1 tras `F0`: `api` acumula 5 d reales y `portal` 3 d, luego el tramo dura ~5 d y el lane critico es `api`; `FB-01` cierra el tramo y abre el siguiente. Sprint 1 = `F0` + tramo 1, con unidades de **ambos** lanes: 5 d/5 d de capacidad en `api`, 3 d/5 d en `portal` — `portal` queda al 60 %, aviso de holgura, no de relleno."
+>
+> Evita: "un sprint por lane" (serializa lo que era paralelo y anula el modelo), y "carga total 8 d, luego 8 dias de calendario" (suma cadenas que corren a la vez).
+
 ### 3. Generacion de `docs/sprint-plan.md`
 
 Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
@@ -121,21 +155,32 @@ Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
 ## 1. Parametros de planificacion
 - Duracion de sprint, capacidad por sprint, fecha de inicio, velocity asumida (acelerada por IA o bruta), **carga total estimada** (real con IA vs bruto humano) y recursos/equipo de referencia.
 - Una nota breve justificando por que esa duracion de sprint (carga real) y ese numero de ciclos (cortes duros: gates, dependencias, riesgo).
+- **Modo del roadmap** (`atomic`, `waves` o `multilane`) y `parallel_developers`, tomados del roadmap. Si es `atomic`, dilo: el plan no reparte trabajo en paralelo.
+- **Si el roadmap es `waves`**: numero de oleadas, **ancho de cada una frente a `parallel_developers`** y el calendario por tramos (cada oleada dura `max` de sus fases).
+- **Si el roadmap es multilane**: modo `multilane`, lista de lanes con su perfil asignado y su capacidad, y el **calendario por tramos** (`max` de cadenas entre barreras) con el lane critico de cada tramo.
 
 ## 2. Unidades de trabajo
-- Tabla: id (change/HU), descripcion breve, fase (F0/F1/F2), **estimacion real con IA y bruto humano de referencia** (XS/S/M/L/XL o puntos), perfil principal.
+- Tabla: id (change/HU), descripcion breve, fase (F0/F1/F2, o F0/F-<lane>-NN/FB-NN si es multilane), **oleada** (si el modo es `waves`), **lane** (si es `multilane`; vacio en F0 y barreras), **depende de** (fases previas, de `depends_on`), **estimacion real con IA y bruto humano de referencia** (XS/S/M/L/XL o puntos), perfil principal.
+- En multilane el **perfil principal se deriva del lane** (cada lane tiene un perfil asignado en el roadmap); no lo asignes unidad a unidad por tu cuenta. Si una unidad necesitase un perfil distinto al de su lane, es sintoma de mal corte: registralo en riesgos.
 
 ## 3. Mapa de dependencias y prerequisitos
 - Que debe completarse antes de que. Bloqueos tecnicos y de recursos. Marca [BLOQUEANTE].
+- Toma el grafo de `depends_on` del roadmap como fuente: no reconstruyas las dependencias por tu cuenta ni las contradigas en silencio.
+- **Si es multilane**, separa en dos listas: **intra-lane** (secuencia normal dentro de una linea) y **cross-lane**. Toda dependencia cross-lane deberia estar resuelta por una barrera `FB-NN`; si aparece una **fuera de barrera**, marcala `[CONFLICTO DE FASEADO]` con el lane bloqueado y el tiempo muerto que implica, y remite a re-ejecutar `aisdd roadmap`. No la resuelvas reordenando sprints por tu cuenta: es el mismo criterio que ya aplicas con los conflictos roadmap<->sprint.
 
 ## 4. Distribucion en sprints
 - Por cada sprint: objetivo, unidades incluidas, **carga real agregada vs capacidad** (explicita), asignacion de perfiles y Definition of Done. Comprueba que ninguna unidad va antes que sus prerequisitos y que el sprint ni se sobrecarga ni queda muy por debajo de capacidad.
+- **Si es `waves`**: cada sprint cubre una o varias oleadas completas; declara por oleada su **ancho vs `parallel_developers`** y no partas una oleada entre sprints salvo que la capacidad obligue (y entonces dilo).
+- **Si es multilane**: cada sprint incluye unidades de **varios lanes a la vez** — es el objetivo del modelo, no un defecto. Declara **carga real vs capacidad por lane**, no solo el agregado: una cifra global oculta que un lane va al 100 % y otro al 30 %. Anade una tabla `lane | unidades | carga real | capacidad | % ocupacion`. Marca las barreras como sprints propios o como frontera entre sprints, e indica explicitamente que **detienen todos los lanes**.
 
 ## 5. Hitos y entregables
 - Hitos (p. ej. MVP F1 listo) y que se entrega/valida al final de cada sprint o grupo de sprints.
 
 ## 6. Riesgos de planificacion y supuestos
 - Riesgos (dependencias, capacidad, incertidumbre de estimacion) y supuestos. Marca [BLOQUEANTE] cuando aplique.
+- **Si es `waves`**, anade: **oleada de ancho 1** con varios devs disponibles (personas ociosas en ese tramo) y **fases de la misma oleada que tocan la misma area** (el modo `waves` no lo impide ni lo detecta; si lo ves al leer el roadmap, es un riesgo real de colision).
+- **Si hay dependencias cross-lane declaradas**, anade: **lane bloqueado esperando a otro** — indica cuanto tiempo y que hace mientras; si no tiene nada que hacer, es un dev parado y hay que reordenar sus fases.
+- **Si es multilane**, anade estos riesgos especificos: **lane sin unidades asignadas en un sprint** (= dev parado, el problema que el modo multilane venia a resolver; propon adelantar trabajo de ese lane o reducir su dedicacion en ese sprint), **lane critico saturado** (marca el calendario: es donde anadir capacidad tiene efecto), y **dependencia cross-lane fuera de barrera** (arrastrada de la seccion 3).
 
 ## 7. Decisiones tomadas
 - Registro ligero: pregunta, opciones, decision, origen (usuario | default), una linea de justificacion.
@@ -147,7 +192,8 @@ Reglas de contenido:
 - No sobrecargues un sprint por encima de la capacidad declarada; si no cabe, abre otro sprint y dilo.
 - **No infres ni rellenes sprints**: dimensiona a la carga real (paso 2.5). La duracion deriva de la carga; el numero de ciclos, de los cortes duros (gates, dependencias, riesgo). Si un sprint queda muy por debajo de capacidad, agrupa o acorta.
 - Planifica con el **esfuerzo real** (comprimido por IA si aplica), no con el bruto XS/S/M/L/XL; muestra ambas cifras para trazabilidad.
-- Las unidades son completas (change/historia); no se parten entre sprints.
+- Las unidades son completas (change/historia); no se parten entre sprints. **Esto no cambia con lanes**: lo que se paraleliza son lanes, no el interior de un change.
+- **Multilane**: no dediques un sprint a un solo lane salvo que las dependencias lo obliguen — serializa lo que era paralelo. Y no compenses la sobrecarga de un lane con la holgura de otro: los perfiles no son intercambiables, que es justo lo que justificaba separarlos.
 - La seccion 7 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
 
 ### 4. Volcado opcional a Jira (MCP de Atlassian)
@@ -178,6 +224,7 @@ Paso **opcional** y **posterior** a generar `docs/sprint-plan.md`. La fuente de 
 - **Personas envueltas -> assignee**: si `docs/plan-revision-hu.md` (o `docs/planificacion-proyecto.md`) asocia una persona/perfil responsable a la HU, usala para proponer el **assignee** de la Story. Resuelve el nombre a la cuenta de Jira con las tools del MCP (busqueda de usuario/cuenta) y **confirma con el usuario** antes de asignar; si no hay correspondencia clara, deja la Story sin asignar en lugar de adivinar. Este skill es la antesala de esa planificacion de sprints y personas en Jira.
 - **Los changes NO se crean aqui.** En este paso solo se crean las **Stories (HU)** y los **sprints**. Cada change se creara mas tarde como **sub-tarea** de su HU cuando el AI Lead ejecute `aisdd open change` (ver skill `aisdd-specs`, "Integracion con Jira"). Lo que SI haces aqui es **preparar el enlace** (ver "Persistencia del enlace y la configuracion").
 - **No crees epicas** en este paso (alcance acordado: sprints + historias/changes-como-subtareas). Si el usuario las pide, mapea fase (F0/F1/F2) -> epica como extension.
+- **Lanes -> etiqueta (label)**: si el roadmap es `multilane`, anade el `lane-id` como **etiqueta** de cada Story, para que el board se pueda filtrar por linea de trabajo. Eso es todo: **no crees un board por lane, ni epicas por lane, ni cambies el modelo HU<->Story<->sub-tarea**. Una Story sigue siendo una HU. Si el proyecto no admite etiquetas o falla al escribirlas, avisa y continua: la etiqueta es informativa, no estructural.
 
 **Reglas de seguridad e idempotencia.**
 
