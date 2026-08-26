@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml` (alias legacy equivalentes con prefijo `native-ai ...` siguen funcionando). Coordina documentacion funcional/tecnica/arquitectura y la capa de entrega de AIDD (planificacion-proyecto, sprint-plan, plan-revision-hu), roadmaps, diagramas con booster-uml y prototipos con booster-ux. `aisdd init` registra en `openspec/config.yaml` tanto la documentacion de diseno como la capa de entrega existente, y `aisdd roadmap` lee el `docs/sprint-plan.md` para fasear alineado a los sprints. Los comandos `open change` e `implement change` ejecutan un pre-flight de dudas (maximo 7 preguntas) antes de generar los specs y antes de aplicar las instrucciones de OpenSpec. Todos escriben una entrada de auditoria estructurada en `openspec/audit/` (salvo `aisdd lane`, que solo mueve un puntero local). Integracion opcional con Jira (MCP de Atlassian) con modelo hibrido por HU: si una HU se realiza con un solo change se opera directamente sobre su Story (sin sub-tarea); si se reparte entre varios changes, cada change es una sub-tarea bajo la Story. `open change` registra el enlace change<->HU (creando sub-tarea solo cuando toca), `implement change` mueve a In Progress las Stories de todas las HU que implementa (y su sub-tarea si existe), y `close change` las pasa a Done (una Story con sub-tareas solo cuando todas estan Done); sin configuracion, los comandos funcionan igual y la sincronizacion se omite — salvo que haya evidencia de un volcado previo sin registro (enlace perdido), en cuyo caso avisa y ofrece reconstruir `docs/jira-sync.md` leyendo las Stories desde Jira sin recrear issues. Durante `implement change`, los cambios que ningun spec habia especificado se clasifican en niveles con una regla de corte explicita (un documento AIDD solo se corrige cuando queda desmentido) y se registran como `Tipo: correccion` en `decisions.md`, sin escalar ni re-aplicar el change. Ofrece **tres modos de faseado**, elegidos en el pre-flight de `aisdd roadmap` y registrados en `roadmap.mode`: **`atomic`** (clasico, un change abierto), **`waves`** (oleadas: hasta `parallel_developers` fases a la vez respetando `depends_on`; ordena el trabajo pero **no garantiza** aislamiento ni lo verifica ningun comando) y **`multilane`** (lanes): `aisdd roadmap` puede fraccionar el faseado en lineas de trabajo (lanes) con rutas y specs disjuntas —nomenclatura `F0` / `F-<lane>-NN` / barreras `FB-NN`— para que varios devs trabajen en paralelo sin romper el invariante de un unico hilo por superficie de decision; `aisdd lane [list|switch|status]` selecciona la linea activa (puntero local `openspec/.lane`, tipo rama de Git), `open change` permite un change abierto **por lane**, `close change` verifica que el change no se salio de las rutas de su lane, y una correccion que toca el contrato compartido es nivel 4 (parada coordinada), no una correccion local. Los lanes se prefieren independientes, pero admiten **dependencias declaradas** (`depends_on`) cuando la independencia total no es viable, siempre que sean puntuales, aciclicas, con coste explicito y **sin compartir rutas**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.8.0"
+  version: "1.9.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -300,25 +300,35 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - `baja`: un solo dominio funcional, pocas integraciones y cambios locales
    - `media`: varios modulos o capas, dependencias compartidas o integraciones relevantes
    - `alta`: varios dominios, refactor transversal, seguridad, migraciones, jobs, eventos o multiples integraciones
-4. Define el numero objetivo de fases antes de redactar el roadmap:
+4. **Decide el numero de fases con el usuario, ofreciendole siempre la opcion automatica.** Usa `AskUserQuestion` si la plataforma lo soporta, con dos opciones:
+   - **Automatico `(Recomendada)`** — lo decides tu, siguiendo la pauta de **changes pequeno-medio** (paso 8), el presupuesto de contexto y las fronteras de sprint. Es la opcion por defecto y la que deberia tomarse salvo que el usuario tenga una razon concreta.
+   - **Numero fijado por el usuario** — exacto (`N`), minimo (`>=N`) o maximo (`<=N`).
+
+   En modo no interactivo, toma **automatico** sin preguntar y registralo como supuesto.
+
+   **Si el usuario fija el numero, el reparto sigue siendo tuyo** — el usuario dice *cuantas*, no *cuales*. Es donde mas se nota tu criterio: aplica "Equilibrio de fases" para que salgan de magnitud comparable y no un monstruo rodeado de fases triviales.
+
+5. Punto de partida para el modo automatico:
    - contexto `bajo`: normalmente `6-12` fases
    - contexto `medio`: normalmente `4-8` fases
    - contexto `alto`: normalmente `3-6` fases
-5. Ajusta ese rango con estas reglas:
+
+   Es un punto de partida, no un objetivo: la pauta de changes pequeno-medio puede empujar por encima de ese rango, y el rango no justifica dejar una fase grande.
+6. Ajusta ese rango con estas reglas:
    - suma fases si una fase mezclaria mas de un objetivo funcional principal
    - suma fases si una fase exigiria leer demasiados artefactos o demasiadas partes del codigo para abrir un solo change con seguridad
    - suma fases si hay migraciones de datos, seguridad, permisos, integraciones externas o rollout gradual
    - resta fases solo cuando dos bloques sean claramente dependientes y pequenos
-6. Diseña las fases para que cada una pueda abrirse como uno o pocos changes OpenSpec con contexto acotado. Cada fase debe poder entenderse con un subconjunto manejable de requisitos, arquitectura y codigo.
-7. **Tamano objetivo del change.** Salvo indicacion contraria del usuario, dimensiona cada fase para producir un change **pequeno-medio**: quien valida es un humano (el Outcome Validator) y un change grande no se revisa bien. Ante la duda, parte la fase en varias mas estrechas. **Esta preferencia no manda sobre lo ya decidido** (ver "Jerarquia de criterios de faseado"): no partas una fase si al hacerlo rompes una frontera de sprint o sacas una HU de la ventana de su sprint. En ese caso deja la fase como esta y registra el desajuste en "Conflictos de alineacion roadmap<->sprint".
-8. **Resuelve los parametros de paralelismo** segun la seccion "Decision de modo de faseado": cuantos devs trabajan en paralelo (`parallel_developers`) y cual de los tres modos se usa (`atomic`, `waves` o `multilane`). El modo condiciona todo lo que viene despues: nomenclatura e identificadores de fase, agrupacion de prompts y estructura de `config.yaml`.
-9. Cuando tengas contexto suficiente, actua con este rol y objetivo:
+7. Diseña las fases para que cada una pueda abrirse como uno o pocos changes OpenSpec con contexto acotado. Cada fase debe poder entenderse con un subconjunto manejable de requisitos, arquitectura y codigo.
+8. **Tamano objetivo del change.** Salvo indicacion contraria del usuario, dimensiona cada fase para producir un change **pequeno-medio**: quien valida es un humano (el Outcome Validator) y un change grande no se revisa bien. Ante la duda, parte la fase en varias mas estrechas. **Esta preferencia no manda sobre lo ya decidido** (ver "Jerarquia de criterios de faseado"): no partas una fase si al hacerlo rompes una frontera de sprint o sacas una HU de la ventana de su sprint. En ese caso deja la fase como esta y registra el desajuste en "Conflictos de alineacion roadmap<->sprint".
+9. **Resuelve los parametros de paralelismo** segun la seccion "Decision de modo de faseado": cuantos devs trabajan en paralelo (`parallel_developers`) y cual de los tres modos se usa (`atomic`, `waves` o `multilane`). El modo condiciona todo lo que viene despues: nomenclatura e identificadores de fase, agrupacion de prompts y estructura de `config.yaml`.
+10. Cuando tengas contexto suficiente, actua con este rol y objetivo:
    ```text
    Actua con el rol de planificador experto de desarrollos de software.
    Analiza los requisitos y fasea el desarrollo en las fases que consideres necesarias para implementarlo con openspec. Ajusta la granularidad del roadmap al presupuesto de contexto del modelo: cuanto menor sea, mas fases y mas pequenas deben ser. Evita fases demasiado grandes que obliguen a arrastrar demasiado contexto en un unico change. Basate en la arquitectura del proyecto. Si existe una planificacion de entrega (docs/sprint-plan.md), alinea el faseado a los sprints: mismo orden, cortes de fase coincidiendo con fronteras de sprint y gates de validacion, y manten los changes de una misma HU dentro de la ventana del sprint donde esa HU esta planificada; el presupuesto de contexto sigue mandando el tamano del change, y donde choque con el sprint, marcalo como conflicto en vez de romper el plan. Si el roadmap es multilane, reparte las fases en las lineas de trabajo (lanes) acordadas: cada lane con rutas de codigo y specs disjuntas de los demas, todo lo compartido resuelto antes en F0 o en una fase barrera, y la nomenclatura F0 / F-<lane-id>-NN / FB-NN. Con ello genera docs/roadmap.md con la division por fases, que entra en cada fase, a que lane pertenece y a que sprint(s) corresponde. Ademas, crea docs/prompts-roadmap-native-ai.md con los prompts a ejecutar hasta finalizar el desarrollo usando los comandos del skill aisdd, agrupados por lane si el roadmap es multilane. No modifiques aun ningun documento de openspec. Si el usuario no ha pasado requisitos y/o arquitectura o no tienes clara donde esta, solicitaselo.
    ```
-10. Crea el directorio `docs/` si no existe.
-11. Genera `docs/roadmap.md` con:
+11. Crea el directorio `docs/` si no existe.
+12. Genera `docs/roadmap.md` con:
    - presupuesto de contexto asumido y justificacion
    - complejidad estimada
    - **modo del roadmap** (`atomic`, `waves` o `multilane`), **`parallel_developers`** asumido y la justificacion de ambos en una linea
@@ -333,12 +343,12 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - **dependencias por fase** (`depends_on`): de que fases previas depende cada una. Es el grafo que sostiene tanto las oleadas como las dependencias cross-lane; declaralo siempre, tambien en `atomic`, aunque ahi sea trivial.
    - **si el modo es `waves`**: la **organizacion en oleadas** y, por cada fase, su oleada y de que fases depende. Escribe la oleada en la tabla de fases con la forma literal `Oleada <N>` (no solo el numero): asi la vista HTML de `booster-docs` la reconoce y la pinta como chip. Anade una vista de la oleada completa (que fases corren a la vez y con que dev).
    - **si el modo es `multilane`**: las dos secciones adicionales descritas en "Secciones de lanes en `docs/roadmap.md`", y el identificador de cada fase segun la nomenclatura `F0` / `F-<lane-id>-NN` / `FB-NN`.
-12. Genera `docs/prompts-roadmap-native-ai.md` con los prompts que deben ejecutarse hasta finalizar el desarrollo, usando solo estos comandos del skill:
+13. Genera `docs/prompts-roadmap-native-ai.md` con los prompts que deben ejecutarse hasta finalizar el desarrollo, usando solo estos comandos del skill:
    - `aisdd open change <what-you-want-to-build>`
    - `aisdd implement change <what-you-want-to-build>`
    - `aisdd close change <what-you-want-to-build>`
    - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane)
-13. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
+14. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
    - que documentos o secciones pasar al modelo
    - que partes del codigo son relevantes
    - que no debe incluirse todavia para no contaminar contexto
@@ -347,12 +357,12 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - el prompt exacto para abrir el change con `aisdd open change <what-you-want-to-build>`
    - el prompt exacto para implementar con `aisdd implement change <what-you-want-to-build>`
    - el prompt exacto para cerrar con `aisdd close change <what-you-want-to-build>`
-14. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
-15. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
-16. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
-17. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
-18. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
-19. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 18. Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
+15. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
+16. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
+17. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
+18. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
+19. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
+20. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 19. Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
 
 ### Anotar un roadmap existente (solo modo `waves`)
 
@@ -472,6 +482,36 @@ En modo `waves`, `docs/roadmap.md` incluye una seccion **"Oleadas"** con:
 - el motivo de las oleadas de ancho 1 (dependencias, no falta de trabajo)
 - una advertencia final, literal, de que **las oleadas no las verifica ningun comando**: el reparto real entre developers es responsabilidad del equipo, y nada impide abrir dos changes de la misma oleada que se pisen
 
+### Equilibrio de fases
+
+El numero de fases lo puede fijar el usuario; **como se reparte el trabajo entre ellas es siempre criterio tuyo**, y es donde un roadmap se hace util o inservible. Un faseado de seis fases donde una se lleva el 60% del esfuerzo no es un faseado de seis fases: es una fase grande con cinco satelites, con todos los problemas de una fase grande (dificil de validar, arrastra demasiado contexto, bloquea el calendario) y ninguna de las ventajas de haber troceado.
+
+**Mide antes de repartir.** Estima cada fase con la mejor senal disponible, en este orden:
+
+1. **Esfuerzo real** de las HU que cubre, si existe `docs/detalle-historias-usuario.md` (tallas XS/S/M/L/XL).
+2. **Volumen de contexto** que exige: artefactos que hay que leer, modulos que toca, integraciones implicadas.
+3. **Numero de criterios de aceptacion** que debe satisfacer, como aproximacion gruesa si no hay nada mejor.
+
+Di con cual estas midiendo. Una estimacion declarada y discutible es util; una intuicion no declarada no.
+
+**Criterio de equilibrio.** Ninguna fase deberia superar **el doble de la mediana** de las demas. Al pasar de ahi:
+
+- **Fase muy por encima** -> pártela. Si no se puede partir sin romper su objetivo, **dilo explicitamente** y explica por que es indivisible: eso es informacion valiosa para quien planifica el sprint, no un defecto que haya que esconder.
+- **Fase muy por debajo** -> fusionala con la fase de la que depende directamente, salvo que caiga en una de las excepciones de abajo.
+
+**Excepciones legitimas — no fuerces el equilibrio aqui:**
+
+- **`F0` / `foundation`** suele ser mas pequena que el resto. Es correcto: su trabajo es habilitar, no entregar.
+- **Las barreras (`FB-NN`)** suelen ser pequenas (un cambio de contrato, una migracion). Su valor es detener, no ocupar.
+- **Una fase de riesgo alto** se aisla aunque quede pequena. Aislar el riesgo vale mas que cuadrar el reparto.
+- **Una fase con validacion compleja** (gate con cliente, auditoria, cumplimiento) va sola por la misma razon.
+
+En los cuatro casos, anota el motivo en `docs/roadmap.md`: un desequilibrio explicado es una decision; uno sin explicar parece un descuido.
+
+**Limites que el equilibrio no puede cruzar** (ver "Jerarquia de criterios de faseado"): no partas una fase si con ello rompes una frontera de sprint o sacas una HU de la ventana de su sprint, y no fusiones dos fases si el resultado excede el presupuesto de contexto. El equilibrio es el ultimo criterio en aplicarse, no el primero.
+
+**Cuando el usuario fija el numero y no cuadra.** Si con `N` fases no hay reparto equilibrado posible —porque el alcance da para menos incrementos con sentido, o porque una unidad de trabajo es indivisible y desborda—, **no trocees artificialmente para cumplir la cifra**. Genera el faseado que si tiene sentido, dilo con el motivo concreto, y deja que el usuario decida si mantiene su numero o acepta el tuyo.
+
 ### Jerarquia de criterios de faseado
 
 Cuando varios criterios tiran en direcciones distintas, este es el orden. Un criterio inferior **nunca** anula a uno superior; cuando choquen, se registra el conflicto en vez de romper lo ya decidido.
@@ -563,7 +603,7 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
 El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como se trabaja en paralelo** sin tener que bucear en `openspec/config.yaml`. `aisdd roadmap` lo registra en un bloque idempotente **propio**, delimitado por sus marcadores, **hermano e independiente** del bloque de comandos que gestiona `aisdd init`.
 
 1. Localiza `AGENTS.md` en la raiz. Si no existe, crealo con una cabecera minima (`# AGENTS.md`) seguida del bloque.
-2. Construye el contenido segun el modo, con los valores confirmados en el paso 8:
+2. Construye el contenido segun el modo, con los valores confirmados en el paso 9:
 
    ```markdown
    <!-- BEGIN aisdd-specs roadmap (auto-generado, no editar a mano) -->
@@ -1089,7 +1129,7 @@ Reglas para los campos:
 - `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
-- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.8.0:implement-change/preflight`, `1.8.0:open-change/preflight`, `1.8.0:roadmap`, `1.8.0:close-change`, `1.8.0:init`, `1.8.0:prototype-ux`, `1.8.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
+- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `1.9.0:implement-change/preflight`, `1.9.0:open-change/preflight`, `1.9.0:roadmap`, `1.9.0:close-change`, `1.9.0:init`, `1.9.0:prototype-ux`, `1.9.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 
 ### Calculo de hashes
 

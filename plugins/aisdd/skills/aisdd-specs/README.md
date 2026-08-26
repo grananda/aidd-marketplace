@@ -60,6 +60,8 @@ Fasea el desarrollo a partir de los requisitos y la arquitectura del proyecto an
 
 Si el usuario no ha pasado requisitos o arquitectura, o el agente no tiene claro donde estan, debe solicitarlos antes de continuar.
 
+**Numero de fases**: el comando lo pregunta ofreciendo siempre **automatico** como opcion recomendada (lo decide el agente siguiendo la pauta de changes pequeno-medio, el presupuesto de contexto y las fronteras de sprint). El usuario puede fijarlo (exacto, minimo o maximo), pero **fijar el numero no fija el reparto**: como se distribuye el trabajo entre esas fases sigue siendo criterio del agente, que debe dejarlas de magnitud comparable (ninguna por encima del doble de la mediana de las demas), con las excepciones de F0, las barreras y las fases aisladas por riesgo o validacion compleja. Ver "Equilibrio de fases" en el `SKILL.md`.
+
 La granularidad del roadmap debe adaptarse al presupuesto de contexto del modelo usado:
 
 - contexto `bajo` (hasta 64k tokens utiles): normalmente `6-12` fases pequenas

@@ -3,7 +3,7 @@ name: aidd-user-stories
 description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Permite indicar opcionalmente el numero de fases deseado o un minimo (por ejemplo `aidd user-stories fases=4` o `fases>=3`); si no se indica, el numero emerge de la cohesion logica. F0 foundation es la fase de habilitadores (walking skeleton), nunca el nucleo funcional de valor (que va a F1+), y no debe confundirse con el change `foundation` de scaffolding del roadmap. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # aidd-user-stories (AIDD · Fase 1 · paso 1.2)
@@ -68,6 +68,13 @@ Construye un mapa mental de actividades principales del usuario (backbone) y agr
 
 Por defecto el **numero de fases emerge de la cohesion logica**: agrupas las historias por lo que forma un incremento entregable con criterio de salida propio (F0 foundation habilitadora, F1 MVP, F2... incrementos), no por un numero fijado de antemano.
 
+**Ofrece siempre la opcion automatica.** Si el usuario no indico nada y vas a preguntarle por el numero de fases, presenta dos caminos con `AskUserQuestion` (o lista numerada si no hay preguntas estructuradas):
+
+- **Automatico `(Recomendada)`** — lo decides tu por cohesion logica: tantas fases como incrementos entregables con criterio de salida propio haya. Es el default y lo correcto salvo que el usuario tenga una razon concreta (un compromiso de fechas, un reparto ya acordado con el cliente).
+- **Numero fijado por el usuario** — exacto, minimo o maximo.
+
+En modo no interactivo, toma **automatico** sin preguntar.
+
 El usuario puede **acotar ese numero**. Interpreta la intencion asi:
 
 - **Exacto** (`fases=N`, "quiero N fases"): apunta a exactamente N fases (contando F0).
@@ -75,9 +82,14 @@ El usuario puede **acotar ese numero**. Interpreta la intencion asi:
 - **Maximo** (`fases<=N`, "no mas de N fases"): usa N o menos.
 - Sin indicacion: el que exija la cohesion logica (registra en la seccion 7 cuantas salieron y por que).
 
+**El usuario dice cuantas; tu dices cuales.** Fijar el numero no fija el reparto: como se distribuyen las historias entre esas fases sigue siendo criterio tuyo, y es lo que decide si el mapa sirve. Reparte de modo que las fases queden de **magnitud comparable** — ninguna deberia llevar mas del **doble de historias (ponderadas por talla) que la mediana de las demas**. Un mapa de cinco fases donde una se lleva la mitad del alcance no es un mapa de cinco fases.
+
+Excepcion: **F0 foundation suele ser mas pequena** que el resto y es correcto que lo sea — habilita, no entrega. No la infles para cuadrar el reparto ni le muevas historias de valor funcional (ver paso 1.6).
+
 Reglas al aplicar un objetivo de fases:
 
 - **F0 siempre es foundation** y sigue siendo la primera fase; no la elimines para cuadrar un numero.
+- **Equilibra antes de cuadrar la cifra**: si el reparto deja una fase desproporcionada, redistribuye historias entre fases vecinas antes que anadir o quitar fases.
 - **No trocees ni fusiones de forma artificial** solo para llegar a la cifra: cada fase debe conservar un objetivo y un criterio de salida coherentes. Es preferible una fase menos/mas bien formada que N fases forzadas.
 - Si el objetivo **choca** con la cohesion (p. ej. piden 5 fases pero el alcance solo da para 3 incrementos con sentido, o piden 2 pero hay dependencias que exigen 4), **respeta lo que puedas y avisa**: aplica el faseado mas cercano que siga teniendo sentido, explica la tension y registrala en la seccion 7 (Decisiones). No fuerces el numero en silencio ni lo ignores en silencio.
 - Un objetivo de fases es de **agrupacion**, no de alcance: no aniade ni quita historias ni RF; solo cambia como se agrupan.
