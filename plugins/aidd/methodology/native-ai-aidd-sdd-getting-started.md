@@ -78,7 +78,39 @@ aisdd close change <slug>  ← Outcome Validator (valida → archiva)
 
 > **Regla de oro del reparto:** el **AI Lead** abre (`open change`) y valida los specs de **todos** los changes; el **AI Developer** solo implementa (`implement change`) + verifica + corrige bugs; el **Outcome Validator** archiva (`close change`).
 
-> **Si el roadmap es multilane**, este ciclo no cambia: se ejecuta **una vez por lane, en paralelo**. Cada dev elige su línea con `aisdd lane switch <lane-id>` (como `git switch`) y a partir de ahí abre, implementa y cierra dentro de ella. La única regla nueva: **un change abierto por lane**, y las fases `F0`/`FB-NN` (barreras) detienen todos los lanes hasta cerrarse. Ver §3.bis de la metodología completa.
+> **Si el roadmap es multilane**, este ciclo no cambia: se ejecuta **una vez por lane, en paralelo**. Cada dev elige su línea con `aisdd lane switch <lane-id>` (como `git switch`) y a partir de ahí abre, implementa y cierra dentro de ella. La única regla nueva: **un change abierto por lane**, y las fases `F0`/`FB-NN` (barreras) detienen todos los lanes hasta cerrarse.
+
+### Elegir cómo paralelizar
+
+`aisdd roadmap` pregunta cuántos developers trabajan a la vez y, si son varios, ofrece dos formas de repartir el trabajo. **No compiten: son ejes perpendiculares.**
+
+```
+                Oleada 1    Oleada 2         Oleada 3    Oleada 4
+                ───────────────────────────────────────────────────
+lane api        │          │ F-api-01      │           │          │
+lane portal     │   F0     │ F-portal-01   │  FB-01    │  FB-02   │
+lane import     │          │ F-import-01   │           │          │
+                ───────────────────────────────────────────────────
+                   1/3          3/3            1/3        1/3
+```
+
+**Columnas = oleadas** (cuándo se puede trabajar a la vez). **Filas = lanes** (de quién es cada parte del código).
+
+| | Oleadas (`waves`) | Lanes (`multilane`) |
+|---|---|---|
+| Qué es | Una **anotación** sobre el roadmap | Una **partición** del roadmap |
+| Cuándo se decide | Después de fasear | Antes de fasear |
+| Responde a | ¿Qué puede ir a la vez? | ¿De quién es esto? |
+| ¿Verifica algo? | No | Sí, al cerrar el change |
+| Sobre un roadmap ya hecho | **Se puede anotar sin tocarlo** | Exige re-fasear |
+
+**Regla rápida:**
+
+- Roadmap ya diseñado y validado que no quieres alterar → **`waves` anotado**.
+- Proyecto nuevo con módulos de rutas separadas y varios devs → **`multilane`**.
+- Un solo dev, o sin base para separar superficies → **`atomic`**.
+
+Ambos llegan al mismo calendario. La diferencia es que `multilane` **comprueba** que nadie escribe fuera de lo suyo, y `waves` confía en el criterio de quien fasea. Ver §3.bis de la metodología completa, con un ejemplo trabajado en los tres modos.
 
 ---
 

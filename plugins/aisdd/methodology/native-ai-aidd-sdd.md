@@ -281,6 +281,115 @@ Se acepta si es **puntual** (no la relación entre los dos lanes: si B espera a 
 
 No confundir con una barrera: si lo que falta es **código o un artefacto** del otro lane, es una dependencia y solo detiene al lane destino; si lo que cambia es **el contrato**, es una barrera y los detiene a todos. Modelar como barrera lo que era una dependencia para a gente que no tenía por qué parar.
 
+### Un ejemplo completo: el mismo proyecto en los tres modos
+
+Portal de alta de clientes, **3 developers**, seis bloques de trabajo:
+
+| | Bloque | Esfuerzo | Toca |
+|---|---|---|---|
+| **A** | Contratos y modelo de datos | 2 d | esquema + tipos compartidos |
+| **B** | API de alta | 5 d | `backend/` |
+| **C** | UI de alta | 4 d | `frontend/` |
+| **D** | Importador CSV | 3 d | `services/import/` |
+| **E** | Permisos y roles | 2 d | los tres |
+| **F** | Observabilidad y rollout | 2 d | los tres |
+
+**Cómo se llama cada bloque en cada modo.** Conviene tenerlo delante, porque es la principal fuente de confusión: `atomic` y `waves` comparten numeración (la oleada es un campo aparte, no cambia el nombre), mientras que `multilane` **renombra** —el identificador tiene que decir a qué línea pertenece la fase, y las que tocan lo compartido pasan a ser barreras:
+
+| Bloque | `atomic` | `waves` | `multilane` |
+|---|---|---|---|
+| A | `F1` | `F1` · oleada 1 | `F0` (barrera) |
+| B | `F2` | `F2` · oleada 2 | `F-api-01` |
+| C | `F3` | `F3` · oleada 2 | `F-portal-01` |
+| D | `F4` | `F4` · oleada 2 | `F-import-01` |
+| E | `F5` | `F5` · oleada 3 | `FB-01` (barrera) |
+| F | `F6` | `F6` · oleada 4 | `FB-02` (barrera) |
+
+#### `atomic` — 18 días, 1 dev activo
+
+```
+A·F1 ──► B·F2 ──► C·F3 ──► D·F4 ──► E·F5 ──► F·F6
+ 2d       5d       4d       3d       2d       2d
+```
+
+Dos developers mirando durante todo el proyecto.
+
+#### `waves` — 11 días, 3 devs
+
+```
+Oleada 1 (1/3)   A·F1  contratos                              2d
+                       depends_on: []
+                       │
+Oleada 2 (3/3)   B·F2  API    C·F3  UI    D·F4  import        5d  ← max(5,4,3)
+                       depends_on: [F1] los tres
+                       │
+Oleada 3 (1/3)   E·F5  permisos                               2d
+                       depends_on: [F2,F3,F4]
+                       │
+Oleada 4 (1/3)   F·F6  rollout                                2d
+```
+
+Mismos nombres que en `atomic`; lo único que se añade es en qué oleada cae cada fase.
+
+**Dónde falla.** Nada dice que B y D no escriban los dos en `backend/clientes/service.ts`. Si lo hacen, dos devs se pisan y **nadie avisó** — ni al fasear, ni al abrir, ni al cerrar. Y si el dev de B descubre que el contrato de A se queda corto, lo corrige en su change: C y D siguen construyendo sobre el contrato viejo sin enterarse.
+
+Las oleadas 3 y 4 son de ancho 1: dos devs ociosos ahí. La oleada al menos lo hace **visible** (`1/3`).
+
+#### `multilane` — 11 días, 3 devs
+
+```
+A·F0  contratos ─────────────────────────────────  2d   BARRERA
+        │
+        ├─ lane api      B·F-api-01     API        5d   paths: backend/
+        ├─ lane portal   C·F-portal-01  UI         4d   paths: frontend/
+        └─ lane import   D·F-import-01  import     3d   paths: services/import/
+        │
+E·FB-01  permisos ───────────────────────────────  2d   BARRERA
+F·FB-02  rollout ────────────────────────────────  2d   BARRERA
+```
+
+La forma es **idéntica** a la de `waves`: mismos bloques, mismo orden, mismos 11 días. Lo único que cambia es que B, C y D declaran **de quién son** (`paths`), y A, E y F —que tocan lo compartido— se convierten en barreras en vez de ser oleadas de ancho 1.
+
+**Dónde muerde la red.** Si `F-import-01` escribe en `backend/clientes/`, `aisdd close change` **falla** y nombra el fichero: o va al lane `api`, o sube a barrera. Y si el dev de `api` ve que el contrato se queda corto, es **nivel 4**: para a `portal` e `import` y lo revisa el dueño del contrato.
+
+#### El resultado
+
+| | `atomic` | `waves` | `multilane` |
+|---|---|---|---|
+| Calendario | 18 d | **11 d** | **11 d** |
+| Devs ocupados en el tramo ancho | 1 | 3 | 3 |
+| ¿Detecta colisión de ficheros? | n/a | **No** | Sí, al cerrar |
+| ¿Un cambio de contrato alcanza a los demás? | n/a | **No** | Sí |
+| Ceremonia | Ninguna | Baja | Media |
+
+**El calendario es idéntico.** Oleadas y lanes llegan al mismo sitio en el mismo tiempo. Lo que cambia es si hay red debajo. Por eso la pregunta no es cuál es mejor, sino **cuánta garantía quieres pagar**.
+
+### Los dos ejes: por qué no compiten
+
+```
+                Oleada 1    Oleada 2         Oleada 3    Oleada 4
+                ───────────────────────────────────────────────────
+lane api        │          │ B·F-api-01    │           │          │
+lane portal     │  A·F0    │ C·F-portal-01 │  E·FB-01  │ F·FB-02  │
+lane import     │          │ D·F-import-01 │           │          │
+                ───────────────────────────────────────────────────
+                   1/3          3/3            1/3        1/3
+```
+
+**Columnas = oleadas** (cuándo). **Filas = lanes** (quién y dónde). A, E y F ocupan toda la columna porque tocan lo compartido: son a la vez oleada de ancho 1 y barrera — de hecho **una barrera no es más que una oleada de ancho 1 con propiedad declarada**.
+
+Se ve entonces que no son alternativas sino ejes perpendiculares: adoptar «solo oleadas» es **quedarse con las columnas y borrar las filas**. Se conserva el calendario; se pierde saber que B solo puede escribir en `backend/` y que alguien lo comprueba.
+
+Tres pruebas para no confundirlos nunca más:
+
+| Pregunta | Oleada | Lane |
+|---|---|---|
+| ¿Puedo borrarlo y recuperar el roadmap original? | **Sí** — es un campo más | **No** — cambió qué entra en cada fase |
+| ¿Cuándo se decide? | **Después** de fasear | **Antes** de fasear |
+| ¿Se puede calcular? | **Sí** — dame `depends_on` y `N` | **No** — hace falta criterio de dominio |
+
+De ahí la consecuencia práctica más útil: **las oleadas se pueden añadir a un roadmap ya hecho sin tocarlo** (`aisdd roadmap` → *anotar*), conservando nombres de fase y `change_hint`, así que no rompen el enlace con el sprint-plan ni con Jira. Los lanes no: retrofitarlos exige re-fasear.
+
 ### Cómo elegir modo
 
 | Situación | Modo |
