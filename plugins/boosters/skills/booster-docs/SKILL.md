@@ -3,7 +3,7 @@ name: booster-docs
 description: Genera una vista HTML de un solo fichero, dinamica y visual a partir de un documento de planificacion AIDD/SDD en Markdown (por ejemplo `docs/cliente-requisitos.md`, `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/roadmap.md`, `docs/sprint-plan.md`). Usar cuando un skill AIDD/SDD necesite entregar la vista HTML complementaria al final de su comando, o cuando el usuario pida "genera el HTML de este documento", "vista HTML de los requisitos", "renderiza el roadmap a HTML" o equivalentes. El Markdown sigue siendo la unica fuente de verdad; este booster produce un HTML complementario para consumo humano y NO modifica el Markdown.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.8.0"
+  version: "1.9.0"
 ---
 
 # booster-docs
@@ -21,8 +21,8 @@ Responder y documentar en espanol siempre que sea posible; conservar en ingles c
 
 Un unico fichero `.html` (HTML + CSS + JS inline, sin build, abrible con doble clic), con:
 
-- **Dashboard de KPIs** auto-calculado del contenido: numero de RF/NFR, historias, must-have, elementos fuera de alcance, **imprescindibles**, bloqueantes, preguntas abiertas y **esfuerzo estimado total en jornadas** (a partir de las tallas `XS/S/M/L/XL` con la escala AIDD: XS=0,5d · S=1,5d · M=3d · L=5d · XL=8d). En `roadmap` y `sprint-plan` **multilane** anade ademas: numero de **lanes**, numero de **barreras** y **conflictos de faseado**.
-- **Chips de color** para IDs trazables (`RF-XX`, `NFR-XX`, `HU-XX`/`US-XX`), prioridad (`Alta`/`Media`/`Baja`/`Critica`), MoSCoW (`Must`/`Should`/`Could`/`Won't`), esfuerzo (`XS`/`S`/`M`/`L`/`XL`), el marcador `[IMPRESCINDIBLE]` (pill rojo-anaranjado prominente, criterio esencial) y `[BLOQUEANTE]` (rojo, impedimento real), tanto inline como en tablas. En roadmaps **multilane** tambien se marcan los identificadores de fase: `F-<lane>-NN` como chip de lane y `F0`/`FB-NN` como chip de barrera, junto al marcador `[CONFLICTO DE FASEADO]`. Los valores inline de `Prioridad:` y `Estimacion:` tambien se convierten en pills (la estimacion salta a su propia linea).
+- **Dashboard de KPIs** auto-calculado del contenido: numero de RF/NFR, historias, must-have, elementos fuera de alcance, **imprescindibles**, bloqueantes, preguntas abiertas y **esfuerzo estimado total en jornadas** (a partir de las tallas `XS/S/M/L/XL` con la escala AIDD: XS=0,5d · S=1,5d · M=3d · L=5d · XL=8d). En `roadmap` y `sprint-plan` con paralelismo anade ademas: numero de **lanes**, **barreras** y **conflictos de faseado** (modo multilane), o numero de **oleadas** (modo waves).
+- **Chips de color** para IDs trazables (`RF-XX`, `NFR-XX`, `HU-XX`/`US-XX`), prioridad (`Alta`/`Media`/`Baja`/`Critica`), MoSCoW (`Must`/`Should`/`Could`/`Won't`), esfuerzo (`XS`/`S`/`M`/`L`/`XL`), el marcador `[IMPRESCINDIBLE]` (pill rojo-anaranjado prominente, criterio esencial) y `[BLOQUEANTE]` (rojo, impedimento real), tanto inline como en tablas. En roadmaps con paralelismo tambien se marcan los identificadores de fase: `F-<lane>-NN` como chip de lane y `F0`/`FB-NN` como chip de barrera (multilane), `Oleada <N>` como chip de oleada (waves), junto al marcador `[CONFLICTO DE FASEADO]`. Los valores inline de `Prioridad:` y `Estimacion:` tambien se convierten en pills (la estimacion salta a su propia linea).
 - **Swatch de color** junto a cualquier codigo `#hex` / `rgb()` / `hsl()` (util para la guia de estilos y design tokens).
 - **Sello de version en cabecera**: la linea `> **Version N** - **Generado:** ...` que estampa `stamp_doc.py` se integra en la cabecera del documento, junto a los badges, en lugar de quedar como cita suelta.
 - **Alcance dentro/fuera** con estilo diferenciado, tablas con formato, blockquotes, separadores `---` como `<hr>`, **listas anidadas**, **checkboxes de tareas** (`- [ ]` / `- [x]`), enlaces relativos y **bloques Mermaid renderizados** si el documento los incluye (ver [Diagramas Mermaid](#diagramas-mermaid)).

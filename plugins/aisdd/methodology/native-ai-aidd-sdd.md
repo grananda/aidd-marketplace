@@ -267,6 +267,10 @@ Advertencia práctica: **`data` rara vez es un lane separado de `back`** — com
 
 ### Qué cambia en la operativa
 
+Con `waves`, **nada**: la oleada vive solo en el roadmap y ningún comando de ejecución la conoce. Ese es su límite y su virtud — se adopta sin tocar la forma de trabajar.
+
+Con `multilane`, cinco cosas:
+
 - **`aisdd lane [list | switch | status]`** selecciona la línea de trabajo activa, igual que `git switch` selecciona rama. Es estado **local de cada dev** (`openspec/.lane`, ignorado por git), lo que permite que una misma persona salte entre lanes.
 - **`aisdd open change`** admite un change abierto **por lane**, y rechaza abrir un segundo en el mismo. Una barrera exige que **ningún** lane tenga trabajo en vuelo.
 - **`aisdd close change`** comprueba que el change no escribió fuera de las rutas de su lane. Es donde la independencia deja de ser una promesa del faseado.

@@ -917,7 +917,9 @@ Archiva un cambio OpenSpec.
 
 Consulta y cambia la **linea de trabajo activa** del dev. Es el equivalente de `git branch` / `git switch` para lanes: no mueve codigo ni toca changes, solo dice sobre que lane trabajan los siguientes `open`/`implement`/`close change`.
 
-**Precondicion**: `roadmap.mode` debe ser `multilane` en `openspec/config.yaml`. Si es `atomic` o no existe, responde que el proyecto no usa lanes y que el modo se decide en `aisdd roadmap`; no crees `openspec/.lane`.
+**Precondicion**: `roadmap.mode` debe ser `multilane` en `openspec/config.yaml`. En cualquier otro caso **no crees `openspec/.lane`** y explica el porque, que es distinto segun el modo:
+- **`waves`**: el proyecto paraleliza por **oleadas**, no por lanes. No hay linea que seleccionar: cada dev toma una fase libre de la oleada en curso. Remite a la seccion "Oleadas" de `docs/roadmap.md` para ver que fases pueden ir a la vez.
+- **`atomic`** o sin modo declarado: el proyecto no paraleliza. El modo se decide en `aisdd roadmap`.
 
 **Sin subcomando**, equivale a `status`.
 

@@ -155,6 +155,8 @@ Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
 ## 1. Parametros de planificacion
 - Duracion de sprint, capacidad por sprint, fecha de inicio, velocity asumida (acelerada por IA o bruta), **carga total estimada** (real con IA vs bruto humano) y recursos/equipo de referencia.
 - Una nota breve justificando por que esa duracion de sprint (carga real) y ese numero de ciclos (cortes duros: gates, dependencias, riesgo).
+- **Modo del roadmap** (`atomic`, `waves` o `multilane`) y `parallel_developers`, tomados del roadmap. Si es `atomic`, dilo: el plan no reparte trabajo en paralelo.
+- **Si el roadmap es `waves`**: numero de oleadas, **ancho de cada una frente a `parallel_developers`** y el calendario por tramos (cada oleada dura `max` de sus fases).
 - **Si el roadmap es multilane**: modo `multilane`, lista de lanes con su perfil asignado y su capacidad, y el **calendario por tramos** (`max` de cadenas entre barreras) con el lane critico de cada tramo.
 
 ## 2. Unidades de trabajo
