@@ -113,6 +113,8 @@ def purge(audit_dir: Path, retention_days: int, now: datetime, warnings: list[st
             year, month = (int(p) for p in f.stem.split("-"))
         except ValueError:
             continue  # nombre ajeno al esquema YYYY-MM: no es nuestro, no se toca
+        if not 1 <= month <= 12:
+            continue  # '2026-13.jsonl' no lo generamos nosotros
         end = datetime(year + month // 12, month % 12 + 1, 1, tzinfo=timezone.utc)
         if end.timestamp() < cutoff:
             try:

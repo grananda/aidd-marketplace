@@ -92,7 +92,11 @@ def main() -> int:
         if not path.is_file():
             print(f"  omitido (no existe): {name}", file=sys.stderr)
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        # newline="" preserva los finales de linea tal cual: este script repara
+        # mojibake y nada mas. Convertir CRLF a LF de paso ensuciaria el diff
+        # del fichero entero en equipos que trabajan en Windows.
+        with path.open("r", encoding="utf-8", errors="replace", newline="") as fh:
+            text = fh.read()
         found = score(text)
         if not found:
             continue
@@ -100,7 +104,8 @@ def main() -> int:
             fixed, n = repair(text)
             left = score(fixed)
             if n:
-                path.write_text(fixed, encoding="utf-8", newline="\n")
+                with path.open("w", encoding="utf-8", newline="") as fh:
+                    fh.write(fixed)
             print(f"  {name}: {found} detectados, {n} reparados, {left} sin reparar")
             remaining += left
         else:
