@@ -24,6 +24,11 @@
       "name": "boosters",
       "source": "./plugins/boosters",
       "description": "Boosters de UX (booster-ux), UML (booster-uml) y documentacion HTML (booster-docs) usados por aidd y aisdd."
+    },
+    {
+      "name": "aiba",
+      "source": "./plugins/aiba",
+      "description": "AIBA — AI Business Analyst: analisis funcional asistido por IA. Hoy `aiba-functional-design` (comando `aiba functional-design`), que genera el Documento de Diseno Funcional en Word de cada historia de usuario a partir del detalle de HU, con diseno generico sin marca y estilos nativos para aplicar despues cualquier identidad visual."
     }
   ]
 }
