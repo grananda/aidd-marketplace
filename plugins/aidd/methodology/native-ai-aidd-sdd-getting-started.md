@@ -16,7 +16,7 @@ Un flujo de desarrollo donde **la especificación es el motor**: **defines y dis
 | --- | --- | --- |
 | **AI Architect** | Requisitos, historias, arquitectura, prototipo | `aidd requirements`, `aidd user-stories`, `aidd user-story-details`, `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture` |
 | **AI Lead** | Inicializa, fasea, **abre y valida los specs de todos los changes** | `aisdd init`, `aisdd roadmap`, `aisdd open change` |
-| **AI Delivery Manager** | Plan de recursos y reparto en sprints (capa Delivery, v4) | `aidd project-plan`, `aidd sprint-planning` |
+| **AI Delivery Manager** | Plan de recursos y reparto en sprints (capa Delivery, v4) | `aiba project-plan`, `aiba sprint-planning` |
 | **AI Developer** | Implementa, verifica, corrige bugs | `aisdd implement change` |
 | **Outcome Validator** | QA técnico + funcional, archiva | `aisdd close change` |
 
@@ -137,7 +137,7 @@ aidd user-story-details    # docs/detalle-historias-usuario.md — criterios de 
 Opcional, sobre las HU ya definidas — planificar su **revisión/validación** con negocio y TI en un Excel:
 
 ```text
-aidd hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
+aiba hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
                            #   (consolida mapa+detalle de HU: Detalle HU, Dashboard, Leyenda y Gantt de revisión)
 ```
 
@@ -169,8 +169,8 @@ aisdd roadmap
 Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills `aidd`, autónomos de OpenSpec):
 
 ```text
-aidd project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
-aidd sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)
+aiba project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
+aiba sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)
 ```
 
 Útil cuando un equipo Scrum va a ejecutar el desarrollo. No sustituye al roadmap: reparte sus changes en sprints respetando dependencias y **sin partir ningún change**.
@@ -254,9 +254,9 @@ openspec/
 | `aisdd lane [list\|switch\|status]` | AI Developer / AI Lead | Selecciona la línea de trabajo activa (solo roadmaps multilane) |
 | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
 | `aisdd uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
-| `aidd hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
-| `aidd project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
-| `aidd sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
+| `aiba hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
+| `aiba project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
+| `aiba sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
 
 ---
 

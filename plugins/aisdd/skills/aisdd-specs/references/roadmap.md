@@ -218,7 +218,7 @@ Regla de lectura de esta seccion, en este orden:
 
 Marca `[RIESGO]` cualquier dependencia declarada cuyo lane destino **no tenga otra cosa que hacer** mientras espera: eso es un dev parado, que es exactamente lo que el modo multilane pretende eliminar. Reordena las fases del lane destino antes de aceptarla.
 
-Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fases) para que el desajuste se vea de un vistazo y `aidd sprint-planning` pueda secuenciarlo.
+Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fases) para que el desajuste se vea de un vistazo y `aiba sprint-planning` pueda secuenciarlo.
 
 ### Seccion de oleadas en `docs/roadmap.md`
 
@@ -279,7 +279,7 @@ Si existe `docs/sprint-plan.md`, el roadmap **se pliega a los sprints ya planifi
 - **Agrupacion**: manten los **changes de una misma HU dentro de la ventana del sprint** donde esa HU esta planificada, para que un sprint no quede con changes a medias.
 - **HU no validadas**: si `docs/plan-revision-hu.md` marca una HU como **en revision o bloqueada**, no la metas en una fase temprana como comprometida; senala que depende de su validacion.
 - **Esfuerzo**: anota en cada fase el esfuerzo agregado (humano vs IA) tomado de `planificacion-proyecto.md`/`sprint-plan.md`.
-- **Conflictos (no romper el plan)**: cuando el presupuesto de contexto obligue a partir una HU en varios changes que **no caben** en su sprint, o a cortar a mitad de un bloque, **no reescribas el sprint-plan**: registra el desajuste en la seccion **"Conflictos de alineacion roadmap<->sprint"** de `docs/roadmap.md` (que HU se parte, en cuantos changes, que sprint desborda) para que el humano re-ejecute `aidd sprint-planning` y re-empaquete (re-faseado seguro: mueve HU, no recrea issues). AISDD **no** modifica `docs/sprint-plan.md`.
+- **Conflictos (no romper el plan)**: cuando el presupuesto de contexto obligue a partir una HU en varios changes que **no caben** en su sprint, o a cortar a mitad de un bloque, **no reescribas el sprint-plan**: registra el desajuste en la seccion **"Conflictos de alineacion roadmap<->sprint"** de `docs/roadmap.md` (que HU se parte, en cuantos changes, que sprint desborda) para que el humano re-ejecute `aiba sprint-planning` y re-empaquete (re-faseado seguro: mueve HU, no recrea issues). AISDD **no** modifica `docs/sprint-plan.md`.
 
 Si **no** hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo explicitamente en `docs/roadmap.md` (faseado no alineado a sprints).
 

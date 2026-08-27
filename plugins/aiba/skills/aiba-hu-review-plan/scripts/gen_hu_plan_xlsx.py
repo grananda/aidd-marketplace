@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the HU-review planning workbook (.xlsx) from a JSON build manifest.
 
-This is the *rendering* half of the ``aidd-hu-review-plan`` skill. The skill (an
+This is the *rendering* half of the ``aiba-hu-review-plan`` skill. The skill (an
 LLM) reads ``docs/mapa-historias-usuario.md`` and ``docs/detalle-historias-usuario.md``,
 consolidates them, decides the July review schedule and writes a machine-readable
 manifest (JSON). This script turns that manifest into an Excel workbook with four

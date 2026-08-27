@@ -1,18 +1,18 @@
 ---
-name: aidd-hu-review-plan
-description: Fase 1.4 (opcional) del conjunto AIDD (AI Driven Development), capa de planificacion de la revision de historias de usuario. Genera un fichero Excel (.xlsx) de planificacion consolidando `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md`, mediante el comando `aidd hu-review-plan` (alias `aidd planificacion revision hu`, `aidd revision historias`). Produce cuatro pestañas — "Detalle HU" (todas las HU combinadas, con las palabras Como/quiero/para resaltadas en negrita), "Dashboard" (KPIs y graficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), "Leyenda" (significado de campos codificados como Persona P1/P5 o GAP) y "Gantt Julio" (planificacion de la revision de HU: kickoff, semana 1 de revision de documentacion del cliente y resto del mes de reuniones funcionales con negocio y tecnicas con TI, con detalle por HU). El `.md` de plan sigue siendo la fuente de verdad; el Excel es el entregable rico. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+name: aiba-hu-review-plan
+description: Fase 1.4 (opcional) del conjunto AIDD (AI Driven Development), capa de planificacion de la revision de historias de usuario. Genera un fichero Excel (.xlsx) de planificacion consolidando `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md`, mediante el comando `aiba hu-review-plan` (alias `aiba planificacion revision hu`, `aiba revision historias`). Produce cuatro pestañas — "Detalle HU" (todas las HU combinadas, con las palabras Como/quiero/para resaltadas en negrita), "Dashboard" (KPIs y graficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), "Leyenda" (significado de campos codificados como Persona P1/P5 o GAP) y "Gantt Julio" (planificacion de la revision de HU: kickoff, semana 1 de revision de documentacion del cliente y resto del mes de reuniones funcionales con negocio y tecnicas con TI, con detalle por HU). El `.md` de plan sigue siendo la fuente de verdad; el Excel es el entregable rico. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.0.0"
 ---
 
-# aidd-hu-review-plan (AIDD · planificacion de la revision de HU · Excel)
+# aiba-hu-review-plan (AIDD · planificacion de la revision de HU · Excel)
 
 Usa este skill cuando el usuario quiera un **plan (en Excel) para revisar y cerrar las historias de usuario** con negocio y TI, o cuando invoque:
 
-- `aidd hu-review-plan`
-- `aidd planificacion revision hu`
-- `aidd revision historias`
+- `aiba hu-review-plan`
+- `aiba planificacion revision hu`
+- `aiba revision historias`
 
 Tambien cuando pida "excel de planificacion de HU", "gantt de revision de historias", "cuadro de mando de HU", "planning de revision de las historias de usuario" o equivalentes.
 
@@ -20,18 +20,18 @@ Responde y documenta en espanol siempre que sea posible. Conserva en ingles nomb
 
 ## Que es AIDD y donde encaja este skill
 
-AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquitectura asistida por IA. Cada skill cubre una fase o paso del proceso descrito en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md` (referencia de metodologia, solo lectura):
+AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquitectura asistida por IA. Cada skill cubre una fase o paso del proceso descrito en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de metodologia, solo lectura):
 
 - Fase 0 — `aidd client-requirements`.
 - Fase 1 — Definicion (AI Architect): `aidd requirements`, `aidd user-stories`, `aidd user-story-details`.
-- **Este skill — planificacion de la revision de HU**: una vez existe el detalle de historias, planifica **como revisarlas y cerrarlas** con negocio/TI y lo entrega en Excel. Es una capa de gestion sobre la Definicion, previa (o paralela) al Diseno de la Fase 2. No sustituye a `aidd project-plan` (recursos) ni a `aidd sprint-planning` (sprints de desarrollo): aquellos planifican la **construccion**; este planifica la **validacion de las HU**.
-- Fase 2 — Diseno; Fase 3.5 — Entrega (`aidd project-plan`, `aidd sprint-planning`).
+- **Este skill — planificacion de la revision de HU**: una vez existe el detalle de historias, planifica **como revisarlas y cerrarlas** con negocio/TI y lo entrega en Excel. Es una capa de gestion sobre la Definicion, previa (o paralela) al Diseno de la Fase 2. No sustituye a `aiba project-plan` (recursos) ni a `aiba sprint-planning` (sprints de desarrollo): aquellos planifican la **construccion**; este planifica la **validacion de las HU**.
+- Fase 2 — Diseno; Fase 3.5 — Entrega (`aiba project-plan`, `aiba sprint-planning`).
 
 Este skill es **autonomo**: no depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del `.md` de plan generado.
 
 > Relacion con el resto de la capa Delivery: `sprint-planning` reparte los **changes/HU en sprints de desarrollo** (el CUANDO se construye); este skill planifica el **antes**: las reuniones de definicion/validacion para dejar las HU cerradas y listas para construir.
 >
-> **Antesala de la planificacion de sprints y personas en Jira.** El `docs/plan-revision-hu.md` que genera este skill es un **insumo directo de `aidd sprint-planning`**: aquel lo lee para no planificar por libre — solo compromete en sprint las HU que la revision haya dejado **cerradas/validadas**, reutiliza las **personas/perfiles** implicadas en la revision para asignar el sprint y, en el volcado a Jira, el **assignee** de cada Story. Deja por tanto el `tipo_revision`, el estado de cada HU y la persona responsable bien reflejados: son lo que consume la siguiente etapa.
+> **Antesala de la planificacion de sprints y personas en Jira.** El `docs/plan-revision-hu.md` que genera este skill es un **insumo directo de `aiba sprint-planning`**: aquel lo lee para no planificar por libre — solo compromete en sprint las HU que la revision haya dejado **cerradas/validadas**, reutiliza las **personas/perfiles** implicadas en la revision para asignar el sprint y, en el volcado a Jira, el **assignee** de cada Story. Deja por tanto el `tipo_revision`, el estado de cada HU y la persona responsable bien reflejados: son lo que consume la siguiente etapa.
 
 ## Rol y objetivo
 
@@ -53,7 +53,7 @@ Criterio de salida: existe `docs/plan-revision-hu.md` (fuente de verdad, con el 
 - No sobrescribas un `docs/plan-revision-hu.md` existente sin avisar: leelo, propon los cambios y confirma.
 - Este entregable requiere aprobacion humana. Al terminar, deja claro que esta pendiente de revision.
 
-## Flujo del comando `aidd hu-review-plan`
+## Flujo del comando `aiba hu-review-plan`
 
 ### 1. Recopilacion de contexto (lectura previa)
 
@@ -101,7 +101,7 @@ Genera (o actualiza) `docs/plan-revision-hu.md` con esta estructura:
 ```markdown
 # Plan de revision de Historias de Usuario — <nombre del proyecto>
 
-> Documento de planificacion de la revision de HU (AIDD). Generado por `aidd hu-review-plan`.
+> Documento de planificacion de la revision de HU (AIDD). Generado por `aiba hu-review-plan`.
 > Fuentes: docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
 > El Excel docs/xlsx/plan-revision-hu.xlsx es la vista rica de este plan. Pendiente de aprobacion humana.
 
@@ -199,7 +199,7 @@ Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incr
 Ejecuta el script incluido en este skill, que renderiza el manifiesto a `.xlsx` con las cuatro pestañas (Dashboard, Detalle HU, Leyenda, Gantt del mes). El script usa `openpyxl` y **se encarga el mismo de instalarlo** si falta (esta pensado para usuarios no tecnicos): al arrancar, si no encuentra `openpyxl` ejecuta `pip install openpyxl` (y, en entornos restringidos, reintenta con `--user`) y continua. La llamada a `python` es la unica puerta de permisos; no hay que pedir al usuario que instale nada a mano.
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/skills/aidd-hu-review-plan/scripts/gen_hu_plan_xlsx.py" \
+python "${CLAUDE_PLUGIN_ROOT}/skills/aiba-hu-review-plan/scripts/gen_hu_plan_xlsx.py" \
   --input docs/plan-revision-hu.json \
   --output docs/xlsx/plan-revision-hu.xlsx \
   --open
@@ -225,7 +225,7 @@ El script intenta instalar `openpyxl` automaticamente. Solo si esa instalacion f
 
 Al terminar, informa:
 
-- Comando AIDD ejecutado (`aidd hu-review-plan`).
+- Comando AIDD ejecutado (`aiba hu-review-plan`).
 - Rutas generadas: `docs/plan-revision-hu.md` (fuente de verdad), `docs/plan-revision-hu.json` (manifiesto) y `docs/xlsx/plan-revision-hu.xlsx` (entregable), o aviso si el Excel no se pudo generar (falta `openpyxl`).
 - Resumen: numero de HU consolidadas, cuantas pendientes / bloqueadas, numero de reuniones planificadas (funcionales vs tecnicas) y si todas las HU caben en el periodo objetivo.
 - Campos de la Leyenda que han quedado **sin significado** y que el humano debe completar.

@@ -15,6 +15,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | **implementada** | 2026-08-26 |
 | F-08 | Versión global + CI de release y validación | marketplace | **implementada** | 2026-08-26 |
 | F-09 | Plugin `aiba` y skill de Diseño Funcional (DF en Word) | aiba | **implementada** | 2026-08-27 |
+| F-10 | Mover la capa de entrega y medición de `aidd` a `aiba` | aiba, aidd | **implementada** | 2026-08-27 |
 
 ---
 
@@ -62,7 +63,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 
 Oleadas y lanes son **ejes perpendiculares**, no alternativas: la oleada es una *anotación* sobre el roadmap (se calcula del grafo y se puede añadir a un roadmap ya hecho sin re-fasear); el lane es una *partición* (determina qué entra en cada fase, y retrofitarlo exige re-fasear).
 
-Incluye: `aisdd lane [list|switch|status]`, guard de un change por lane, nivel 4 de corrección (contrato compartido → parada coordinada), `depends_on` en los tres modos, bloque de paralelismo en `AGENTS.md`, dimensionado por tramos en `aidd sprint-planning`, y chips/KPIs en `booster-docs`.
+Incluye: `aisdd lane [list|switch|status]`, guard de un change por lane, nivel 4 de corrección (contrato compartido → parada coordinada), `depends_on` en los tres modos, bloque de paralelismo en `AGENTS.md`, dimensionado por tramos en `aiba sprint-planning`, y chips/KPIs en `booster-docs`.
 
 ## F-03 — Pre-flight configurable por proyecto
 
@@ -145,3 +146,19 @@ Tres decisiones que conviene no perder:
 - **Reedición no destructiva.** Regenera solo lo afectado, conserva el texto del analista y **añade** fila al control de versiones. Ese historial es la razón de ser de esa tabla.
 
 `aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Más adelante se le moverán algunos skills que hoy viven en `aidd` y pertenecen más al análisis que a la planificación.
+
+## F-10 — La capa de entrega y medición pasa de `aidd` a `aiba`
+
+**Estado:** implementada · **Versión:** `aiba` 1.0.0, `aidd` 2.0.0 · **Añadida:** 2026-08-27
+
+Cuatro skills se mueven: `hu-review-plan`, `project-plan`, `sprint-planning` y `metrics`. Sus comandos son ahora `aiba ...` y **no quedan alias `aidd ...`** — corte limpio, decidido a propósito.
+
+**El criterio del corte** no es la fase sino el interlocutor. Lo que se mueve es lo que da la cara ante el negocio: el plan que aprueba, el calendario que sigue, la revisión con la que cierra las HU y los KPIs con los que juzga si mereció la pena. Lo que se queda en `aidd` es la definición y el diseño, cuyo interlocutor es producto y arquitectura.
+
+**Lo que no cambia es el contrato de datos.** Los cuatro siguen leyendo y escribiendo los mismos ficheros de `docs/`, así que `aisdd roadmap` sigue alineándose con `docs/sprint-plan.md` exactamente igual. Solo cambia el prefijo del comando.
+
+**AIBA estrena metodología propia** (`plugins/aiba/methodology/native-ai-aiba.md`) y la capa correspondiente se poda de la de AIDD, dejando punteros en su lugar en las dos copias: el rol de AI Delivery Manager, el paso 1.4 y la Fase 3.5 completa.
+
+Dos detalles de la mecánica que conviene recordar: `stamp_doc.py` lo usan skills de ambos plugins, y como los plugins se instalan por separado **cada uno lleva su copia** — un plugin que depende de un script debe traerlo. Y el hook de actividad, que vive en cuatro plugins, mencionaba `aidd metrics` en su texto de ayuda: también se actualizó.
+
+`aidd` sube a **2.0.0** porque pierde cuatro skills: es ruptura para quien los tuviera en uso.

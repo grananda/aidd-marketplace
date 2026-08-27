@@ -63,7 +63,7 @@ En **proyecto ya existente**, `aisdd init` añade un paso antes: analiza el cód
 
 ## ¿Quién crea las Stories y los sprints?
 
-`aidd sprint-planning` (Fase 3.5), en su volcado opcional a Jira: crea los **sprints** con fechas en el board Scrum y **una Story por HU** asignada a su sprint, e inicializa `docs/jira-sync.md` + la sección `jira:` de `openspec/config.yaml`. Los comandos de aisdd **nunca crean Stories ni sprints** — solo sub-tareas (cuando toca) y transiciones.
+`aiba sprint-planning` (Fase 3.5), en su volcado opcional a Jira: crea los **sprints** con fechas en el board Scrum y **una Story por HU** asignada a su sprint, e inicializa `docs/jira-sync.md` + la sección `jira:` de `openspec/config.yaml`. Los comandos de aisdd **nunca crean Stories ni sprints** — solo sub-tareas (cuando toca) y transiciones.
 
 ## ¿Quién inicia el sprint?
 

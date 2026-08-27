@@ -1,10 +1,20 @@
 {
   "name": "aidd",
   "displayName": "AIDD — AI Driven Development",
-  "version": "1.17.0",
-  "description": "Conjunto de skills de planificacion y arquitectura asistida por IA (AIDD): Fases 0-2 (client-requirements, requirements, user-stories, user-story-details, prototype-architecture, prototype, style-guide, architecture-proposal, architecture), planificacion de la revision de HU en Excel (hu-review-plan) y capa de entrega Fase 3.5 (project-plan, sprint-planning, con volcado opcional a Jira). `sprint-planning` entiende los tres modos de faseado del roadmap: en `waves` cada oleada es un tramo de duracion `max(fases)` y una frontera de sprint natural, y su ancho frente a `parallel_developers` revela los tramos con gente ociosa; en `multilane`: calendario por tramos entre barreras (`max` de las cadenas de cada lane), sprints que toman unidades de varios lanes a la vez, carga vs capacidad por lane y aviso de lanes sin asignacion. `user-stories` ofrece el numero de fases en modo automatico y equilibra el reparto de historias entre ellas. Incluye la metodologia AIDD-SDD como referencia.",
+  "version": "2.0.0",
+  "description": "Conjunto de skills de definicion y diseno asistidos por IA (AIDD): Fase 0 (client-requirements), Fase 1 (requirements, user-stories, user-story-details) y Fase 2 (prototype-architecture, prototype, style-guide, architecture-proposal, architecture). Nueve skills `aidd-*`. Incluye la metodologia AIDD-SDD como referencia. **Cambio en la v2.0.0**: la capa de entrega y medicion (`project-plan`, `sprint-planning`, `hu-review-plan`, `metrics`) se ha movido al plugin `aiba` y sus comandos son ahora `aiba ...`; no quedan alias `aidd ...` para ellos. El contrato de datos no cambia: los mismos ficheros de `docs/`.",
   "author": {
     "name": "NTT DATA Spain GDN-e"
   },
-  "keywords": ["aidd", "ai-driven-development", "planning", "architecture", "scrum", "delivery", "jira", "excel", "gantt"]
+  "keywords": [
+    "aidd",
+    "ai-driven-development",
+    "planning",
+    "architecture",
+    "scrum",
+    "delivery",
+    "jira",
+    "excel",
+    "gantt"
+  ]
 }

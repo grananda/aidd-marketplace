@@ -1,5 +1,5 @@
 {
-  "description": "Dos registros pasivos y opt-in, cada uno se activa creando su fichero: el journal de autoria AIAD (docs/aiad-journal.md) y la traza de actividad del marketplace (docs/aidd-activity.md), que alimenta los KPIs de `aidd metrics`.",
+  "description": "Dos registros pasivos y opt-in, cada uno se activa creando su fichero: el journal de autoria AIAD (docs/aiad-journal.md) y la traza de actividad del marketplace (docs/aidd-activity.md), que alimenta los KPIs de `aiba metrics`.",
   "hooks": {
     "PostToolUse": [
       {

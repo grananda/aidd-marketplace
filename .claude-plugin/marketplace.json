@@ -8,7 +8,7 @@
     {
       "name": "aidd",
       "source": "./plugins/aidd",
-      "description": "AIDD — skills de planificacion y arquitectura (Fases 0-2 y entrega 3.5)."
+      "description": "AIDD — skills de definicion y diseno (Fases 0, 1 y 2). Desde la v2.0.0 la capa de entrega y medicion vive en el plugin `aiba`."
     },
     {
       "name": "aisdd",
@@ -28,7 +28,7 @@
     {
       "name": "aiba",
       "source": "./plugins/aiba",
-      "description": "AIBA — AI Business Analyst: analisis funcional asistido por IA. Hoy `aiba-functional-design` (comando `aiba functional-design`), que genera el Documento de Diseno Funcional en Word de cada historia de usuario a partir del detalle de HU, con diseno generico sin marca y estilos nativos para aplicar despues cualquier identidad visual."
+      "description": "AIBA — AI Business Analyst: la capa que da la cara ante el negocio. Diseno funcional en Word (`aiba functional-design`), plan de revision de HU (`aiba hu-review-plan`), plan de recursos (`aiba project-plan`), plan de sprints con volcado a Jira (`aiba sprint-planning`) y KPIs medidos del uso de IA (`aiba metrics`). Metodologia propia."
     }
   ]
 }
