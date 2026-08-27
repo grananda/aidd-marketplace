@@ -1,0 +1,10 @@
+{
+  "name": "aiba",
+  "displayName": "AIBA — AI Business Analyst",
+  "version": "0.1.0",
+  "description": "Conjunto de skills de analisis funcional asistido por IA (AIBA). Hoy contiene `aiba-functional-design`: genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario a partir de `docs/detalle-historias-usuario.md`, mediante el comando `aiba functional-design` (alias `aiba df`). Un DF por HU, con la estructura acordada (control de versiones y aprobaciones, indice, introduccion y alcance, la HU con sus filtros/campos, integraciones, validaciones, mensajes, pantallas, criterios de aceptacion, especificaciones tecnicas y puntos abiertos). El diseno es generico y sin marca: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que cualquier paleta corporativa y logo se apliquen despues sin rehacer el documento, y pregunta antes si se desea aplicar una marca concreta. Genera todas las HU o una sola, y reedita un DF ya generado conservando su control de versiones. Es el primer plugin del set AIBA, al que mas adelante se moveran algunos skills que hoy viven en `aidd`.",
+  "author": {
+    "name": "NTT DATA Spain GDN-e"
+  },
+  "keywords": ["aiba", "business-analyst", "analisis-funcional", "diseno-funcional", "df", "docx", "word", "historias-de-usuario", "aidd"]
+}

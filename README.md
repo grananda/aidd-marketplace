@@ -12,6 +12,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
 | `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `aisdd`.** |
+| `aiba` | 1 skill `aiba-*` (análisis funcional) | **AI Business Analyst**: genera el **Documento de Diseño Funcional (DF)** en Word de cada historia de usuario a partir del detalle de HU. Diseño genérico sin marca, con estilos nativos para aplicar después cualquier identidad visual. Conjunto nuevo, al que más adelante se moverán algunos skills de `aidd`. |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
 ## Índice de comandos por skill y fase
@@ -141,6 +142,22 @@ Los invocan `aidd` y `aisdd`, pero también se pueden llamar directamente.
 | `booster-ux` | `booster-ux` | Prototipos/pantallas UX en dos variantes (imagen + HTML navegable) |
 | `booster-uml` | `booster-uml` | Diagramas UML (Mermaid) en HTML para un change de OpenSpec |
 | `booster-docs` | `booster-docs` | Vista HTML dinámica de un documento de planificación AIDD/SDD |
+
+### `aiba` — Análisis funcional (plugin `aiba`, 1 comando)
+
+> Conjunto **nuevo**. Hoy contiene un único skill; más adelante se le moverán algunos de los que viven en `aidd` y pertenecen más al análisis que a la planificación. **Consume** lo que produce AIDD y no lo modifica: lee `docs/` y escribe solo en `docs/df/`.
+
+| Fase | Comando | Rol | Genera / hace |
+|------|---------|-----|---------------|
+| 1 (post) | `aiba functional-design [HU-XX]` | AI Business Analyst | Un **DF en Word por historia** en `docs/df/`, con portada, control de versiones y aprobaciones, índice, introducción y alcance, la HU con filtros/campos, integraciones, validaciones (frontal/core), mensajes, pantallas, criterios de aceptación, especificaciones técnicas y puntos abiertos |
+
+Alias: `aiba df`, `aiba diseño funcional`.
+
+**Genérico por defecto, y pregunta antes.** El documento sale sin logotipos ni colores corporativos, y el comando pregunta si quieres aplicar una marca —desde una carpeta local o una URL— con «sin marca» como opción recomendada. Un DF acaba en manos de un cliente que tiene su propia identidad: generarlo con la marca de quien lo escribe obliga a rehacerlo. Como usa **estilos nativos de Word** (`Heading 1/2/3`, estilo de tabla, cabecera y pie editables, índice como campo `TOC`), aplicar cualquier identidad después es cambiar el estilo, no repasar el documento.
+
+**No inventa.** Lo que no se deduce de la documentación se marca `[PENDIENTE: ...]` y genera una fila en **Puntos abiertos**, que convierte las lagunas en trabajo asignable en lugar de en texto plausible. Un DF se firma y se desarrolla contra él.
+
+**Reedita sin destruir.** Si el `.docx` ya existe, regenera solo las secciones afectadas, conserva lo que el analista escribió a mano y **añade** una fila al control de versiones en vez de sobrescribirla.
 
 ### `aiad` — Ejecución human-first, *ia-in-the-loop* (plugin `aiad`, 11 comandos)
 

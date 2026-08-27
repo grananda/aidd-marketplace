@@ -11,6 +11,7 @@ Dos fallos que se cuelan solos y no rompen nada visiblemente:
 from __future__ import annotations
 
 import filecmp
+import re
 import subprocess
 import sys
 import tempfile
@@ -30,6 +31,21 @@ SUELTOS = [("aiad", "native-ai-aiad", "Native AI · AIAD — AI-Augmented Develo
 errors: list[str] = []
 
 
+# El renderer estampa la fecha de generacion en la cabecera, asi que comparar
+# byte a byte falla al dia siguiente aunque no haya cambiado nada. Lo que hay que
+# comprobar es el CONTENIDO, no cuando se genero.
+SELLO_FECHA = re.compile(r"Vista generada el \d{4}-\d{2}-\d{2}")
+
+
+def contenido(path: Path) -> str:
+    return SELLO_FECHA.sub("Vista generada el <fecha>",
+                           path.read_text(encoding="utf-8", errors="replace"))
+
+
+def iguales(a: Path, b: Path) -> bool:
+    return contenido(a) == contenido(b)
+
+
 def regenera(md: Path, titulo: str) -> Path:
     salida = Path(tempfile.mkdtemp()) / "out.html"
     subprocess.run(
@@ -45,10 +61,10 @@ for stem, titulo in DOCS:
     if not filecmp.cmp(fuentes[0], fuentes[1], shallow=False):
         errors.append(f"{stem}.md difiere entre aidd/ y aisdd/ (son espejo)")
     htmls = [ROOT / f"plugins/{p}/methodology/{stem}.html" for p in ESPEJO]
-    if not filecmp.cmp(htmls[0], htmls[1], shallow=False):
+    if not iguales(htmls[0], htmls[1]):
         errors.append(f"{stem}.html difiere entre aidd/ y aisdd/")
     esperado = regenera(fuentes[0], titulo)
-    if not filecmp.cmp(esperado, htmls[0], shallow=False):
+    if not iguales(esperado, htmls[0]):
         errors.append(f"{stem}.html no coincide con lo que produce el renderer: "
                       f"regeneralo (ver README, seccion Mantenimiento)")
 
@@ -57,7 +73,7 @@ for plugin, stem, titulo in SUELTOS:
     html = ROOT / f"plugins/{plugin}/methodology/{stem}.html"
     if not md.is_file():
         continue
-    if not filecmp.cmp(regenera(md, titulo), html, shallow=False):
+    if not iguales(regenera(md, titulo), html):
         errors.append(f"{stem}.html no coincide con su .md: regeneralo")
 
 if errors:

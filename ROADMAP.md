@@ -14,6 +14,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-06 | Enrutado del Outcome Validator: elevación por consenso | aisdd | **implementada** | 2026-08-26 |
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | **implementada** | 2026-08-26 |
 | F-08 | Versión global + CI de release y validación | marketplace | **implementada** | 2026-08-26 |
+| F-09 | Plugin `aiba` y skill de Diseño Funcional (DF en Word) | aiba | **implementada** | 2026-08-27 |
 
 ---
 
@@ -130,3 +131,17 @@ Las notas empiezan por las tablas de qué plugins y skills cambian de versión, 
 `validate.yml` cubre el punto débil de una versión manual (olvidar subirla) y cuatro comprobaciones de coherencia que hasta ahora se hacían a mano en cada PR: manifiestos, frontmatter de skills, HTML de metodología regenerado y sincronizado entre copias, compilación de los scripts y ausencia de mojibake.
 
 Al escribirlo encontró dos desfases reales que llevaban tiempo sin detectarse: `booster-uml` no tenía `metadata.version`, y el HTML de la metodología AIAD se había quedado atrás porque cambió el renderer y solo se regeneraban los de AIDD/AISDD.
+
+## F-09 — Plugin `aiba` (AI Business Analyst) y el skill de Diseño Funcional
+
+**Estado:** implementada · **Versión:** `aiba` 0.1.0 · **Añadida:** 2026-08-27
+
+Primer plugin del conjunto **AIBA**, de análisis funcional. Contiene `aiba-functional-design`, que genera el **DF en Word de cada historia de usuario** a partir de `docs/detalle-historias-usuario.md`, con la estructura extraída de los DF de referencia.
+
+Tres decisiones que conviene no perder:
+
+- **Diseño genérico y pregunta previa.** El documento sale sin marca, y el comando pregunta antes si aplicar una —de carpeta local o URL— con «sin marca» como recomendada. Un DF acaba en manos de un cliente con su propia identidad; generarlo con la marca de quien lo escribe obliga a rehacerlo. Como el color va a los **estilos** de Word y no a cada párrafo, aplicar otra identidad después es cambiar el estilo.
+- **No inventa: marca y contabiliza.** `[PENDIENTE: ...]` en el cuerpo, una fila por hueco en **Puntos abiertos**, y el número de puntos abiertos en el resumen como indicador de si el documento está listo. Un DF se firma y se desarrolla contra él, así que el relleno plausible es peor que el hueco.
+- **Reedición no destructiva.** Regenera solo lo afectado, conserva el texto del analista y **añade** fila al control de versiones. Ese historial es la razón de ser de esa tabla.
+
+`aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Más adelante se le moverán algunos skills que hoy viven en `aidd` y pertenecen más al análisis que a la planificación.
