@@ -3,7 +3,7 @@ name: aidd-user-story-details
 description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (XS/S/M/L/XL), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # aidd-user-story-details (AIDD · Fase 1 · paso 1.3)

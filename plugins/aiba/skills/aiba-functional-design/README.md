@@ -63,4 +63,4 @@ python3 scripts/gen_df_docx.py --schema     # esquema del manifiesto
 
 ## Relación con AIDD
 
-`aiba` es un conjunto nuevo, de **análisis funcional**. Hoy tiene solo este skill y **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe únicamente en `docs/df/`. Más adelante se le moverán algunos skills que hoy viven en `aidd` y pertenecen más al análisis que a la planificación.
+`aiba` es la capa que da la cara ante el negocio, y este skill es su pieza de **análisis funcional**. **Consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe únicamente en `docs/df/`. Le acompañan en el plugin `aiba hu-review-plan`, `aiba project-plan`, `aiba sprint-planning` y `aiba metrics`, que vivían en `aidd` hasta la v1.8.0 del marketplace.

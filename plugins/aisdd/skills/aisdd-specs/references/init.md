@@ -24,7 +24,7 @@ Inicializa AISDD (OpenSpec) en el proyecto.
 6. Si es nuevo, resume la inicializacion y los siguientes pasos.
 7. Si es existente, solicita/auto-detecta los markdown del proyecto, en **dos grupos**:
    - **Diseno y definicion** (funcional, tecnica y de arquitectura): p. ej. `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/detalle-historias-usuario.md`, `docs/arquitectura-base.md`, `docs/propuesta-arquitectura-base.md`, `docs/guia-estilos.md`.
-   - **Capa de entrega (AIDD)** — **no la ignores**: `docs/planificacion-proyecto.md` (recursos, equipo, esfuerzo humano vs IA), `docs/sprint-plan.md` (sprints, capacidad, asignaciones), `docs/plan-revision-hu.md` (estado de validacion de HU) y `docs/jira-sync.md` (mapeo HU<->Story<->change). Busca estos ficheros en `docs/` y, si existen, inclúyelos; si no, no pasa nada (son opcionales).
+   - **Capa de entrega (AIBA)** — **no la ignores**: `docs/planificacion-proyecto.md` (recursos, equipo, esfuerzo humano vs IA), `docs/sprint-plan.md` (sprints, capacidad, asignaciones), `docs/plan-revision-hu.md` (estado de validacion de HU) y `docs/jira-sync.md` (mapeo HU<->Story<->change). Busca estos ficheros en `docs/` y, si existen, inclúyelos; si no, no pasa nada (son opcionales).
 8. Cuando tengas las rutas, actualiza `config.yaml` de OpenSpec con ese contexto inicial. Manten el formato YAML existente; crea/actualiza `project_context` con **dos sub-listas** para que los comandos posteriores sepan que existe cada plano:
    ```yaml
    project_context:
@@ -87,7 +87,7 @@ El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca 
 
    Skill `aisdd-specs` v<skill_version>. Invoca estos comandos para trabajar con especificaciones AISDD / OpenSpec (prefijo primario `aisdd`; `native-ai <cmd>` sigue funcionando como alias legacy):
 
-   - `aisdd init` — inicializa OpenSpec, comprueba dependencias y registra el contexto del proyecto (incluida la capa de entrega de AIDD).
+   - `aisdd init` — inicializa OpenSpec, comprueba dependencias y registra el contexto del proyecto (incluida la capa de entrega de AIBA).
    - `aisdd roadmap` — fasea el desarrollo (alineado al `docs/sprint-plan.md` si existe) y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
    - `aisdd open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
    - `aisdd implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.

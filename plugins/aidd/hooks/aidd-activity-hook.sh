@@ -31,7 +31,7 @@
 # El matcher del hook es "*" (todas las tools) y el filtrado se hace aqui: asi
 # funciona sea cual sea el nombre interno de la tool que invoca skills.
 #
-# SYNC: fichero compartido, identico en plugins/{aidd,aisdd,aiad,boosters}/hooks/.
+# SYNC: fichero compartido, identico en plugins/{aidd,aisdd,aiad,aiba,boosters}/hooks/.
 #       Si lo cambias, copialo a los cuatro (todos deben tener el mismo sha256).
 
 set -u

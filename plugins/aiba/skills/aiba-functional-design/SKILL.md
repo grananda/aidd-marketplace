@@ -3,7 +3,7 @@ name: aiba-functional-design
 description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiba-functional-design (AIBA · Diseno Funcional)
@@ -17,9 +17,9 @@ Responde y documenta en espanol. Conserva en ingles nombres de comandos, fichero
 
 ## Que es AIBA y donde encaja este skill
 
-**AIBA** (AI Business Analyst) es el conjunto de skills de **analisis funcional**: el trabajo que traduce lo que el negocio necesita en un documento que un equipo de desarrollo puede implementar y un cliente puede firmar.
+**AIBA** (AI Business Analyst) es el conjunto de skills que da la cara ante el negocio: el DF que el cliente firma, el plan que aprueba, el calendario que sigue y los KPIs con los que juzga si merecio la pena. Este skill cubre el primero de esos cuatro — el analisis funcional: traducir lo que el negocio necesita en un documento que un equipo puede implementar y un cliente puede firmar. Los otros cuatro skills del conjunto son `aiba hu-review-plan`, `aiba project-plan`, `aiba sprint-planning` y `aiba metrics`.
 
-Hoy AIBA contiene solo este skill. Mas adelante se le moveran algunos de los que viven en `aidd`, porque pertenecen mas al analisis que a la planificacion. Mientras tanto, **este skill consume lo que produce AIDD** y no lo sustituye:
+**Este skill consume lo que produce AIDD** y no lo sustituye:
 
 | Produce | Skill | Este skill lo usa para |
 |---|---|---|

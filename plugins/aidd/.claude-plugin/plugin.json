@@ -9,12 +9,11 @@
   "keywords": [
     "aidd",
     "ai-driven-development",
-    "planning",
+    "requirements",
+    "user-stories",
     "architecture",
-    "scrum",
-    "delivery",
-    "jira",
-    "excel",
-    "gantt"
+    "design",
+    "prototype",
+    "style-guide"
   ]
 }

@@ -1,6 +1,6 @@
 # Native AI · AIDD-SDD — Getting Started
 
-**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (planificación, diseño y entrega) sobre el proceso *Spec-Driven Development*, y el skill `aisdd-specs` (ejecución sobre OpenSpec).
+**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (definición y diseño) y `aiba` (negocio, entrega y medición) sobre el proceso *Spec-Driven Development*, y el skill `aisdd-specs` (ejecución sobre OpenSpec).
 
 > Documento de referencia completo: [native-ai-aidd-sdd.md](native-ai-aidd-sdd.md). Esta guía es el camino corto para ponerte en marcha en una tarde.
 
@@ -8,7 +8,7 @@
 
 ## 1. ¿Qué es esto en una frase?
 
-Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** → generas specs por *change* con `aisdd-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
+Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** (y planificas la entrega con los `aiba`) → generas specs por *change* con `aisdd-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
 
 **Los cinco roles:**
 
@@ -166,7 +166,7 @@ aisdd roadmap
 
 ### Paso 3.5 — Planificación de entrega (AI Delivery Manager) · opcional
 
-Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills `aidd`, autónomos de OpenSpec):
+Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills `aiba`, autónomos de OpenSpec):
 
 ```text
 aiba project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
@@ -257,6 +257,8 @@ openspec/
 | `aiba hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
 | `aiba project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
 | `aiba sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
+| `aiba functional-design [HU-XX]` | Analista funcional | Un **DF en Word por historia** en `docs/df/`, contra el que se desarrolla y que el cliente firma |
+| `aiba metrics` | Delivery / Lead | KPIs **medidos** del uso de IA en `docs/kpis-ia.md` (requiere `docs/aidd-activity.md`) |
 
 ---
 

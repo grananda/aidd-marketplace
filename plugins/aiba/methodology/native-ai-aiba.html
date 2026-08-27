@@ -231,7 +231,7 @@
 </section>
 <section class="doc-section" id="4-medici-n">
 <h2><a class="anchor" href="#4-medici-n" aria-label="Enlace">#</a>4. Medición</h2>
-<p><code>aiba metrics</code> cierra el círculo: calcula <strong>KPIs medidos</strong> —no estimados— del uso de IA a partir del registro de actividad <code>docs/aidd-activity.md</code>, del historial de git y de las tallas del detalle de historias, y los contrasta con el esfuerzo humano declarado por el equipo.</p>
+<p><code>aiba metrics</code> cierra el círculo: calcula <strong>KPIs medidos</strong> —no estimados— del uso de IA a partir del registro de actividad <code>docs/aidd-activity.md</code> (lo escribe el hook <code>aidd-activity-hook.sh</code>, que el propio plugin <code>aiba</code> trae junto al resto del marketplace; es opt-in y se activa con <code>touch docs/aidd-activity.md</code>), del historial de git y de las tallas del detalle de historias, y los contrasta con el esfuerzo humano declarado por el equipo.</p>
 <p>La regla que lo gobierna es que <strong>distingue siempre lo medido de lo estimado</strong> y se niega a publicar cifras de ahorro que no se sostienen. Un KPI de ROI inventado hace más daño que no tener ninguno, porque se usa para decidir.</p>
 <p>Si el proyecto usa AISDD, lee además <code>openspec/audit/*.jsonl</code> para añadir el eje de <strong>calidad de la especificación</strong>: correcciones por change (retrabajo de spec, complementario al churn de código), decisiones que la IA resolvió sin preguntar y lead time real de <code>open change</code> a <code>close change</code>.</p>
 </section>

@@ -3,7 +3,7 @@
   "owner": {
     "name": "NTT DATA Spain GDN-e"
   },
-  "description": "Marketplace de los conjuntos AIDD (planificacion y arquitectura asistida por IA) y AISDD (AI Spec-Driven Development sobre OpenSpec), con sus boosters de UX, UML y documentacion HTML.",
+  "description": "Marketplace de los conjuntos AIDD (definicion y diseno asistidos por IA), AISDD (AI Spec-Driven Development sobre OpenSpec), AIBA (AI Business Analyst: analisis funcional, entrega y medicion) y AIAD (ejecucion human-first), con sus boosters de UX, UML y documentacion HTML.",
   "plugins": [
     {
       "name": "aidd",
@@ -13,7 +13,7 @@
     {
       "name": "aisdd",
       "source": "./plugins/aisdd",
-      "description": "AISDD — aisdd-specs (gestion de changes sobre OpenSpec con auditoria e integracion Jira, consciente de la capa de entrega de AIDD) y aisdd-amend (`aisdd amend change`: incorpora una modificacion a un change ya abierto y ejecuta solo ese delta). Comandos `aisdd ...`; alias legacy `native-ai ...`. Fork mantenido del antiguo `sdd`."
+      "description": "AISDD — aisdd-specs (gestion de changes sobre OpenSpec con auditoria e integracion Jira, consciente de la capa de entrega de AIBA) y aisdd-amend (`aisdd amend change`: incorpora una modificacion a un change ya abierto y ejecuta solo ese delta). Comandos `aisdd ...`; alias legacy `native-ai ...`. Fork mantenido del antiguo `sdd`."
     },
     {
       "name": "aiad",
@@ -23,7 +23,7 @@
     {
       "name": "boosters",
       "source": "./plugins/boosters",
-      "description": "Boosters de UX (booster-ux), UML (booster-uml) y documentacion HTML (booster-docs) usados por aidd y aisdd."
+      "description": "Boosters de UX (booster-ux), UML (booster-uml) y documentacion HTML (booster-docs) usados por aidd, aisdd y aiba."
     },
     {
       "name": "aiba",

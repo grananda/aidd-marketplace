@@ -55,6 +55,7 @@ SKILL_STAGE = {
     "aidd-style-guide": ("Diseno", "Fase 2.3"),
     "aidd-architecture-proposal": ("Diseno", "Fase 2.3"),
     "aidd-architecture": ("Diseno", "Fase 2.4"),
+    "aiba-functional-design": ("Definicion", "DF"),
     "aiba-project-plan": ("Entrega", "Fase 3.5.1"),
     "aiba-sprint-planning": ("Entrega", "Fase 3.5.2"),
     "aiba-metrics": ("Soporte", "KPIs"),
@@ -63,6 +64,18 @@ SKILL_STAGE = {
     "booster-uml": ("Soporte", "Booster"),
     "booster-ux": ("Soporte", "Booster"),
 }
+
+# Nombres anteriores al traslado de la capa de entrega de `aidd` a `aiba`. El
+# registro de actividad es historico: un proyecto que planifico antes del cambio
+# tiene lineas `skill:aidd:aidd-sprint-planning`, y sin estas claves caerian en
+# "Otros", desplazando trabajo de planificacion fuera de su etapa justo en el
+# reparto planificacion-vs-ejecucion, que es la pregunta que responde el informe.
+SKILL_STAGE.update({
+    "aidd-hu-review-plan": SKILL_STAGE["aiba-hu-review-plan"],
+    "aidd-project-plan": SKILL_STAGE["aiba-project-plan"],
+    "aidd-sprint-planning": SKILL_STAGE["aiba-sprint-planning"],
+    "aidd-metrics": SKILL_STAGE["aiba-metrics"],
+})
 
 LINE_RE = re.compile(
     r"^-\s+(?P<ts>\S+)\s+\|\s+user:(?P<user>[^|]*?)\s+\|\s+skill:(?P<skill>[^|]*?)\s+"

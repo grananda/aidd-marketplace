@@ -1,12 +1,12 @@
 ---
 name: aiba-sprint-planning
-description: Fase 3.5 (paso 3.5.2) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aiba sprint-planning` (alias `aiba planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aiba hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Soporta los tres modos de faseado del roadmap. En **`waves`** (oleadas) cada oleada es un tramo cuya duracion es el `max` de sus fases y una frontera de sprint natural, y su ancho frente a `parallel_developers` revela los tramos con gente ociosa. En **`multilane`**: cuando el faseado viene repartido en lineas de trabajo paralelas (`F0` / `F-<lane>-NN` / barreras `FB-NN`), el calendario deja de ser una unica cadena critica y pasa a ser el `max` de las cadenas de cada lane entre barreras; **cada sprint toma unidades de varios lanes a la vez**, la carga vs capacidad se declara **por lane** ademas de agregada, las barreras son fronteras de sprint naturales, y se avisa de los lanes sin asignacion (dev parado) y de las dependencias cross-lane fuera de barrera (conflicto de faseado que resuelve `aisdd roadmap`). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.2) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aiba sprint-planning` (alias `aiba planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aiba hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Soporta los tres modos de faseado del roadmap. En **`waves`** (oleadas) cada oleada es un tramo cuya duracion es el `max` de sus fases y una frontera de sprint natural, y su ancho frente a `parallel_developers` revela los tramos con gente ociosa. En **`multilane`**: cuando el faseado viene repartido en lineas de trabajo paralelas (`F0` / `F-<lane>-NN` / barreras `FB-NN`), el calendario deja de ser una unica cadena critica y pasa a ser el `max` de las cadenas de cada lane entre barreras; **cada sprint toma unidades de varios lanes a la vez**, la carga vs capacidad se declara **por lane** ademas de agregada, las barreras son fronteras de sprint naturales, y se avisa de los lanes sin asignacion (dev parado) y de las dependencias cross-lane fuera de barrera (conflicto de faseado que resuelve `aisdd roadmap`). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.6.0"
+  version: "2.0.0"
 ---
 
-# aiba-sprint-planning (AIDD · Fase 3.5 · paso 3.5.2 · sprints)
+# aiba-sprint-planning (AIBA · Fase 3.5 · paso 3.5.2 · sprints)
 
 Usa este skill cuando el usuario quiera repartir el trabajo en sprints a partir del roadmap y los recursos, o cuando invoque:
 
@@ -17,20 +17,20 @@ Tambien cuando pida "plan de sprints", "distribuir las tareas en sprints", "plan
 
 Responde y documenta en espanol siempre que sea posible. Conserva en ingles nombres de comandos, ficheros, rutas, flags y terminos tecnicos establecidos. Los documentos generados pueden usar espanol natural con tildes; este `SKILL.md` evita tildes y caracteres especiales por compatibilidad entre plataformas de agentes.
 
-## Que es AIDD y donde encaja este skill
+## Que es AIBA y donde encaja este skill
 
-AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquitectura asistida por IA. Cada skill cubre una fase o paso del proceso descrito en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de metodologia, solo lectura):
+AIBA (AI Business Analyst) es el conjunto de skills que da la cara ante el negocio: el diseno funcional que el cliente firma, el plan que aprueba, el calendario que sigue y los KPIs con los que juzga si merecio la pena. Su metodologia esta en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de solo lectura). La numeracion de fases es la del proceso AIDD-SDD, cuyos documentos AIBA **consume sin modificar**:
 
-- Fase 0 — `aidd client-requirements`.
-- Fase 1 — `aidd requirements`, `aidd user-stories`, `aidd user-story-details`.
-- Fase 2 — Diseno (AI Architect): `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture`.
+- Fase 0 — `aidd client-requirements` (plugin `aidd`).
+- Fase 1 — `aidd requirements`, `aidd user-stories`, `aidd user-story-details` (plugin `aidd`).
+- Fase 2 — Diseno (AI Architect): `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture` (plugin `aidd`).
 - **Fase 3.5 — Planificacion de entrega (Delivery)** — capa que traduce el diseno y el roadmap a algo que un equipo (humano + agentes) consume directamente:
   - `aiba project-plan` (paso 3.5.1): plan de recursos (`docs/planificacion-proyecto.md`).
   - **`aiba sprint-planning`** (este skill, paso 3.5.2): distribucion del trabajo en sprints (`docs/sprint-plan.md`).
 
 Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
-Como complemento opcional, al final del comando se genera una **vista HTML** del plan de sprints con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+Como complemento opcional, al final del comando se genera una **vista HTML** del plan de sprints con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo si `booster-docs` no esta instalado.
 
 > Relacion con el SDD: el `roadmap` del AI Lead (Fase 3) fasea los changes segun el **presupuesto de contexto** del modelo. Este skill anade la **capa de delivery humana**: agrupa esos changes en sprints con fecha, capacidad y asignacion, para que un equipo Scrum los ejecute. **Respeta el faseado del roadmap**: no parte un change para encajarlo en un sprint; un sprint contiene changes/historias completos.
 
@@ -148,7 +148,7 @@ Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
 ```markdown
 # Plan de sprints — <nombre del proyecto>
 
-> Documento de Planificacion de entrega (AIDD). Generado por `aiba sprint-planning`.
+> Documento de Planificacion de entrega (AIBA). Generado por `aiba sprint-planning`.
 > Fuentes: docs/roadmap.md, docs/planificacion-proyecto.md, docs/detalle-historias-usuario.md.
 > Respeta el faseado por contexto del roadmap. Pendiente de aprobacion humana.
 
@@ -294,7 +294,7 @@ Una vez escrito y confirmado `docs/sprint-plan.md`, genera su **vista HTML** com
 
 Al terminar, informa:
 
-- Comando AIDD ejecutado (`aiba sprint-planning`).
+- Comando AIBA ejecutado (`aiba sprint-planning`).
 - Ruta del documento generado o actualizado (`docs/sprint-plan.md`).
 - Ruta de la vista HTML generada (`docs/html/sprint-plan.html`), o aviso si no se pudo generar el HTML.
 - Numero de sprints, hito del MVP (F1) y principales dependencias/riesgos de planificacion.

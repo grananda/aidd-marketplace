@@ -59,8 +59,10 @@ else:
         out.append("")
 
     filas_s = []
+    actuales: set[str] = set()
     for sk in sorted(ROOT.glob("plugins/*/skills/*/SKILL.md")):
         rel = str(sk.relative_to(ROOT))
+        actuales.add(rel)
         antes = version_en(anterior, rel)
         m = re.search(r'^\s*version:\s*"([^"]+)"', sk.read_text(encoding="utf-8").split("---", 2)[1], re.M)
         ahora = m.group(1) if m else None
@@ -73,7 +75,31 @@ else:
         out += [f"| `{n}` | {a} | **{b}** |" for n, a, b in filas_s]
         out.append("")
 
-    if not filas and not filas_s:
+    # Un skill que desaparece o cambia de plugin es lo que mas le rompe a quien
+    # ya lo tenia en uso, y el recorrido de arriba solo ve lo que existe HOY:
+    # sin esto, la unica ruptura de verdad seria la que no aparece en las notas.
+    previos = [l for l in git("ls-tree", "-r", "--name-only", anterior).splitlines()
+               if re.fullmatch(r"plugins/[^/]+/skills/[^/]+/SKILL\.md", l)]
+    idas = sorted(set(previos) - actuales)
+    if idas:
+        # `aidd-metrics` -> `metrics`, para reconocer el mismo skill bajo otro prefijo.
+        def sufijo(ruta: str) -> str:
+            return Path(ruta).parent.name.split("-", 1)[-1]
+
+        destinos = {sufijo(r): r for r in sorted(actuales)}
+        out.append("## Skills que ya no están donde estaban\n")
+        out.append("| Skill | Estaba en | Ahora |")
+        out.append("|---|---|---|")
+        for r in idas:
+            llegada = destinos.get(sufijo(r))
+            ahora = (f"`{llegada.split('/')[1]}` como `{Path(llegada).parent.name}`"
+                     if llegada else "eliminado")
+            out.append(f"| `{Path(r).parent.name}` | `{r.split('/')[1]}` | {ahora} |")
+        out.append("")
+        out.append("> Si tenías alguno instalado, reinstala el plugin de destino: "
+                   "sus comandos ya no responden con el prefijo antiguo.\n")
+
+    if not filas and not filas_s and not idas:
         out.append("_Sin cambios de versión en plugins ni skills; cambios de documentación o infraestructura._\n")
 
     commits = git("log", "--no-merges", "--pretty=format:- %s", f"{anterior}..HEAD")

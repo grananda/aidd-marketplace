@@ -98,7 +98,7 @@ El AI Delivery Manager distribuye el trabajo en sprints, respetando dependencias
 
 ## 4. Medición
 
-`aiba metrics` cierra el círculo: calcula **KPIs medidos** —no estimados— del uso de IA a partir del registro de actividad `docs/aidd-activity.md`, del historial de git y de las tallas del detalle de historias, y los contrasta con el esfuerzo humano declarado por el equipo.
+`aiba metrics` cierra el círculo: calcula **KPIs medidos** —no estimados— del uso de IA a partir del registro de actividad `docs/aidd-activity.md` (lo escribe el hook `aidd-activity-hook.sh`, que el propio plugin `aiba` trae junto al resto del marketplace; es opt-in y se activa con `touch docs/aidd-activity.md`), del historial de git y de las tallas del detalle de historias, y los contrasta con el esfuerzo humano declarado por el equipo.
 
 La regla que lo gobierna es que **distingue siempre lo medido de lo estimado** y se niega a publicar cifras de ahorro que no se sostienen. Un KPI de ROI inventado hace más daño que no tener ninguno, porque se usa para decidir.
 

@@ -1,12 +1,12 @@
 ---
 name: aiba-hu-review-plan
-description: Fase 1.4 (opcional) del conjunto AIDD (AI Driven Development), capa de planificacion de la revision de historias de usuario. Genera un fichero Excel (.xlsx) de planificacion consolidando `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md`, mediante el comando `aiba hu-review-plan` (alias `aiba planificacion revision hu`, `aiba revision historias`). Produce cuatro pestañas — "Detalle HU" (todas las HU combinadas, con las palabras Como/quiero/para resaltadas en negrita), "Dashboard" (KPIs y graficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), "Leyenda" (significado de campos codificados como Persona P1/P5 o GAP) y "Gantt Julio" (planificacion de la revision de HU: kickoff, semana 1 de revision de documentacion del cliente y resto del mes de reuniones funcionales con negocio y tecnicas con TI, con detalle por HU). El `.md` de plan sigue siendo la fuente de verdad; el Excel es el entregable rico. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Paso 1.4 (opcional) del proceso AIDD-SDD, cubierto por el conjunto AIBA (AI Business Analyst): capa de planificacion de la revision de historias de usuario con negocio y TI. Genera un fichero Excel (.xlsx) de planificacion consolidando `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md`, mediante el comando `aiba hu-review-plan` (alias `aiba planificacion revision hu`, `aiba revision historias`). Produce cuatro pestañas — "Detalle HU" (todas las HU combinadas, con las palabras Como/quiero/para resaltadas en negrita), "Dashboard" (KPIs y graficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), "Leyenda" (significado de campos codificados como Persona P1/P5 o GAP) y "Gantt <Mes>" (planificacion de la revision de HU, con el mes real en el nombre de la pestaña: kickoff, semana 1 de revision de documentacion del cliente y resto del mes de reuniones funcionales con negocio y tecnicas con TI, con detalle por HU). El `.md` de plan sigue siendo la fuente de verdad; el Excel es el entregable rico. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
-# aiba-hu-review-plan (AIDD · planificacion de la revision de HU · Excel)
+# aiba-hu-review-plan (AIBA · planificacion de la revision de HU · Excel)
 
 Usa este skill cuando el usuario quiera un **plan (en Excel) para revisar y cerrar las historias de usuario** con negocio y TI, o cuando invoque:
 
@@ -18,18 +18,18 @@ Tambien cuando pida "excel de planificacion de HU", "gantt de revision de histor
 
 Responde y documenta en espanol siempre que sea posible. Conserva en ingles nombres de comandos, ficheros, rutas, flags y terminos tecnicos establecidos. Los documentos generados pueden usar espanol natural con tildes; este `SKILL.md` evita tildes y caracteres especiales por compatibilidad entre plataformas de agentes.
 
-## Que es AIDD y donde encaja este skill
+## Que es AIBA y donde encaja este skill
 
-AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquitectura asistida por IA. Cada skill cubre una fase o paso del proceso descrito en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de metodologia, solo lectura):
+AIBA (AI Business Analyst) es el conjunto de skills que da la cara ante el negocio: el diseno funcional que el cliente firma, el plan que aprueba, el calendario que sigue y los KPIs con los que juzga si merecio la pena. Su metodologia esta en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de solo lectura). La numeracion de fases es la del proceso AIDD-SDD, cuyos documentos AIBA **consume sin modificar**:
 
-- Fase 0 — `aidd client-requirements`.
-- Fase 1 — Definicion (AI Architect): `aidd requirements`, `aidd user-stories`, `aidd user-story-details`.
-- **Este skill — planificacion de la revision de HU**: una vez existe el detalle de historias, planifica **como revisarlas y cerrarlas** con negocio/TI y lo entrega en Excel. Es una capa de gestion sobre la Definicion, previa (o paralela) al Diseno de la Fase 2. No sustituye a `aiba project-plan` (recursos) ni a `aiba sprint-planning` (sprints de desarrollo): aquellos planifican la **construccion**; este planifica la **validacion de las HU**.
-- Fase 2 — Diseno; Fase 3.5 — Entrega (`aiba project-plan`, `aiba sprint-planning`).
+- Fase 0 — `aidd client-requirements` (plugin `aidd`).
+- Fase 1 — Definicion (AI Architect): `aidd requirements`, `aidd user-stories`, `aidd user-story-details` (plugin `aidd`).
+- **Este skill — Paso 1.4, planificacion de la revision de HU**: una vez existe el detalle de historias, planifica **como revisarlas y cerrarlas** con negocio/TI y lo entrega en Excel. Es una capa de gestion sobre la Definicion, previa (o paralela) al Diseno de la Fase 2. No sustituye a `aiba project-plan` (recursos) ni a `aiba sprint-planning` (sprints de desarrollo): aquellos planifican la **construccion**; este planifica la **validacion de las HU**.
+- Fase 2 — Diseno (plugin `aidd`); Fase 3 — roadmap y ciclo de changes (plugin `aisdd`); Fase 3.5 — Entrega (`aiba project-plan`, `aiba sprint-planning`).
 
 Este skill es **autonomo**: no depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del `.md` de plan generado.
 
-> Relacion con el resto de la capa Delivery: `sprint-planning` reparte los **changes/HU en sprints de desarrollo** (el CUANDO se construye); este skill planifica el **antes**: las reuniones de definicion/validacion para dejar las HU cerradas y listas para construir.
+> Relacion con el resto de AIBA: `sprint-planning` reparte los **changes/HU en sprints de desarrollo** (el CUANDO se construye); este skill planifica el **antes**: las reuniones de definicion/validacion para dejar las HU cerradas y listas para construir.
 >
 > **Antesala de la planificacion de sprints y personas en Jira.** El `docs/plan-revision-hu.md` que genera este skill es un **insumo directo de `aiba sprint-planning`**: aquel lo lee para no planificar por libre — solo compromete en sprint las HU que la revision haya dejado **cerradas/validadas**, reutiliza las **personas/perfiles** implicadas en la revision para asignar el sprint y, en el volcado a Jira, el **assignee** de cada Story. Deja por tanto el `tipo_revision`, el estado de cada HU y la persona responsable bien reflejados: son lo que consume la siguiente etapa.
 
@@ -101,7 +101,7 @@ Genera (o actualiza) `docs/plan-revision-hu.md` con esta estructura:
 ```markdown
 # Plan de revision de Historias de Usuario — <nombre del proyecto>
 
-> Documento de planificacion de la revision de HU (AIDD). Generado por `aiba hu-review-plan`.
+> Documento de planificacion de la revision de HU (AIBA). Generado por `aiba hu-review-plan`.
 > Fuentes: docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
 > El Excel docs/xlsx/plan-revision-hu.xlsx es la vista rica de este plan. Pendiente de aprobacion humana.
 
@@ -225,7 +225,7 @@ El script intenta instalar `openpyxl` automaticamente. Solo si esa instalacion f
 
 Al terminar, informa:
 
-- Comando AIDD ejecutado (`aiba hu-review-plan`).
+- Comando AIBA ejecutado (`aiba hu-review-plan`).
 - Rutas generadas: `docs/plan-revision-hu.md` (fuente de verdad), `docs/plan-revision-hu.json` (manifiesto) y `docs/xlsx/plan-revision-hu.xlsx` (entregable), o aviso si el Excel no se pudo generar (falta `openpyxl`).
 - Resumen: numero de HU consolidadas, cuantas pendientes / bloqueadas, numero de reuniones planificadas (funcionales vs tecnicas) y si todas las HU caben en el periodo objetivo.
 - Campos de la Leyenda que han quedado **sin significado** y que el humano debe completar.

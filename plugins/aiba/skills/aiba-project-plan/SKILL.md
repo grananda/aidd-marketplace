@@ -1,12 +1,12 @@
 ---
 name: aiba-project-plan
-description: Fase 3.5 (paso 3.5.1) del conjunto AIDD (AI Driven Development), capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aiba project-plan` (alias `aiba planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aiba-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 3.5 (paso 3.5.1) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aiba project-plan` (alias `aiba planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aiba-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "2.0.0"
 ---
 
-# aiba-project-plan (AIDD · Fase 3.5 · paso 3.5.1 · recursos)
+# aiba-project-plan (AIBA · Fase 3.5 · paso 3.5.1 · recursos)
 
 Usa este skill cuando el usuario quiera un plan de recursos del proyecto (personas, licencias, software, infraestructura) una vez aprobado el diseno, o cuando invoque:
 
@@ -17,20 +17,20 @@ Tambien cuando pida "plan de recursos", "que equipo necesito", "perfiles y licen
 
 Responde y documenta en espanol siempre que sea posible. Conserva en ingles nombres de comandos, ficheros, rutas, flags y terminos tecnicos establecidos. Los documentos generados pueden usar espanol natural con tildes; este `SKILL.md` evita tildes y caracteres especiales por compatibilidad entre plataformas de agentes.
 
-## Que es AIDD y donde encaja este skill
+## Que es AIBA y donde encaja este skill
 
-AIDD (AI Driven Development) es un conjunto de skills de planificacion y arquitectura asistida por IA. Cada skill cubre una fase o paso del proceso descrito en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de metodologia, solo lectura):
+AIBA (AI Business Analyst) es el conjunto de skills que da la cara ante el negocio: el diseno funcional que el cliente firma, el plan que aprueba, el calendario que sigue y los KPIs con los que juzga si merecio la pena. Su metodologia esta en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de solo lectura). La numeracion de fases es la del proceso AIDD-SDD, cuyos documentos AIBA **consume sin modificar**:
 
-- Fase 0 — `aidd client-requirements`.
-- Fase 1 — `aidd requirements`, `aidd user-stories`, `aidd user-story-details`.
-- Fase 2 — Diseno (AI Architect): `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture`.
+- Fase 0 — `aidd client-requirements` (plugin `aidd`).
+- Fase 1 — `aidd requirements`, `aidd user-stories`, `aidd user-story-details` (plugin `aidd`).
+- Fase 2 — Diseno (AI Architect): `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture` (plugin `aidd`).
 - **Fase 3.5 — Planificacion de entrega (Delivery)** — capa que traduce el diseno y el roadmap a algo que un equipo (humano + agentes) consume directamente:
   - **`aiba project-plan`** (este skill, paso 3.5.1): plan de recursos (`docs/planificacion-proyecto.md`). Se ejecuta tras aprobar la Fase 2.
   - `aiba sprint-planning` (paso 3.5.2): distribucion del trabajo en sprints (`docs/sprint-plan.md`). Se ejecuta cuando existe el roadmap.
 
 Este conjunto es **autonomo**: puede usarse al margen de `aisdd-specs`, `booster-ux` y `booster-uml`. No depende de OpenSpec ni escribe auditoria estructurada. Las decisiones se registran de forma ligera dentro del propio documento generado.
 
-Como complemento opcional, al final del comando se genera una **vista HTML** del plan de proyecto con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo AIDD si `booster-docs` no esta instalado.
+Como complemento opcional, al final del comando se genera una **vista HTML** del plan de proyecto con `booster-docs` (ver el paso final del flujo). El `.md` sigue siendo la **unica fuente de verdad**; el HTML es solo para consumo humano y no altera el flujo si `booster-docs` no esta instalado.
 
 > Este skill NO sustituye al `roadmap` del AI Lead (Fase 3), que fasea los changes segun el presupuesto de contexto del modelo. Aporta la dimension que el SDD no cubre: **los recursos humanos y materiales** necesarios para ejecutar ese plan.
 
@@ -81,7 +81,7 @@ Genera (o actualiza) `docs/planificacion-proyecto.md` con esta estructura:
 ```markdown
 # Planificacion de proyecto (recursos) — <nombre del proyecto>
 
-> Documento de Planificacion de entrega (AIDD). Generado por `aiba project-plan`.
+> Documento de Planificacion de entrega (AIBA). Generado por `aiba project-plan`.
 > Fuentes: docs/arquitectura-base.md, docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
 > Insumo de `aiba sprint-planning`. Pendiente de aprobacion humana.
 
@@ -167,7 +167,7 @@ Una vez escrito y confirmado `docs/planificacion-proyecto.md`, genera su **vista
 
 Al terminar, informa:
 
-- Comando AIDD ejecutado (`aiba project-plan`).
+- Comando AIBA ejecutado (`aiba project-plan`).
 - Ruta del documento generado o actualizado (`docs/planificacion-proyecto.md`).
 - Ruta de la vista HTML generada (`docs/html/planificacion-proyecto.html`), o aviso si no se pudo generar el HTML.
 - Resumen del equipo recomendado, software/licencias con coste y principales riesgos de recursos.

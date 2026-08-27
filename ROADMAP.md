@@ -145,7 +145,7 @@ Tres decisiones que conviene no perder:
 - **No inventa: marca y contabiliza.** `[PENDIENTE: ...]` en el cuerpo, una fila por hueco en **Puntos abiertos**, y el número de puntos abiertos en el resumen como indicador de si el documento está listo. Un DF se firma y se desarrolla contra él, así que el relleno plausible es peor que el hueco.
 - **Reedición no destructiva.** Regenera solo lo afectado, conserva el texto del analista y **añade** fila al control de versiones. Ese historial es la razón de ser de esa tabla.
 
-`aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Más adelante se le moverán algunos skills que hoy viven en `aidd` y pertenecen más al análisis que a la planificación.
+`aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Los skills que entonces quedaban pendientes de mover se movieron en **F-10**.
 
 ## F-10 — La capa de entrega y medición pasa de `aidd` a `aiba`
 
@@ -159,6 +159,8 @@ Cuatro skills se mueven: `hu-review-plan`, `project-plan`, `sprint-planning` y `
 
 **AIBA estrena metodología propia** (`plugins/aiba/methodology/native-ai-aiba.md`) y la capa correspondiente se poda de la de AIDD, dejando punteros en su lugar en las dos copias: el rol de AI Delivery Manager, el paso 1.4 y la Fase 3.5 completa.
 
-Dos detalles de la mecánica que conviene recordar: `stamp_doc.py` lo usan skills de ambos plugins, y como los plugins se instalan por separado **cada uno lleva su copia** — un plugin que depende de un script debe traerlo. Y el hook de actividad, que vive en cuatro plugins, mencionaba `aidd metrics` en su texto de ayuda: también se actualizó.
+**La lección de la mecánica es que un plugin tiene que ser autosuficiente.** Claude Code los instala sueltos y no resuelve dependencias entre ellos, así que `stamp_doc.py` viaja duplicado en `aidd` y en `aiba`, y el hook de actividad en los cinco plugins — incluido `aiba`, que hasta ahora no lo traía pese a ser, con `aiba metrics`, su único consumidor. Un `git mv` rompe justo esto sin hacer ruido, así que ahora lo comprueba `check_plugin_assets.py`: toda referencia `${CLAUDE_PLUGIN_ROOT}/...` resuelve dentro de su plugin, y las copias replicadas son idénticas entre sí.
 
-`aidd` sube a **2.0.0** porque pierde cuatro skills: es ruptura para quien los tuviera en uso.
+**Lo que no puede romperse es el histórico.** El registro de actividad guarda el nombre del skill que se ejecutó, así que `aiba metrics` conserva los nombres `aidd-*` como alias de etapa: sin ellos, toda la planificación anterior al traslado caería en «Otros» y falsearía el reparto planificación-vs-ejecución, que es justo la cifra por la que se lee el informe.
+
+`aidd` sube a **2.0.0** porque pierde cuatro skills: es ruptura para quien los tuviera en uso, y las notas del release ahora lo dicen — `release_notes.py` enumera también los skills que **desaparecen** de donde estaban y a qué plugin han ido.
