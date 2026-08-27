@@ -45,6 +45,11 @@ jobs:
       - name: Frontmatter de los skills
         run: python3 .github/scripts/check_skills.py
 
+      # Los plugins se instalan sueltos: uno que invoque un script de otro falla
+      # en tiempo de uso. Un `git mv` entre plugins lo rompe sin hacer ruido.
+      - name: Cada plugin trae lo que ejecuta
+        run: python3 .github/scripts/check_plugin_assets.py
+
       # Los .html de metodologia son generados. Si el .md cambia y el .html no,
       # la documentacion publicada miente.
       - name: HTML de metodologia regenerado

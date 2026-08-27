@@ -10,7 +10,7 @@ Enlaza cada change de OpenSpec con su historia de usuario (HU) en Jira y mueve l
 
 Este bloque solo actua si se cumplen **las dos** condiciones:
 
-1. Existe una seccion `jira:` en `openspec/config.yaml` (la escribe `aidd sprint-planning` al volcar el plan, o el usuario a mano).
+1. Existe una seccion `jira:` en `openspec/config.yaml` (la escribe `aiba sprint-planning` al volcar el plan, o el usuario a mano).
 2. Hay tools del MCP de Atlassian disponibles (localizalas por funcion con la busqueda de herramientas; los nombres varian entre versiones, no los asumas).
 
 Si falta cualquiera de las dos, **omite la sincronizacion sin error**: anota una linea en el resumen del comando ("Jira no configurado o MCP no disponible: sincronizacion omitida") y continua. Nunca caigas a llamadas REST manuales ni gestiones credenciales desde el skill.
@@ -19,7 +19,7 @@ Si falta cualquiera de las dos, **omite la sincronizacion sin error**: anota una
 
 ### Modelo de datos en Jira (acordado)
 
-- Cada **HU** es una **Story** (la crea `aidd sprint-planning`).
+- Cada **HU** es una **Story** (la crea `aiba sprint-planning`).
 - Un **change** implementa **una o varias HU** (segun `docs/roadmap.md`, `docs/sprint-plan.md` y el detalle de HU). El change **mueve las Stories de todas las HU que implementa** — no solo la "principal".
 - **Regla de decision, por HU (no por change)**: cuenta en cuantos changes aparece esa HU (campo `hus`/`change_hint` del roadmap y registro `docs/jira-sync.md`):
   - **HU cubierta por 1 solo change** -> **modo Story directa**: se opera sobre la Story; **no se crea sub-tarea** (una sub-tarea 1:1 solo duplica la Story y ensucia el board).
@@ -48,7 +48,7 @@ No inventes valores: si falta una clave necesaria, preguntala una vez y persiste
 
 ### Registro de enlace (`docs/jira-sync.md`)
 
-Fuente de verdad del mapeo HU <-> change <-> issue de Jira. Lo inicializa `aidd sprint-planning` (HU -> clave de Story) y lo completan los comandos de change. El **estado se lleva por HU/Story**; la columna de sub-tareas **solo se rellena en modo sub-tarea** (HU repartida entre 2+ changes) y queda vacia (`—`) en modo Story directa. Estructura en tabla:
+Fuente de verdad del mapeo HU <-> change <-> issue de Jira. Lo inicializa `aiba sprint-planning` (HU -> clave de Story) y lo completan los comandos de change. El **estado se lleva por HU/Story**; la columna de sub-tareas **solo se rellena en modo sub-tarea** (HU repartida entre 2+ changes) y queda vacia (`—`) en modo Story directa. Estructura en tabla:
 
 | HU | Story (Jira) | change(s) | Sub-tarea(s) (Jira) | estado |
 |----|--------------|-----------|---------------------|--------|

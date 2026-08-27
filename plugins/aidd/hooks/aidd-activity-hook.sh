@@ -31,7 +31,7 @@
 # El matcher del hook es "*" (todas las tools) y el filtrado se hace aqui: asi
 # funciona sea cual sea el nombre interno de la tool que invoca skills.
 #
-# SYNC: fichero compartido, identico en plugins/{aidd,aisdd,aiad,boosters}/hooks/.
+# SYNC: fichero compartido, identico en plugins/{aidd,aisdd,aiad,aiba,boosters}/hooks/.
 #       Si lo cambias, copialo a los cuatro (todos deben tener el mismo sha256).
 
 set -u
@@ -235,7 +235,7 @@ if [ ! -s "$LOG_REL" ]; then
     printf 'Traza automatica de las acciones sobre el codigo: que skill se ejecuta, que\n'
     printf 'ficheros toca la IA y cuanto dura cada turno. La escribe el hook\n'
     printf '`aidd-activity-hook.sh` que traen los plugins del marketplace aidd-sdd, y la\n'
-    printf 'consume `aidd metrics` para calcular los KPIs. Es opt-in: existe este fichero,\n'
+    printf 'consume `aiba metrics` para calcular los KPIs. Es opt-in: existe este fichero,\n'
     printf 'se registra; borralo y el registro se apaga en este proyecto.\n\n'
     printf 'No se guarda el texto de los prompts ni el contenido del codigo.\n\n'
     printf 'Formato (marcas de tiempo en UTC):\n\n'

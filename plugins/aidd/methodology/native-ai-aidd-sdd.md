@@ -1,14 +1,15 @@
 # Native AI · AIDD-SDD — Metodología AI-Native (AI Driven Development + Spec-Driven Development)
 **Versión:** 4.0
 **Fecha:** 2026-06-22
-**Base de tooling:** skills **AIDD** (`aidd-*` — planificación, diseño y entrega) + skill **aisdd-specs** (OpenSpec — ejecución) + **boosters** compartidos (`booster-ux` prototipos, `booster-uml` diagramas, `booster-docs` vistas HTML de los documentos de planificación).
+**Base de tooling:** skills **AIDD** (`aidd-*` — definición y diseño) + skill **aisdd-specs** (OpenSpec — ejecución) + skills **AIBA** (`aiba-*` — negocio, entrega y medición; metodología propia) + **boosters** compartidos (`booster-ux` prototipos, `booster-uml` diagramas, `booster-docs` vistas HTML de los documentos de planificación).
 
 > **Terminología (importante).** Tres conceptos que conviven y NO son lo mismo:
 > - **SDD** (*Spec-Driven Development*) — la **metodología**: proceso, roles y fases. El "cómo se trabaja" (este documento).
-> - **AIDD** (*AI Driven Development*) — el **skill set** que automatiza la **planificación, el diseño y la entrega** (Fases 0-2 y 3.5). Comandos `aidd *`. Cada comando aplica el prompt del paso; ejecutarlo equivale a lanzar ese prompt a mano.
+> - **AIDD** (*AI Driven Development*) — el **skill set** que automatiza la **definición y el diseño** (Fases 0-2). Comandos `aidd *`. Cada comando aplica el prompt del paso; ejecutarlo equivale a lanzar ese prompt a mano.
 > - **aisdd-specs** — el **skill set** de **ejecución** sobre OpenSpec (Fases 3 y 4+). Comandos `aisdd *` (alias legacy `native-ai *`).
+> - **AIBA** (*AI Business Analyst*) — el **skill set** que da la cara ante el negocio: el diseño funcional, el Paso 1.4, la Fase 3.5 y la medición. Comandos `aiba *`. Vivía dentro de `aidd` hasta la v1.8.0 del marketplace y tiene **metodología propia** en `plugins/aiba/methodology/native-ai-aiba.md`.
 >
-> **Novedad v4.** (1) Las Fases 0-2, antes descritas como prompts manuales del AI Architect, ahora se ejecutan con los comandos `aidd` (mismo proceso, empaquetado en skills). (2) Se añade un quinto rol, **AI Delivery Manager**, y la **Fase 3.5**, que traduce el roadmap en un **plan de recursos** (`aidd project-plan` → `docs/planificacion-proyecto.md`) y un **plan de sprints** (`aidd sprint-planning` → `docs/sprint-plan.md`), consumible por un equipo Scrum. Ver Fase 3.5 y registro #008.
+> **Novedad v4.** (1) Las Fases 0-2, antes descritas como prompts manuales del AI Architect, ahora se ejecutan con los comandos `aidd` (mismo proceso, empaquetado en skills). (2) Se añade un quinto rol, **AI Delivery Manager**, y la **Fase 3.5**, que traduce el roadmap en un **plan de recursos** (`aiba project-plan` → `docs/planificacion-proyecto.md`) y un **plan de sprints** (`aiba sprint-planning` → `docs/sprint-plan.md`), consumible por un equipo Scrum. Ver Fase 3.5 y registro #008. *(Ese rol y esos skills forman hoy el conjunto **AIBA**; ver registro #015.)*
 
 ---
 
@@ -87,7 +88,7 @@ DEFINITION PHASE
   AI Lead
   → aisdd init  +  aisdd roadmap
   AI Delivery Manager
-  → aidd project-plan + aidd sprint-planning  (plan de recursos + plan de sprints)
+  → aiba project-plan + aiba sprint-planning  (plan de recursos + plan de sprints)
       │
       ▼  (aprobación humana)
 EXECUTION PHASE  ◄─────────────────────────────── KO ─┐
@@ -131,7 +132,7 @@ VALIDATION PHASE ─────────────────────
 
 ## 3. Roles y responsabilidades
 
-La metodología define cinco roles con responsabilidades diferenciadas. Cada uno opera con contexto acotado a su fase. La columna de comandos indica qué comandos ejecuta cada rol (`aisdd` — alias legacy `native-ai` — para AI Lead/Developer/Outcome Validator; `aidd` para el AI Delivery Manager de la capa de planificación de entrega).
+La metodología define cinco roles con responsabilidades diferenciadas. Cada uno opera con contexto acotado a su fase. La columna de comandos indica qué comandos ejecuta cada rol: `aidd` para el AI Architect, `aisdd` —alias legacy `native-ai`— para AI Lead, Developer y Outcome Validator, y `aiba` para el AI Delivery Manager, cuyo rol se describe entero en la metodología de AIBA.
 
 ### AI Architect
 
@@ -202,18 +203,9 @@ Capa de diagnóstico, QA técnico y funcional. Es el único rol que puede escala
 | **Archiva el change validado** | Ejecuta `aisdd close change <slug>` (envuelve `openspec archive`) |
 | **Lanza el siguiente change** | Tras archivar, habilita al **AI Lead** para que abra y valide el siguiente change (`aisdd open change`) y lo entregue al Developer |
 
-### AI Delivery Manager
+### AI Delivery Manager · **rol movido a AIBA**
 
-Rol de planificación de entrega (añadido en v4). Traduce el diseño y el roadmap a un plan ejecutable por un equipo (humano + agentes): **recursos** y **calendario**. **No implementa código ni toma decisiones de arquitectura.** Opera con los skills `aidd` de la capa de planificación, **autónomos de OpenSpec**.
-
-| Responsabilidad | Comandos / Detalle |
-|---|---|
-| **Genera el plan de recursos** | Ejecuta `aidd project-plan` en cuanto el diseño (Fase 2) está aprobado: produce `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias, infraestructura/entornos, esfuerzo agregado con **doble estimación humano clásico vs IA** (a partir de XS/S/M/L/XL) y **KPIs de la diferencia** (ahorro en jornadas, % de reducción y factor de aceleración), dependencias y riesgos de recursos, derivados de `arquitectura-base.md` y las historias |
-| **Distribuye el trabajo en sprints** | Ejecuta `aidd sprint-planning` cuando existe `docs/roadmap.md`: produce `docs/sprint-plan.md` agrupando los changes/fases en sprints con objetivo, capacidad, asignación de perfiles y dependencias respetadas |
-| **Respeta el faseado por contexto** | No parte un change para encajarlo en un sprint; un sprint contiene changes/historias completos. El roadmap (presupuesto de contexto) manda sobre el calendario |
-| **Hace consumible el plan por un equipo Scrum** | Traduce la planificación AI-native a recursos y calendario que un equipo humano gestiona en su día a día |
-
-> Capa **autónoma de OpenSpec**: parte de los documentos (`arquitectura-base.md`, `roadmap.md`, detalle de historias). Si existen changes de OpenSpec, los usa como detalle adicional, pero la unidad de planificación sigue siendo el change/historia del roadmap. En equipos pequeños, el AI Delivery Manager puede ser el mismo humano que actúa de AI Lead.
+El rol de planificación de entrega pertenece ahora al conjunto **AIBA**, junto con los skills que ejecuta. Ver `plugins/aiba/methodology/native-ai-aiba.md`.
 
 ---
 
@@ -277,7 +269,7 @@ Con `multilane`, cinco cosas:
 - **`aisdd open change`** admite un change abierto **por lane**, y rechaza abrir un segundo en el mismo. Una barrera exige que **ningún** lane tenga trabajo en vuelo.
 - **`aisdd close change`** comprueba que el change no escribió fuera de las rutas de su lane. Es donde la independencia deja de ser una promesa del faseado.
 - **Correcciones nivel 4**: una corrección que toca el contrato compartido **no es local**. Es una **parada coordinada** de los lanes hermanos y una revisión del contrato por su dueño. Cuesta caro a propósito: si fuera barato, los lanes podrían contradecirse gratis.
-- **`aidd sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
+- **`aiba sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
 
 ### Lanes con dependencias
 
@@ -420,7 +412,7 @@ Ese cuarto caso es el que mejor distingue a los dos: como la oleada es una **ano
 
 Cada fase produce documentos que son la entrada de la siguiente. El humano revisa y aprueba cada documento antes del handoff.
 
-> **Versionado y sello temporal (todos los documentos AIDD).** Cada documento generado por un skill `aidd` lleva, justo bajo el título, una línea de sello: `> **Versión N** · **Generado:** YYYY-MM-DD HH:MM TZ`. La **versión se incrementa en cada regeneración** del documento y la **fecha-hora es real**. No la escribe el modelo (no inventa versión ni hora): la estampa el script `${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py`, que cada skill ejecuta tras escribir el `.md` y antes de renderizar la vista HTML/Excel. La versión persiste en el sidecar `docs/.aidd-doc-meta.json` (sobrevive a que el `.md` se reescriba). La vista HTML de `booster-docs` muestra el sello en la cabecera.
+> **Versionado y sello temporal (todos los documentos AIDD).** Cada documento generado por un skill `aidd` lleva, justo bajo el título, una línea de sello: `> **Versión N** · **Generado:** YYYY-MM-DD HH:MM TZ`. La **versión se incrementa en cada regeneración** del documento y la **fecha-hora es real**. No la escribe el modelo (no inventa versión ni hora): la estampa el script `scripts/stamp_doc.py` que acompaña al plugin del skill (`aidd` o `aiba`), que cada skill ejecuta tras escribir el `.md` y antes de renderizar la vista HTML/Excel. La versión persiste en el sidecar `docs/.aidd-doc-meta.json` (sobrevive a que el `.md` se reescriba). La vista HTML de `booster-docs` muestra el sello en la cabecera.
 
 ```
 docs/
@@ -428,16 +420,16 @@ docs/
 ├── requisitos.md                    ← AI Architect / Fase 1
 ├── mapa-historias-usuario.md        ← AI Architect / Fase 1
 ├── detalle-historias-usuario.md     ← AI Architect / Fase 1
-├── plan-revision-hu.md              ← aidd hu-review-plan (opcional) · fuente de verdad
-├── xlsx/plan-revision-hu.xlsx       ← aidd hu-review-plan (opcional) · Excel de revisión de HU
+├── plan-revision-hu.md              ← aiba hu-review-plan (opcional) · fuente de verdad
+├── xlsx/plan-revision-hu.xlsx       ← aiba hu-review-plan (opcional) · Excel de revisión de HU
 ├── arquitectura-base-prototipo.md   ← AI Architect / Fase 2
 ├── guia-estilos.md                  ← AI Architect / Fase 2
 ├── propuesta-arquitectura-base.md   ← AI Architect / Fase 2
 ├── arquitectura-base.md             ← AI Architect / Fase 2
 ├── roadmap.md                       ← aisdd roadmap (AI Lead) / Fase 3
 ├── prompts-roadmap-native-ai.md     ← aisdd roadmap (AI Lead) / Fase 3
-├── planificacion-proyecto.md        ← AI Delivery Manager / Fase 3.5 (aidd project-plan)
-├── sprint-plan.md                   ← AI Delivery Manager / Fase 3.5 (aidd sprint-planning)
+├── planificacion-proyecto.md        ← AI Delivery Manager / Fase 3.5 (aiba project-plan)
+├── sprint-plan.md                   ← AI Delivery Manager / Fase 3.5 (aiba sprint-planning)
 └── jira-sync.md                     ← integración Jira (opcional) — mapeo HU ↔ change ↔ issue
 
 AGENTS.md                            ← aisdd init — registro de comandos del skill
@@ -471,7 +463,7 @@ openspec/
 - Crear `AGENTS.md` con contexto, stack y convenciones del proyecto (fichero de contexto genérico para cualquier agente IA)
 - Definir el stack tecnológico y las restricciones no negociables
 - Capturar el brief en `docs/cliente-requisitos.md`
-- Verificar disponibilidad de Node.js/npm y de los skills `aidd-*` (planificación/diseño), `aisdd-specs`, `booster-ux` y `booster-uml`
+- Verificar disponibilidad de Node.js/npm y de los skills `aidd-*` (definición/diseño), `aisdd-specs`, `aiba-*` (si el proyecto va a planificar entrega), `booster-ux` y `booster-uml`
 
 **Criterio de salida:** Existe `cliente-requisitos.md` con suficiente contexto para que el AI Architect arranque sin preguntas. Los skills auxiliares están instalados o se conoce dónde instalarlos.
 
@@ -522,16 +514,9 @@ aidd user-story-details
 
 **Criterio de salida de Fase 1:** Cada requisito tiene al menos una historia. Cada historia tiene criterios de aceptación verificables. Humano ha aprobado los tres documentos.
 
-#### Paso 1.4 — Planificación de la revisión de HU (opcional)
+#### Paso 1.4 — Planificación de la revisión de HU · **movida a AIBA**
 
-**Comando AIDD:**
-```text
-aidd hu-review-plan
-```
-
-`aidd hu-review-plan` consolida `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` en un **Excel de planificación** (`docs/xlsx/plan-revision-hu.xlsx`) con cuatro pestañas: **Detalle HU** (todas las HU combinadas, con las palabras *Como/quiero/para* en negrita), **Dashboard** (KPIs y gráficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), **Leyenda** (significado de campos codificados como `Persona` P1/P5 o `GAP`) y **Gantt** (planificación de la revisión: kickoff, semana 1 de revisión de la documentación del cliente y resto del periodo con reuniones **funcionales** con negocio y **técnicas** con TI, con detalle por HU). El `docs/plan-revision-hu.md` es la fuente de verdad; el Excel es el entregable rico.
-
-Es la **antesala de la Fase 3.5**: `aidd sprint-planning` lee `plan-revision-hu.md` para no planificar por libre — solo compromete en sprint las HU que la revisión ha dejado cerradas/validadas y reutiliza las personas implicadas en la revisión para asignar el sprint y, al volcar a Jira, el *assignee* de cada Story. Skill autónomo (openpyxl se autoinstala si falta).
+Es ahora `aiba hu-review-plan`. Ver `plugins/aiba/methodology/native-ai-aiba.md`. Sigue produciendo `docs/plan-revision-hu.md` y su Excel, y sigue siendo la antesala de la planificación de sprints.
 
 ---
 
@@ -699,26 +684,11 @@ Un **change** es la unidad de trabajo: equivale a una fase del roadmap o feature
 
 ---
 
-### Fase 3.5 — Planificación de entrega (AI Delivery Manager) · DEFINITION → EXECUTION
+### Fase 3.5 — Planificación de entrega · **movida a AIBA**
 
-**Propósito:** Traducir el diseño aprobado y el roadmap consciente de contexto en un plan ejecutable por un equipo (humano + agentes): qué **recursos** hacen falta y en qué **orden temporal** se aborda el trabajo. Cubre la dimensión de gestión de proyecto/recursos que el SDD v3 no contemplaba. Es **opcional** pero recomendada cuando el desarrollo lo ejecuta un equipo humano que necesita planificar recursos y sprints (p. ej. un equipo Scrum).
+Esta fase ya no vive aquí. La planificación de recursos y sprints, junto con la planificación de la revisión de HU y la medición de KPIs, forman ahora el conjunto **AIBA** (*AI Business Analyst*), con metodología propia en `plugins/aiba/methodology/native-ai-aiba.md`.
 
-**Entradas:** `arquitectura-base.md`, `mapa-historias-usuario.md`, `detalle-historias-usuario.md` (para recursos); `roadmap.md` + `planificacion-proyecto.md` + `detalle-historias-usuario.md` (para sprints)
-**Salidas:** `docs/planificacion-proyecto.md`, `docs/sprint-plan.md`
-
-> Capa **autónoma de OpenSpec** (skills `aidd-*`). No sustituye al `aisdd roadmap`: lo complementa. El roadmap fasea por presupuesto de contexto del modelo; esta fase añade recursos y calendario humano **sin romper ese faseado** (un sprint no parte un change).
-
-#### Paso 3.5.1 — `aidd project-plan` (plan de recursos)
-
-Puede ejecutarse en cuanto la Fase 2 está aprobada (no requiere el roadmap). El AI Delivery Manager genera `docs/planificacion-proyecto.md` con perfiles/equipo (mapeados a los roles SDD cuando aplica), software/licencias (open source vs coste, órdenes de magnitud), infraestructura/entornos, esfuerzo agregado con **doble estimación humano clásico vs IA** (a partir de XS/S/M/L/XL) y **KPIs de la diferencia** (ahorro en jornadas, % de reducción y factor de aceleración), dependencias y riesgos de recursos.
-
-**Criterio:** Plan de recursos aprobado; el equipo sabe qué perfiles, licencias e infraestructura necesita.
-
-#### Paso 3.5.2 — `aidd sprint-planning` (plan de sprints)
-
-El AI Delivery Manager distribuye el trabajo en sprints, respetando dependencias y prerequisitos (F0 → F1 → F2) y la capacidad del equipo, y produce `docs/sprint-plan.md` con objetivo por sprint, unidades de trabajo completas (sin partir changes), asignación de perfiles, hitos y riesgos de planificación. Necesita `docs/planificacion-proyecto.md`; con `docs/roadmap.md` (Paso 3.3) planifica sobre los changes/fases del roadmap, pero **puede ejecutarse antes del roadmap en modo degradado** (planificando sobre las historias del mapa) y **re-ejecutarse después** para re-fasear con el roadmap ya hecho — sin recrear Stories en Jira: el re-faseado **mueve** HU entre sprints y gestiona sprints, jamás borra/recrea issues (las claves son permanentes).
-
-**Criterio de salida de Fase 3.5:** Plan de recursos y plan de sprints aprobados por el equipo. El trabajo del roadmap queda repartido en iteraciones ejecutables por un equipo humano, con dependencias respetadas. La ejecución (Fase 4) sigue el orden de los sprints: el AI Lead abre cada change con `aisdd open change` según ese orden.
+Los comandos son `aiba project-plan`, `aiba sprint-planning`, `aiba hu-review-plan` y `aiba metrics`; **no existen ya como `aidd ...`**. Lo que no cambia es el contrato de datos: siguen leyendo y escribiendo los mismos ficheros de `docs/`, así que `aisdd roadmap` sigue alineándose con `docs/sprint-plan.md` igual que antes.
 
 ---
 
@@ -823,7 +793,7 @@ CRITERIOS DE ACEPTACIÓN BLOQUEANTES
 
 Cuando la integración con Jira está configurada (sección `jira:` en `openspec/config.yaml` + MCP de Atlassian disponible), el ciclo por change mantiene sincronizados dos planos sin duplicar el seguimiento:
 
-- **La HU es la unidad de entrega rastreable** → una **Story** en Jira (la crea `aidd sprint-planning`). Es lo estable: tiene criterios de aceptación y la valida el cliente.
+- **La HU es la unidad de entrega rastreable** → una **Story** en Jira (la crea `aiba sprint-planning`). Es lo estable: tiene criterios de aceptación y la valida el cliente.
 - **El change es la unidad de ejecución**. Es lo volátil: lo fasea el presupuesto de contexto y **no es 1:1** con la HU (una HU puede necesitar varios changes; un change puede implementar varias HU).
 - **Modelo híbrido por HU** (registro #010): si la HU se realiza con **un solo change**, los comandos operan **directamente sobre su Story** — sin sub-tarea (una sub-tarea 1:1 solo duplicaría la Story). Si la HU se reparte entre **2+ changes**, `aisdd open change` crea **una sub-tarea por change** bajo su Story, para progreso atómico. Un mismo change puede mezclar ambos modos.
 - **Transiciones automáticas**: `implement change` mueve a *In Progress* las Stories de **todas** las HU que implementa (y la sub-tarea del change donde exista), **asignándolas** al usuario autenticado en el MCP (o al `assignee_override` si el MCP usa cuenta de servicio); `close change` las pasa a *Done* — una Story con sub-tareas, **solo cuando todas están Done** (una HU no se cierra a medias). `open change` no cambia estados: abrir es diseñar specs, no implementar.
@@ -1024,7 +994,7 @@ proyecto/
 │   ├── requisitos.md                  # requisitos formales (Fase 1)
 │   ├── mapa-historias-usuario.md      # mapa de historias (Fase 1)
 │   ├── detalle-historias-usuario.md   # criterios de aceptación (Fase 1)
-│   ├── plan-revision-hu.md            # revisión de HU, opcional (Paso 1.4 · aidd hu-review-plan)
+│   ├── plan-revision-hu.md            # revisión de HU, opcional (Paso 1.4 · aiba hu-review-plan)
 │   ├── xlsx/plan-revision-hu.xlsx     # Excel de revisión de HU (Paso 1.4)
 │   ├── arquitectura-base-prototipo.md # arquitectura demo (Fase 2)
 │   ├── guia-estilos.md                # design system (Fase 2)
@@ -1032,8 +1002,8 @@ proyecto/
 │   ├── arquitectura-base.md           # arquitectura definitiva (Fase 2)
 │   ├── roadmap.md                     # fases del desarrollo (Fase 3 · aisdd roadmap)
 │   ├── prompts-roadmap-native-ai.md   # prompts por fase (Fase 3 · aisdd roadmap)
-│   ├── planificacion-proyecto.md      # plan de recursos (Fase 3.5 · aidd project-plan)
-│   ├── sprint-plan.md                 # plan de sprints (Fase 3.5 · aidd sprint-planning)
+│   ├── planificacion-proyecto.md      # plan de recursos (Fase 3.5 · aiba project-plan)
+│   ├── sprint-plan.md                 # plan de sprints (Fase 3.5 · aiba sprint-planning)
 │   └── jira-sync.md                   # mapeo HU ↔ change ↔ issue Jira (opcional)
 ├── frontend/
 ├── backend/
@@ -1145,8 +1115,8 @@ Para equipos que vienen de la metodología v2.0 (OpenSpec a pelo):
 |---|---|
 | `openspec init` | `aisdd init` (+ comprobación de boosters + registro en `AGENTS.md`) |
 | Planificación de sprints (`sprints-desarrollo.md`) | `aisdd roadmap` → `docs/roadmap.md` (faseado por presupuesto de contexto) |
-| — (planificación de recursos no existía) | **`aidd project-plan`** → `docs/planificacion-proyecto.md` (capa Delivery, v4) |
-| Sprints calendarizados para equipo humano | **`aidd sprint-planning`** → `docs/sprint-plan.md` sobre el roadmap (capa Delivery, v4) |
+| — (planificación de recursos no existía) | **`aiba project-plan`** → `docs/planificacion-proyecto.md` (capa Delivery, v4) |
+| Sprints calendarizados para equipo humano | **`aiba sprint-planning`** → `docs/sprint-plan.md` sobre el roadmap (capa Delivery, v4) |
 | Framework de prompting (`prompts_a_ejecutar.md`) | `docs/prompts-roadmap-native-ai.md` (generado por `aisdd roadmap`) |
 | `/opsx:propose [name]` | `aisdd open change <slug>` (**+ pre-flight de dudas** → `decisions.md`) |
 | `/opsx:apply [name]` | `aisdd implement change <slug>` (**+ pre-flight de dudas**) |
@@ -1174,10 +1144,11 @@ Tabla de cambios aplicados o pendientes de decisión sobre esta metodología. Si
 | 005 | Human-in-the-loop | **Aplicado** | El pre-flight de dudas (máx. 7, persistido en `decisions.md`) hace ejecutable y trazable la validación humana en `open change` e `implement change` | Convierte un principio en un paso operativo del comando. En modo no interactivo aplica defaults recomendados y se detiene ante bloqueantes. |
 | 006 | Trazabilidad | **Aplicado** | Auditoría obligatoria en `openspec/audit/*.jsonl` con hashes de input/output, versión de prompt, modelo y decisiones | Permite auditar el uso del tooling IA (quién, qué, sobre qué, con qué modelo) sin almacenar contenido sensible. |
 | 007 | Roles / Fase 4 | **Aplicado** | El AI Lead ejecuta el `open change` (propose) de **todos** los changes y entrega specs ya validados al Developer; el Developer solo hace `implement change` + verificación + corrección de los bugs que identifique. No abre changes | El Lead actúa como control de calidad de la especificación antes de que el Developer la consuma, reduciendo el riesgo de implementar sobre specs incorrectas. El coste de disponibilidad continua del Lead se asume a cambio de specs validadas; el pre-flight de dudas en `implement change` cubre las dudas residuales del Developer. |
-| 008 | Roles / Fase 3.5 (v4) | **Aplicado** | Se añade el rol **AI Delivery Manager** y la **Fase 3.5 — Planificación de entrega**, con los skills `aidd project-plan` (`docs/planificacion-proyecto.md`) y `aidd sprint-planning` (`docs/sprint-plan.md`) | El SDD v3 faseaba por presupuesto de contexto (roadmap) pero no cubría recursos ni calendario para un equipo humano. Esta capa, autónoma de OpenSpec, traduce el roadmap a recursos y sprints sin romper el faseado por contexto (un sprint no parte un change). Hace la planificación AI-native consumible por un equipo Scrum. |
-| 009 | Integración Jira / Fases 3.5 y 4 | **Superado (#010)** | Integración opcional con Jira (MCP de Atlassian). `aidd sprint-planning` vuelca los sprints y crea una **Story por HU**; `aisdd open change` creaba cada change como **sub-tarea** de la Story de su HU (siempre); `implement change` movía sub-tarea + Story a *In Progress*; `close change` pasaba la sub-tarea a *Done* y la Story a *Done* solo cuando **todas** sus sub-tareas lo están. Enlace en `docs/jira-sync.md` + sección `jira:` en `openspec/config.yaml` | La **HU** es la unidad de entrega rastreable y el **change** la unidad de ejecución. El detalle "sub-tarea siempre" queda superado por el modelo híbrido del registro #010; el resto (Stories por HU, enlace, opcionalidad) sigue vigente. |
+| 008 | Roles / Fase 3.5 (v4) | **Aplicado** | Se añade el rol **AI Delivery Manager** y la **Fase 3.5 — Planificación de entrega**, con los skills `aiba project-plan` (`docs/planificacion-proyecto.md`) y `aiba sprint-planning` (`docs/sprint-plan.md`) | El SDD v3 faseaba por presupuesto de contexto (roadmap) pero no cubría recursos ni calendario para un equipo humano. Esta capa, autónoma de OpenSpec, traduce el roadmap a recursos y sprints sin romper el faseado por contexto (un sprint no parte un change). Hace la planificación AI-native consumible por un equipo Scrum. |
+| 009 | Integración Jira / Fases 3.5 y 4 | **Superado (#010)** | Integración opcional con Jira (MCP de Atlassian). `aiba sprint-planning` vuelca los sprints y crea una **Story por HU**; `aisdd open change` creaba cada change como **sub-tarea** de la Story de su HU (siempre); `implement change` movía sub-tarea + Story a *In Progress*; `close change` pasaba la sub-tarea a *Done* y la Story a *Done* solo cuando **todas** sus sub-tareas lo están. Enlace en `docs/jira-sync.md` + sección `jira:` en `openspec/config.yaml` | La **HU** es la unidad de entrega rastreable y el **change** la unidad de ejecución. El detalle "sub-tarea siempre" queda superado por el modelo híbrido del registro #010; el resto (Stories por HU, enlace, opcionalidad) sigue vigente. |
 | 010 | Integración Jira / Fase 4 | **Aplicado** | **Modelo híbrido por HU**: si una HU se realiza con un **solo change**, los comandos operan **directamente sobre su Story** (sin sub-tarea); si se reparte entre **2+ changes**, cada change es una **sub-tarea** bajo su Story (Done de la Story solo cuando todas están Done). Un change que implementa varias HU mueve las Stories de **todas** ellas. `open change` no cambia estados (abrir es diseñar specs); el modo se resuelve en el momento del comando (un re-faseado que reparta una HU crea sub-tareas solo para los changes nuevos) | La sub-tarea 1:1 duplicaba la Story sin aportar información (ruido en el board) y el modelo anterior solo movía la Story de la HU "principal", dejando sin reflejo el avance de las HU secundarias de un change. El híbrido conserva el progreso atómico exactamente donde aporta (HU repartida) y el Done-condicionado, con un board que refleja el avance real de cada HU. |
-| 011 | Fase 4 / Correcciones | **Aplicado** | Se añade una **tercera rama** al diagnóstico del Outcome Validator: **decisión técnica no documentada**, que se resuelve dentro del change (entrada `Tipo: correccion` en `decisions.md`) sin escalar al Architect, sin reescribir los specs y sin volver a aplicar el change. La acompaña una **regla de corte** explícita: un documento AIDD solo se corrige cuando la decisión lo deja **desmentido**, y solo se corrige ese documento. `correccion` se suma a los tipos de `decisions.md` y al esquema de auditoría | El árbol de diagnóstico era binario (implementación vs spec/arquitectura), así que un detalle que ningún documento había fijado —una incompatibilidad de versiones descubierta al validar, un matiz visual fuera de la guía de estilos— caía por defecto en la rama cara: revisar la arquitectura, reescribir los specs y re-aplicar el change, con riesgo de pisar código ya escrito. La tercera rama hace el coste de la corrección proporcional a su alcance real conservando la trazabilidad mínima en `decisions.md`; el tipo propio la hace **contable** en `openspec/audit/*.jsonl` (correcciones por change es un indicador de la calidad de los specs, consumible por `aidd-metrics`). |
+| 011 | Fase 4 / Correcciones | **Aplicado** | Se añade una **tercera rama** al diagnóstico del Outcome Validator: **decisión técnica no documentada**, que se resuelve dentro del change (entrada `Tipo: correccion` en `decisions.md`) sin escalar al Architect, sin reescribir los specs y sin volver a aplicar el change. La acompaña una **regla de corte** explícita: un documento AIDD solo se corrige cuando la decisión lo deja **desmentido**, y solo se corrige ese documento. `correccion` se suma a los tipos de `decisions.md` y al esquema de auditoría | El árbol de diagnóstico era binario (implementación vs spec/arquitectura), así que un detalle que ningún documento había fijado —una incompatibilidad de versiones descubierta al validar, un matiz visual fuera de la guía de estilos— caía por defecto en la rama cara: revisar la arquitectura, reescribir los specs y re-aplicar el change, con riesgo de pisar código ya escrito. La tercera rama hace el coste de la corrección proporcional a su alcance real conservando la trazabilidad mínima en `decisions.md`; el tipo propio la hace **contable** en `openspec/audit/*.jsonl` (correcciones por change es un indicador de la calidad de los specs, consumible por `aiba-metrics`). |
 | 012 | Fase 4 / Correcciones | **Aplicado** | Se añade el skill **`aisdd-amend`** (`aisdd amend change [descripcion]`): el usuario describe una modificación, el skill escribe el delta en los artefactos del change ya abierto (criterios en `spec.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) e implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply`. Toma una **baseline de build y tests antes de tocar nada** para separar con evidencia lo que rompe la enmienda de lo que ya estaba roto. Asume la documentación AIDD al día (no la valida) y no reconcilia cambios manuales del working tree | El registro #011 dio el criterio para clasificar correcciones, pero no una vía de ejecución: una corrección que además exigía tocar los specs del change se quedaba sin herramienta, y el humano acababa re-aplicando el change entero sobre un árbol ya implementado. La baseline resuelve el problema de fondo: el agente no conoce el trabajo manual previo, así que la única forma honesta de afirmar "no hay regresiones" es medir antes y después en lugar de suponerlo. |
-| 013 | Medicion / Fase 4 | **Aplicado** | `aidd-metrics` deja de ser ciego a AISDD: lee `openspec/audit/*.jsonl` (opcional, con `--audit`/`--no-audit`, y degrada sin error si no existe) y añade a `docs/kpis-ia.md` las **correcciones por change**, el **porcentaje de decisiones que la IA resolvió sin preguntar** y el **lead time real `open change` -> `close change`** | El informe medía velocidad (tiempo atendido, churn, código entregado) pero declaraba él mismo que "velocidad sin calidad es media foto". El eje de calidad ya estaba escrito en la auditoría desde el registro #011 y nadie lo leía. Las correcciones son retrabajo de **especificación**, complementario al churn (retrabajo de **código**): churn alto con correcciones bajas es refactor legítimo; correcciones altas con churn bajo significa specs flojas que alguien absorbió adivinando. El coste fue un parser y dos tablas; la alternativa era instrumentar una fuente nueva para un dato que ya existía. |
+| 013 | Medicion / Fase 4 | **Aplicado** | `aiba-metrics` deja de ser ciego a AISDD: lee `openspec/audit/*.jsonl` (opcional, con `--audit`/`--no-audit`, y degrada sin error si no existe) y añade a `docs/kpis-ia.md` las **correcciones por change**, el **porcentaje de decisiones que la IA resolvió sin preguntar** y el **lead time real `open change` -> `close change`** | El informe medía velocidad (tiempo atendido, churn, código entregado) pero declaraba él mismo que "velocidad sin calidad es media foto". El eje de calidad ya estaba escrito en la auditoría desde el registro #011 y nadie lo leía. Las correcciones son retrabajo de **especificación**, complementario al churn (retrabajo de **código**): churn alto con correcciones bajas es refactor legítimo; correcciones altas con churn bajo significa specs flojas que alguien absorbió adivinando. El coste fue un parser y dos tablas; la alternativa era instrumentar una fuente nueva para un dato que ya existía. |
 | 014 | Roles / Fase 4 | **Aplicado** | El Outcome Validator y el AI Developer **diagnostican juntos** cada fallo, y la elevación al AI Lead se **acuerda entre ambos**; si discrepan, se eleva igualmente con las dos posturas registradas en `decisions.md`. Se retira del Developer la restricción «no habla con el Lead directamente» | Cada uno tiene la mitad de la información: el Validator ha visto fallar el criterio, el Developer sabe por qué el código hace lo que hace. El acuerdo evita que cualquiera de los dos se entere después de una decisión que le afecta, y elevar el desacuerdo evita que el change se quede parado esperando a que alguien ceda. La restricción retirada protegía el contexto del Developer, pero redactada así funcionaba como jerarquía en una organización horizontal; el reparto de trabajo se conserva (rehacer la spec sigue siendo del Lead) |
+| 015 | Estructura / Conjuntos | **Aplicado** | La **capa de entrega y medición** sale de AIDD y forma el conjunto **AIBA** (*AI Business Analyst*) junto con el diseño funcional: `aiba hu-review-plan`, `aiba project-plan`, `aiba sprint-planning`, `aiba metrics` y `aiba functional-design`, con metodología propia. El rol **AI Delivery Manager**, el Paso 1.4 y la Fase 3.5 se describen ahora allí; aquí quedan punteros. **No hay alias `aidd ...`** para los comandos movidos | La frontera entre conjuntos no es la fase sino el **interlocutor**: AIDD define y diseña, y habla con producto y arquitectura; AIBA produce lo que el negocio firma, aprueba, sigue y usa para decidir. Tenerlos en el mismo plugin obligaba a instalar la capa de diseño para planificar sprints, y al revés. El **contrato de datos no cambia** —los mismos ficheros de `docs/`—, así que `aisdd roadmap` se sigue alineando con `docs/sprint-plan.md` igual que antes: el corte es de superficie de comandos, no de datos. |

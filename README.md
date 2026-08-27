@@ -1,6 +1,6 @@
-# AIDD + AISDD + AIAD — Marketplace de skills para Claude Code
+# AIDD + AISDD + AIBA + AIAD — Marketplace de skills para Claude Code
 
-Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — planificación y arquitectura asistida por IA), **AISDD** (AI Spec-Driven Development sobre OpenSpec; *fork mantenido del antiguo `sdd`*) y **AIAD** (AI-Augmented Development — ejecución human-first *ia-in-the-loop*) desde cualquier instancia de Claude Code.
+Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Development — definición y diseño asistidos por IA), **AISDD** (AI Spec-Driven Development sobre OpenSpec; *fork mantenido del antiguo `sdd`*), **AIBA** (AI Business Analyst — análisis funcional, entrega y medición) y **AIAD** (AI-Augmented Development — ejecución human-first *ia-in-the-loop*) desde cualquier instancia de Claude Code.
 
 - Repositorio: `grananda/aidd-marketplace` — **privado**.
 - Nombre del marketplace: `aidd-sdd`.
@@ -9,17 +9,17 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 
 | Plugin | Contenido | Para qué sirve |
 |--------|-----------|----------------|
-| `aidd` | 12 skills `aidd-*` (Fases 0–2 + entrega 3.5) + metodología | Capturar requisitos, definir historias, diseñar arquitectura, planificar recursos y sprints (con volcado opcional a Jira), y planificar la revisión de las HU en un Excel (`aidd hu-review-plan`). |
+| `aidd` | 9 skills `aidd-*` (Fases 0, 1 y 2) + metodología | Capturar requisitos del cliente, formalizarlos, definir y detallar las historias de usuario, y diseñar la arquitectura y la guía de estilos. Es el «qué se construye». |
 | `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
-| `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd` y `aisdd`.** |
-| `aiba` | 1 skill `aiba-*` (análisis funcional) | **AI Business Analyst**: genera el **Documento de Diseño Funcional (DF)** en Word de cada historia de usuario a partir del detalle de HU. Diseño genérico sin marca, con estilos nativos para aplicar después cualquier identidad visual. Conjunto nuevo, al que más adelante se moverán algunos skills de `aidd`. |
+| `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd`, `aisdd` y `aiba`.** |
+| `aiba` | 5 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
 ## Índice de comandos por skill y fase
 
 Todos los comandos, ordenados por fase del método. Cada comando activa su skill; también se puede invocar namespaced (`/aidd:<skill>`, `/aisdd:aisdd-specs`, `/boosters:<skill>`, `/aiad:<skill>`) o por lenguaje natural.
 
-### `aidd` — Definición, Diseño y Entrega (plugin `aidd`, 13 comandos)
+### `aidd` — Definición y Diseño (plugin `aidd`, 9 comandos)
 
 | Fase | Comando | Skill | Genera |
 |------|---------|-------|--------|
@@ -27,17 +27,12 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 1.1 | `aidd requirements` | `aidd-requirements` | `docs/requisitos.md` (RF/NFR, restricciones) |
 | 1.2 | `aidd user-stories` `[fases=N\|fases>=N]` | `aidd-user-stories` | `docs/mapa-historias-usuario.md` (mapa por fases; F0 = habilitadores) |
 | 1.3 | `aidd user-story-details` | `aidd-user-story-details` | `docs/detalle-historias-usuario.md` (criterios de aceptación) |
-| 1.4 (opc.) | `aidd hu-review-plan` | `aidd-hu-review-plan` | `docs/plan-revision-hu.md` + `docs/xlsx/plan-revision-hu.xlsx` (Detalle, Dashboard, Leyenda, Gantt). Antesala de sprints + Jira |
 | 2.1 | `aidd prototype-architecture` | `aidd-prototype-architecture` | `docs/arquitectura-base-prototipo.md` |
 | 2.2 | `aidd prototype` | `aidd-prototype` | Prototipo mockeado (redirige a `booster-ux`) |
 | 2.3 | `aidd style-guide` | `aidd-style-guide` | `docs/guia-estilos.md` (design tokens) |
 | 2.3 | `aidd architecture-proposal` | `aidd-architecture-proposal` | `docs/propuesta-arquitectura-base.md` |
 | 2.4 | `aidd architecture` | `aidd-architecture` | `docs/arquitectura-base.md` (arquitectura definitiva) |
-| 3.5.1 | `aidd project-plan` | `aidd-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de aceleración) |
-| 3.5.2 | `aidd sprint-planning` | `aidd-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
-| transversal | `aidd metrics` | `aidd-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA: tiempo atendido, ciclo por HU, churn y correcciones por change; ahorro solo con esfuerzo real declarado) |
 
-> `aidd metrics` no es un paso del método: es una capa de observación, **independiente del resto y ejecutable en cualquier momento**. No produce nada que consuma otro comando y no bloquea ninguna fase. Por eso vive aquí y no en la metodología. Ver [Registro de actividad](#registro-de-actividad-opt-in).
 
 ### `aisdd` — Inicialización, Roadmap y Ejecución (plugin `aisdd`, 9 comandos, skills `aisdd-specs` y `aisdd-amend`)
 
@@ -135,7 +130,7 @@ El caso 2 es el habitual (una incompatibilidad de versiones que aparece al valid
 
 ### `boosters` — dependencia compartida (plugin `boosters`, 3 comandos)
 
-Los invocan `aidd` y `aisdd`, pero también se pueden llamar directamente.
+Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directamente.
 
 | Comando | Skill | Hace |
 |---------|-------|------|
@@ -143,15 +138,25 @@ Los invocan `aidd` y `aisdd`, pero también se pueden llamar directamente.
 | `booster-uml` | `booster-uml` | Diagramas UML (Mermaid) en HTML para un change de OpenSpec |
 | `booster-docs` | `booster-docs` | Vista HTML dinámica de un documento de planificación AIDD/SDD |
 
-### `aiba` — Análisis funcional (plugin `aiba`, 1 comando)
+### `aiba` — Negocio, entrega y medición (plugin `aiba`, 5 comandos)
 
-> Conjunto **nuevo**. Hoy contiene un único skill; más adelante se le moverán algunos de los que viven en `aidd` y pertenecen más al análisis que a la planificación. **Consume** lo que produce AIDD y no lo modifica: lee `docs/` y escribe solo en `docs/df/`.
+> **La capa que da la cara ante el negocio**: lo que el cliente firma (el DF), lo que aprueba (el plan de recursos), el calendario que sigue (los sprints) y los KPIs con los que juzga si mereció la pena.
+>
+> Los cuatro últimos vivían en `aidd` hasta la v1.8.0 del marketplace. **Sus comandos son ahora `aiba ...` y no quedan alias `aidd ...`**; lo que no cambia es el contrato de datos, porque siguen leyendo y escribiendo los mismos ficheros de `docs/`.
+>
+> Metodología propia en `plugins/aiba/methodology/native-ai-aiba.md`. Autónomo de OpenSpec: consume lo que producen AIDD y AISDD sin modificarlo.
 
-| Fase | Comando | Rol | Genera / hace |
-|------|---------|-----|---------------|
-| 1 (post) | `aiba functional-design [HU-XX]` | AI Business Analyst | Un **DF en Word por historia** en `docs/df/`, con portada, control de versiones y aprobaciones, índice, introducción y alcance, la HU con filtros/campos, integraciones, validaciones (frontal/core), mensajes, pantallas, criterios de aceptación, especificaciones técnicas y puntos abiertos |
+| Fase | Comando | Skill | Genera / hace |
+|------|---------|-------|---------------|
+| 1.4 (opc.) | `aiba hu-review-plan` | `aiba-hu-review-plan` | `docs/plan-revision-hu.md` + Excel de cuatro pestañas: cómo se revisan y cierran las HU con negocio y TI |
+| 1 (post) | `aiba functional-design [HU-XX]` | `aiba-functional-design` | Un **DF en Word por historia** en `docs/df/`: portada, control de versiones y aprobaciones, índice, introducción y alcance, la HU con filtros/campos, integraciones, validaciones (frontal/core), mensajes, pantallas, criterios de aceptación, especificaciones técnicas y puntos abiertos |
+| 3.5.1 | `aiba project-plan` | `aiba-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de la diferencia) |
+| 3.5.2 | `aiba sprint-planning` | `aiba-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
+| transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA) |
 
-Alias: `aiba df`, `aiba diseño funcional`.
+Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis`.
+
+> `aiba metrics` no es un paso del método: es una capa de observación **independiente del resto y ejecutable en cualquier momento**. Distingue siempre lo medido de lo estimado, y se niega a publicar cifras de ahorro que no se sostienen — un KPI de ROI inventado hace más daño que no tener ninguno, porque se usa para decidir.
 
 **Genérico por defecto, y pregunta antes.** El documento sale sin logotipos ni colores corporativos, y el comando pregunta si quieres aplicar una marca —desde una carpeta local o una URL— con «sin marca» como opción recomendada. Un DF acaba en manos de un cliente que tiene su propia identidad: generarlo con la marca de quien lo escribe obliga a rehacerlo. Como usa **estilos nativos de Word** (`Heading 1/2/3`, estilo de tabla, cabecera y pie editables, índice como campo `TOC`), aplicar cualquier identidad después es cambiar el estilo, no repasar el documento.
 
@@ -177,19 +182,20 @@ Cubren la **fase de ejecución** (alternativa human-first a `aisdd`); no siguen 
 | Flow | `aiad save` | Commit + push de todo, sin preguntas |
 | Record | `aiad journal [log\|report]` | Bitácora de autoría (*craft ratio*: qué escribes tú vs delegas) |
 
-## Por qué hay que instalar los tres
+## Por qué hay que instalar los cuatro
 
-No son tres copias del mismo paquete: son **tres piezas de un mismo flujo** que se llaman entre sí. El método AIDD-SDD completo va de la captura de requisitos hasta la ejecución de cada change, y en ese recorrido:
+No son cuatro copias del mismo paquete: son **cuatro piezas de un mismo flujo** que se llaman entre sí. El método AIDD-SDD completo va de la captura de requisitos hasta la ejecución de cada change, y en ese recorrido:
 
-1. **`aidd` cubre la planificación y el diseño** (Fases 0–2 y la capa de entrega 3.5: requisitos → historias → arquitectura → plan de recursos → sprints). Es el "qué" y el "cuándo".
+1. **`aidd` cubre la definición y el diseño** (Fases 0–2: requisitos → historias → arquitectura → guía de estilos). Es el "qué".
 2. **`aisdd` cubre la ejecución** (Fases 3–4: roadmap por presupuesto de contexto —consciente del `sprint-plan`— y el ciclo `open/implement/close change` sobre OpenSpec, con auditoría e integración Jira). Es el "cómo se construye".
-3. **`boosters` es la dependencia compartida** de los dos anteriores. No es opcional si usas el flujo completo:
+3. **`aiba` cubre lo que ve el negocio** (Paso 1.4, DF por historia, Fase 3.5 y la medición: revisión de HU → diseño funcional → plan de recursos → sprints → KPIs). Es el "cuánto cuesta" y el "cuándo llega". Es **autónomo**: se puede usar sin OpenSpec, y sus documentos son los que `aisdd roadmap` lee para alinearse con el calendario.
+4. **`boosters` es la dependencia compartida** de los tres anteriores. No es opcional si usas el flujo completo:
    - `aidd prototype` (Fase 2.2) **redirige a `booster-ux`** para maquetar las pantallas del prototipo.
    - `aisdd prototype-ux` y `aisdd uml` (del plugin `aisdd`) **invocan a `booster-ux` y `booster-uml`** para documentar cada change.
-   - Los skills de planificación de `aidd` y `aisdd` **invocan a `booster-docs`** para dejar, junto a cada `.md` generado (requisitos, historias, roadmap, sprint-plan…), una vista HTML complementaria para consumo humano (el Markdown sigue siendo la única fuente de verdad).
+   - Los skills de planificación de `aidd`, `aisdd` y `aiba` **invocan a `booster-docs`** para dejar, junto a cada `.md` generado (requisitos, historias, roadmap, sprint-plan…), una vista HTML complementaria para consumo humano (el Markdown sigue siendo la única fuente de verdad).
    - Si `boosters` no está instalado, esos pasos avisan de que falta el booster y no generan ni prototipos, ni diagramas, ni vistas HTML.
 
-Claude Code **no resuelve dependencias entre plugins automáticamente**: cada plugin se instala por separado. Por eso, para el flujo de extremo a extremo necesitas los tres. (Si solo vas a hacer planificación sin prototipos ni diagramas, `aidd` por sí solo funciona; pero la instalación recomendada y completa son los tres.)
+Claude Code **no resuelve dependencias entre plugins automáticamente**: cada plugin se instala por separado, y ninguno trae los scripts ni los hooks de otro. Por eso, para el flujo de extremo a extremo necesitas los cuatro. (Si solo vas a definir y diseñar, `aidd` por sí solo funciona; si solo vas a planificar y medir, `aiba` también — pero la instalación recomendada y completa son los cuatro.)
 
 ## AIAD — ejecución human-first (opcional e independiente)
 
@@ -235,9 +241,10 @@ Si usas SSH en vez de HTTPS, vale igual siempre que tu clave tenga acceso al rep
 #   variante por URL HTTPS:  /plugin marketplace add https://github.com/grananda/aidd-marketplace.git
 #   variante por SSH:        /plugin marketplace add git@github.com:grananda/aidd-marketplace.git
 
-# Instalar los tres plugins del flujo integrado
+# Instalar los cuatro plugins del flujo integrado
 /plugin install aidd@aidd-sdd
 /plugin install aisdd@aidd-sdd
+/plugin install aiba@aidd-sdd
 /plugin install boosters@aidd-sdd
 
 # Opcional e independiente: ejecución human-first (ia-in-the-loop)
@@ -254,12 +261,12 @@ Si `/plugin marketplace add` falla con error de autenticación o "repository not
 
 Tras instalar, cada skill queda *namespaced* por su plugin:
 
-- `/aidd:aidd-sprint-planning`, `/aidd:aidd-requirements`, …
+- `/aiba:aiba-sprint-planning`, `/aidd:aidd-requirements`, …
 - `/aisdd:aisdd-specs` (comandos `aisdd …`; alias legacy `native-ai …`)
 - `/boosters:booster-ux`, `/boosters:booster-uml`, `/boosters:booster-docs`
 - `/aiad:aiad-tdd`, `/aiad:aiad-review`, `/aiad:aiad-save`, …
 
-También se activan por lenguaje natural y por sus comandos internos (`aidd sprint-planning`, `aisdd open change`, `aiad tdd`, `aiad review`, …).
+También se activan por lenguaje natural y por sus comandos internos (`aiba sprint-planning`, `aisdd open change`, `aiad tdd`, `aiad review`, …).
 
 ### Activación automática por proyecto (equipo)
 
@@ -273,6 +280,7 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
   "enabledPlugins": {
     "aidd@aidd-sdd": true,
     "aisdd@aidd-sdd": true,
+    "aiba@aidd-sdd": true,
     "boosters@aidd-sdd": true,
     "aiad@aidd-sdd": true
   }
@@ -281,7 +289,7 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
 
 ## Registro de actividad (opt-in)
 
-Los cuatro plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
+Los cinco plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
 
 **Se activa por proyecto creando el fichero de registro** (sin él no se escribe nada, en ningún proyecto):
 
@@ -303,7 +311,7 @@ A partir de ahí, `docs/aidd-activity.md` se va llenando solo:
 - El campo `ctx:` es la **historia de usuario o el change** en curso: se detecta de los argumentos (`HU-07`) o de trabajar dentro de `openspec/changes/<id>/`. Es lo que permite dar tiempo de ciclo por HU.
 - Marcas de tiempo en **UTC** (`Z`), como el journal de AIAD, para que ordenen bien entre máquinas y zonas horarias.
 - **Pasivo**: solo registra. Nunca bloquea una acción, nunca edita código y nunca hace fallar la sesión.
-- **Sin duplicados**: el hook viaja en los cuatro plugins, así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
+- **Sin duplicados**: el hook viaja en los cinco plugins —incluido `aiba`, que es quien luego lo consume— así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
 - Lo que escribes tú a mano en tu editor **no pasa por las tools de la IA y por tanto no se registra**. El log es traza de la IA, no vigilancia del humano.
 - No registra el contenido de tus prompts ni del código: solo el skill, el fichero y los argumentos del comando.
 
@@ -313,7 +321,7 @@ Es independiente de `docs/aiad-journal.md` (plugin `aiad`), que responde a otra 
 
 ### KPIs a partir del registro
 
-Con el registro activo, `aidd metrics` convierte esa traza en un informe (`docs/kpis-ia.md` + HTML): tiempo atendido, reparto planificación vs ejecución, tiempo de ciclo por HU o change, retrabajo y código entregado.
+Con el registro activo, `aiba metrics` convierte esa traza en un informe (`docs/kpis-ia.md` + HTML): tiempo atendido, reparto planificación vs ejecución, tiempo de ciclo por HU o change, retrabajo y código entregado.
 
 Se ejecuta **cuando quieras y las veces que quieras**: solo lee (registro, `git log`, las tallas de `docs/detalle-historias-usuario.md` para el baseline y, si el proyecto usa AISDD, `openspec/audit/*.jsonl`) y no modifica nada del proyecto. Si falta alguna de esas fuentes, recorta el informe y lo dice, pero no falla.
 
@@ -330,7 +338,7 @@ Es una **cota inferior**: solo cuenta las correcciones que llegaron a `decisions
 El ahorro es harina de otro costal, y conviene entender por qué antes de enseñar un número a nadie:
 
 - El registro mide **tiempo atendido**, no esfuerzo total. No ve revisar, probar, teclear a mano ni reunirse, y lo que escribes tú en tu editor no pasa por las tools de la IA.
-- Por eso `aidd metrics` **se niega a calcular ahorro** salvo que el equipo declare su esfuerzo real en la ventana medida (`--real-days`, de partes de horas o worklogs). Restar el tiempo atendido al baseline daría aceleraciones de x100, que es justo el tipo de cifra que no aguanta una pregunta incómoda.
+- Por eso `aiba metrics` **se niega a calcular ahorro** salvo que el equipo declare su esfuerzo real en la ventana medida (`--real-days`, de partes de horas o worklogs). Restar el tiempo atendido al baseline daría aceleraciones de x100, que es justo el tipo de cifra que no aguanta una pregunta incómoda.
 - El baseline es el esfuerzo humano de las tallas XS/S/M/L/XL, y es legítimo porque se declaró **antes** de ejecutar. No es un ajuste a posteriori.
 - Si la aceleración resultante supera x10, el informe la marca como **no publicable** y explica que casi siempre significa esfuerzo infradeclarado o baseline inflado.
 
@@ -340,10 +348,10 @@ Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales*
 
 | MCP | Quién lo usa | Para qué |
 |-----|--------------|----------|
-| **Atlassian (Jira)** | `aidd-sprint-planning` · `aisdd-specs` | Volcado del sprint-plan (sprints + Stories), sub-tareas por change, transiciones In Progress/Done, re-faseado y reconstrucción del enlace |
+| **Atlassian (Jira)** | `aiba-sprint-planning` · `aisdd-specs` | Volcado del sprint-plan (sprints + Stories), sub-tareas por change, transiciones In Progress/Done, re-faseado y reconstrucción del enlace |
 | **Figma** | `aidd-style-guide` | Extraer la identidad visual real de un diseño (paleta, tipografía, espaciado, tokens) en vez de inferirla |
 
-**Atlassian.** ⚠️ **El MCP remoto oficial de Atlassian NO expone las operaciones Agile** (crear sprints, añadir/mover issues de sprint): cubre issues y transiciones, pero **no basta para el volcado de `aidd sprint-planning`** — lo comprobamos en un proyecto real y hubo que instalar otro. Recomendación según lo que necesites:
+**Atlassian.** ⚠️ **El MCP remoto oficial de Atlassian NO expone las operaciones Agile** (crear sprints, añadir/mover issues de sprint): cubre issues y transiciones, pero **no basta para el volcado de `aiba sprint-planning`** — lo comprobamos en un proyecto real y hubo que instalar otro. Recomendación según lo que necesites:
 
 - **Flujo completo (volcado de sprints incluido)** — un MCP de la comunidad que exponga la API Agile de Jira, p. ej. [`mcp-atlassian`](https://github.com/sooperset/mcp-atlassian) con API token (tools `jira_create_sprint`, `jira_add_issues_to_sprint`, `jira_get_sprints_from_board`, …). Es el que usamos. Instalación:
 
@@ -374,13 +382,13 @@ Si no hay MCP, `aidd style-guide` ofrece alternativas: API REST de Figma o un ex
 
 ## Metodología
 
-La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
+La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`, copias espejo). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
 
-El plugin `aiad` lleva su propia metodología (`${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiad.md`): el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría.
+Los plugins `aiba` y `aiad` llevan la suya propia, porque cubren capas que el documento AIDD-SDD ya no describe: `native-ai-aiba.md` (el conjunto que da la cara ante el negocio: los cinco skills, el rol de AI Delivery Manager, el Paso 1.4, la Fase 3.5 y la medición) y `native-ai-aiad.md` (el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría).
 
 **FAQ.** [FAQ.md](FAQ.md) responde las preguntas frecuentes del ciclo AISDD: qué crea cada comando (`open`/`implement`/`close change`), qué ocurre en Jira en cada paso, quién crea Stories y sprints, y los casos límite (enlace perdido, re-faseado, sprints de horas).
 
-**Vistas HTML.** Junto a cada `.md` de metodología hay un `.html` homónimo (misma carpeta) renderizado con `booster-docs`, para lectura humana cómoda con índice navegable — [native-ai-aidd-sdd.html](plugins/aidd/methodology/native-ai-aidd-sdd.html), [getting-started](plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html) y [native-ai-aiad.html](plugins/aiad/methodology/native-ai-aiad.html). El Markdown sigue siendo la **única fuente de verdad**.
+**Vistas HTML.** Junto a cada `.md` de metodología hay un `.html` homónimo (misma carpeta) renderizado con `booster-docs`, para lectura humana cómoda con índice navegable — [native-ai-aidd-sdd.html](plugins/aidd/methodology/native-ai-aidd-sdd.html), [getting-started](plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html), [native-ai-aiba.html](plugins/aiba/methodology/native-ai-aiba.html) y [native-ai-aiad.html](plugins/aiad/methodology/native-ai-aiad.html). El Markdown sigue siendo la **única fuente de verdad**.
 
 ## Publicación y CI
 
@@ -390,7 +398,7 @@ La numeración **arranca en `1.6.0` y continúa la de `native-ai-specs` v1.6.0**
 
 **Para publicar**: sube `VERSION` en la misma PR que cambia lo que sea. Al mergear a `main`, el workflow `release.yml` comprueba si existe la etiqueta `v<VERSION>` y, si no existe, crea la etiqueta y el release. La puerta es la etiqueta y no la rama, así que el workflow es idempotente: puedes mergear varias PRs sin tocar `VERSION` y no pasará nada, y re-ejecutarlo no duplica releases.
 
-Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, y empiezan por las tablas de **qué plugins y qué skills cambian de versión**. Es lo único que le importa a quien consume el marketplace: si tiene que reinstalar algo y qué.
+Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, y empiezan por las tablas de **qué plugins y qué skills cambian de versión**, seguidas de los **skills que ya no están donde estaban** (movidos de plugin o eliminados). Es lo único que le importa a quien consume el marketplace: si tiene que reinstalar algo y qué. Un skill que desaparece es la ruptura más cara, y es justo la que no se ve recorriendo solo lo que existe hoy.
 
 **Olvidarse de subir `VERSION`** es el fallo evidente de tener una versión manual, así que `validate.yml` lo comprueba en cada PR: si algún `plugin.json` cambia de versión y `VERSION` no, falla con el motivo.
 
@@ -400,11 +408,12 @@ Ese mismo workflow corre en cada PR y en `main`:
 |---|---|
 | `check_manifests.py` | Que `marketplace.json` apunte a un plugin inexistente, o que un plugin en disco no esté declarado. Rompe la instalación de todos y no falla hasta que alguien lo intenta |
 | `check_skills.py` | `SKILL.md` sin frontmatter válido, con `name` que no coincide con su directorio o sin `description`: el skill no se carga, o el modelo no sabe cuándo invocarlo |
+| `check_plugin_assets.py` | Que un skill invoque `${CLAUDE_PLUGIN_ROOT}/…` de un fichero que su plugin no lleva dentro, y que las copias replicadas entre plugins (el hook de actividad, `stamp_doc.py`) diverjan |
 | `check_generated_html.py` | Que un `.html` de metodología no coincida con su `.md`, y que las copias de `aidd/` y `aisdd/` se desincronicen |
 | `py_compile` | Un script Python que no compila |
 | `check_mojibake.py` | UTF-8 mal codificado en los markdown, usando el propio script del skill |
 
-El de los HTML merece un comentario, porque el desfase se produce **sin que nadie edite el `.md`**: basta con cambiar `render_docs_html.py`. Así fue como el HTML de la metodología AIAD se quedó atrás durante dos PRs sin que se notara.
+Dos merecen comentario porque nacen de fallos reales. El de los HTML, porque el desfase se produce **sin que nadie edite el `.md`**: basta con cambiar `render_docs_html.py`, y así fue como el HTML de la metodología AIAD se quedó atrás durante dos PRs sin que se notara. Y el de los assets, porque **Claude Code instala cada plugin por separado**: al mover skills de `aidd` a `aiba` con `git mv`, `stamp_doc.py` desapareció de `aidd`, donde ocho skills lo siguen ejecutando. Nada falla al hacer el cambio; falla en casa del usuario.
 
 ## Mantenimiento
 
@@ -412,9 +421,9 @@ El de los HTML merece un comentario, porque el desfase se produce **sin que nadi
 
   Hoy solo `aisdd-specs` las cumple (8 comandos): es índice de 94 líneas + `references/*.md` por comando. El siguiente skill por tamaño tiene 322 líneas y un único comando, y en los cuatro más grandes la sección «Flujo del comando» ocupa el 70-75 % — no hay nada condicional que merezca quedarse sin cargar.
 
-  A vigilar: `aidd-sprint-planning` lleva dentro el volcado opcional a Jira. Si esa parte crece y el skill se acerca a las 400-500 líneas, pasaría a haber dos caminos reales (planificar y volcar) y la división tendría sentido.
+  A vigilar: `aiba-sprint-planning` lleva dentro el volcado opcional a Jira. Si esa parte crece y el skill se acerca a las 400-500 líneas, pasaría a haber dos caminos reales (planificar y volcar) y la división tendría sentido.
 - **Versionado**: cada `plugin.json` fija `version` (semver). **Sube la versión al publicar cambios**; si no, los usuarios ya instalados no recibirán las novedades (Claude Code los cree en la misma versión). Tras subir cambios, los usuarios actualizan con `/plugin marketplace update aidd-sdd`.
-- **Regenerar los HTML de metodología** (obligatorio si se edita un `.md` de `methodology/`; la copia de `aisdd` es un espejo, se sobreescribe con `cp`):
+- **Regenerar los HTML de metodología** (obligatorio si se edita un `.md` de `methodology/`; la copia de `aisdd` es un espejo **del `.md` y del `.html`**, y `validate.yml` comprueba los dos, así que el `cp` final copia ambos):
 
   ```bash
   python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
@@ -426,10 +435,16 @@ El de los HTML merece un comentario, porque el desfase se produce **sin que nadi
     --output plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
     --title "AIDD-SDD — Getting Started"
   python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
+    --input plugins/aiba/methodology/native-ai-aiba.md \
+    --output plugins/aiba/methodology/native-ai-aiba.html \
+    --title "Native AI · AIBA — Análisis de negocio, entrega y medición"
+  python3 plugins/boosters/skills/booster-docs/scripts/render_docs_html.py \
     --input plugins/aiad/methodology/native-ai-aiad.md \
     --output plugins/aiad/methodology/native-ai-aiad.html \
     --title "Native AI · AIAD — AI-Augmented Development"
-  cp plugins/aidd/methodology/native-ai-aidd-sdd.html \
+  cp plugins/aidd/methodology/native-ai-aidd-sdd.md \
+     plugins/aidd/methodology/native-ai-aidd-sdd.html \
+     plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.md \
      plugins/aidd/methodology/native-ai-aidd-sdd-getting-started.html \
      plugins/aisdd/methodology/
   ```

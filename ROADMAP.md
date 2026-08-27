@@ -15,6 +15,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-07 | Partir `aisdd-specs/SKILL.md` en `references/*.md` | aisdd | **implementada** | 2026-08-26 |
 | F-08 | Versión global + CI de release y validación | marketplace | **implementada** | 2026-08-26 |
 | F-09 | Plugin `aiba` y skill de Diseño Funcional (DF en Word) | aiba | **implementada** | 2026-08-27 |
+| F-10 | Mover la capa de entrega y medición de `aidd` a `aiba` | aiba, aidd | **implementada** | 2026-08-27 |
 
 ---
 
@@ -62,7 +63,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 
 Oleadas y lanes son **ejes perpendiculares**, no alternativas: la oleada es una *anotación* sobre el roadmap (se calcula del grafo y se puede añadir a un roadmap ya hecho sin re-fasear); el lane es una *partición* (determina qué entra en cada fase, y retrofitarlo exige re-fasear).
 
-Incluye: `aisdd lane [list|switch|status]`, guard de un change por lane, nivel 4 de corrección (contrato compartido → parada coordinada), `depends_on` en los tres modos, bloque de paralelismo en `AGENTS.md`, dimensionado por tramos en `aidd sprint-planning`, y chips/KPIs en `booster-docs`.
+Incluye: `aisdd lane [list|switch|status]`, guard de un change por lane, nivel 4 de corrección (contrato compartido → parada coordinada), `depends_on` en los tres modos, bloque de paralelismo en `AGENTS.md`, dimensionado por tramos en `aiba sprint-planning`, y chips/KPIs en `booster-docs`.
 
 ## F-03 — Pre-flight configurable por proyecto
 
@@ -144,4 +145,22 @@ Tres decisiones que conviene no perder:
 - **No inventa: marca y contabiliza.** `[PENDIENTE: ...]` en el cuerpo, una fila por hueco en **Puntos abiertos**, y el número de puntos abiertos en el resumen como indicador de si el documento está listo. Un DF se firma y se desarrolla contra él, así que el relleno plausible es peor que el hueco.
 - **Reedición no destructiva.** Regenera solo lo afectado, conserva el texto del analista y **añade** fila al control de versiones. Ese historial es la razón de ser de esa tabla.
 
-`aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Más adelante se le moverán algunos skills que hoy viven en `aidd` y pertenecen más al análisis que a la planificación.
+`aiba` **consume** lo que produce AIDD sin modificarlo: lee `docs/` y escribe solo en `docs/df/`. Los skills que entonces quedaban pendientes de mover se movieron en **F-10**.
+
+## F-10 — La capa de entrega y medición pasa de `aidd` a `aiba`
+
+**Estado:** implementada · **Versión:** `aiba` 1.0.0, `aidd` 2.0.0 · **Añadida:** 2026-08-27
+
+Cuatro skills se mueven: `hu-review-plan`, `project-plan`, `sprint-planning` y `metrics`. Sus comandos son ahora `aiba ...` y **no quedan alias `aidd ...`** — corte limpio, decidido a propósito.
+
+**El criterio del corte** no es la fase sino el interlocutor. Lo que se mueve es lo que da la cara ante el negocio: el plan que aprueba, el calendario que sigue, la revisión con la que cierra las HU y los KPIs con los que juzga si mereció la pena. Lo que se queda en `aidd` es la definición y el diseño, cuyo interlocutor es producto y arquitectura.
+
+**Lo que no cambia es el contrato de datos.** Los cuatro siguen leyendo y escribiendo los mismos ficheros de `docs/`, así que `aisdd roadmap` sigue alineándose con `docs/sprint-plan.md` exactamente igual. Solo cambia el prefijo del comando.
+
+**AIBA estrena metodología propia** (`plugins/aiba/methodology/native-ai-aiba.md`) y la capa correspondiente se poda de la de AIDD, dejando punteros en su lugar en las dos copias: el rol de AI Delivery Manager, el paso 1.4 y la Fase 3.5 completa.
+
+**La lección de la mecánica es que un plugin tiene que ser autosuficiente.** Claude Code los instala sueltos y no resuelve dependencias entre ellos, así que `stamp_doc.py` viaja duplicado en `aidd` y en `aiba`, y el hook de actividad en los cinco plugins — incluido `aiba`, que hasta ahora no lo traía pese a ser, con `aiba metrics`, su único consumidor. Un `git mv` rompe justo esto sin hacer ruido, así que ahora lo comprueba `check_plugin_assets.py`: toda referencia `${CLAUDE_PLUGIN_ROOT}/...` resuelve dentro de su plugin, y las copias replicadas son idénticas entre sí.
+
+**Lo que no puede romperse es el histórico.** El registro de actividad guarda el nombre del skill que se ejecutó, así que `aiba metrics` conserva los nombres `aidd-*` como alias de etapa: sin ellos, toda la planificación anterior al traslado caería en «Otros» y falsearía el reparto planificación-vs-ejecución, que es justo la cifra por la que se lee el informe.
+
+`aidd` sube a **2.0.0** porque pierde cuatro skills: es ruptura para quien los tuviera en uso, y las notas del release ahora lo dicen — `release_notes.py` enumera también los skills que **desaparecen** de donde estaban y a qué plugin han ido.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the HU-review planning workbook (.xlsx) from a JSON build manifest.
 
-This is the *rendering* half of the ``aidd-hu-review-plan`` skill. The skill (an
+This is the *rendering* half of the ``aiba-hu-review-plan`` skill. The skill (an
 LLM) reads ``docs/mapa-historias-usuario.md`` and ``docs/detalle-historias-usuario.md``,
 consolidates them, decides the July review schedule and writes a machine-readable
 manifest (JSON). This script turns that manifest into an Excel workbook with four
@@ -14,7 +14,7 @@ sheets:
     Excel charts (state, phase, priority, persona, review type).
   * "Leyenda"     — one block per field that needs explaining (Persona, GAP,
     Estado...), value -> meaning.
-  * "Gantt Julio" — a day-by-day calendar of the review: week 1 = client-doc
+  * "Gantt <Mes>" — a day-by-day calendar of the review: week 1 = client-doc
     review, the rest of the month = per-HU definition/validation split into
     functional (business) and technical (TI) review meetings.
 
@@ -401,10 +401,12 @@ def build_leyenda(ws, legend: list) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Sheet: Gantt Julio
+# Sheet: Gantt <Mes>
 # --------------------------------------------------------------------------- #
 
 WEEKDAY_ABBR = ["L", "M", "X", "J", "V", "S", "D"]  # Mon..Sun
+MONTH_NAME = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+              "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
 
 def build_gantt(ws, gantt: dict) -> None:
@@ -412,10 +414,8 @@ def build_gantt(ws, gantt: dict) -> None:
     year = int(gantt.get("year"))
     month = int(gantt.get("month"))
     ndays = calendar.monthrange(year, month)[1]
-    month_name = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][month]
 
-    ws.cell(row=1, column=1, value=f"Gantt — Planificacion de revision de HU ({month_name} {year})").font = TITLE_FONT
+    ws.cell(row=1, column=1, value=f"Gantt — Planificacion de revision de HU ({MONTH_NAME[month]} {year})").font = TITLE_FONT
     kickoff = gantt.get("kickoff")
     if kickoff:
         ws.cell(row=2, column=1, value=f"Kickoff: {kickoff}. Semana 1: revision de documentacion del cliente. "
@@ -552,7 +552,9 @@ def main(argv=None) -> int:
     build_leyenda(wb.create_sheet("Leyenda"), manifest["legend"])
     gantt = manifest.get("gantt") or {}
     if gantt.get("year") and gantt.get("month"):
-        build_gantt(wb.create_sheet("Gantt Julio"), gantt)
+        # El nombre lleva el mes real: una pestana "Gantt Julio" en un plan de
+        # octubre desconcierta a quien abre el libro, y es lo primero que ve.
+        build_gantt(wb.create_sheet(f"Gantt {MONTH_NAME[int(gantt['month'])]}"), gantt)
 
     # Put Dashboard first — it is the landing view.
     wb.move_sheet("Dashboard", -wb.sheetnames.index("Dashboard"))

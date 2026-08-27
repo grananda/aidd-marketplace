@@ -1,5 +1,5 @@
 {
-  "description": "Registro de actividad AIDD/AISDD: anota en docs/aidd-activity.md que skill se ejecuta, que ficheros toca la IA y cuanto dura cada turno, para que `aidd metrics` pueda calcular KPIs. Opt-in: solo registra si ese fichero ya existe en el proyecto.",
+  "description": "Registro de actividad AIDD/AISDD: anota en docs/aidd-activity.md que skill se ejecuta, que ficheros toca la IA y cuanto dura cada turno, para que `aiba metrics` pueda calcular KPIs. Opt-in: solo registra si ese fichero ya existe en el proyecto.",
   "hooks": {
     "PostToolUse": [
       {

@@ -1,25 +1,25 @@
 ---
-name: aidd-metrics
-description: Capa de medicion del conjunto AIDD (AI Driven Development). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aidd metrics` (alias `aidd kpis`, `aidd roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
+name: aiba-metrics
+description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
-# aidd-metrics (AIDD · medicion · KPIs de uso de IA)
+# aiba-metrics (AIBA · medicion · KPIs de uso de IA)
 
 Usa este skill cuando el usuario quiera saber que le esta aportando la IA en el proyecto, o cuando invoque:
 
-- `aidd metrics` (alias `aidd kpis`, `aidd roi`)
+- `aiba metrics` (alias `aiba kpis`, `aiba roi`)
 - "cuanto tiempo estamos ahorrando con la IA", "KPIs de uso de IA", "informe de ROI", "cuanto hemos avanzado esta semana"
 
 Responder y documentar en espanol siempre que sea posible; conservar en ingles comandos, rutas, flags y terminos tecnicos establecidos. Este `SKILL.md` evita tildes por compatibilidad entre plataformas de agentes.
 
-## Que es AIDD y donde encaja este skill
+## Que es AIBA y donde encaja este skill
 
-AIDD cubre la definicion, el diseno y la entrega asistidos por IA. Los demas skills **producen**; este **mide lo producido**. Se apoya en el registro que escribe el hook `aidd-activity-hook.sh` que traen los plugins del marketplace.
+AIBA (AI Business Analyst) es el conjunto que da la cara ante el negocio; su metodologia esta en `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aiba.md` (referencia de solo lectura). Los demas skills de AIDD, AISDD y AIBA **producen**; este **mide lo producido**. Se apoya en el registro que escribe el hook `aidd-activity-hook.sh` que traen los plugins del marketplace, `aiba` incluido.
 
-Es el contrapeso factual de `aidd-project-plan`: alli se **estima** el esfuerzo humano frente al esfuerzo con IA antes de empezar; aqui se contrasta esa estimacion con lo que de verdad ocurrio. Ese contraste es el que permite calibrar las estimaciones futuras en vez de repetir una conjetura proyecto tras proyecto.
+Es el contrapeso factual de `aiba-project-plan`: alli se **estima** el esfuerzo humano frente al esfuerzo con IA antes de empezar; aqui se contrasta esa estimacion con lo que de verdad ocurrio. Ese contraste es el que permite calibrar las estimaciones futuras en vez de repetir una conjetura proyecto tras proyecto.
 
 ## Rol y objetivo
 
@@ -53,7 +53,7 @@ Por tanto:
 - El ahorro **solo** se calcula contra el **esfuerzo real declarado** por el equipo en la misma ventana: partes de horas, worklogs de Jira o, en su defecto, una estimacion honesta de los implicados. Se pasa al script con `--real-days N`.
 - Si el equipo no puede o no quiere declararlo, el informe sale igual, pero **sin** ahorro: con actividad medida, tiempo de ciclo y retrabajo, que ya valen para gestionar. Dilo con naturalidad; no es un fallo del informe.
 
-## Flujo del comando `aidd metrics`
+## Flujo del comando `aiba metrics`
 
 ### 1. Comprobacion previa
 
@@ -73,7 +73,7 @@ Si el usuario no sabe el esfuerzo real, no insistas ni lo estimes tu: sigue sin 
 ### 3. Calculo (el script hace los numeros)
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/aidd-metrics/scripts/compute_kpis.py" \
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
   --activity docs/aidd-activity.md \
   --details docs/detalle-historias-usuario.md \
   --audit openspec/audit \
@@ -120,7 +120,7 @@ Si el script marca una cifra como **no publicable**, conserva ese aviso en el do
 
 ### 5. Sello de version y fecha-hora (antes de renderizar)
 
-Estampa el documento como el resto de skills AIDD, con `scripts/stamp_doc.py` si esta disponible en el plugin.
+Estampa el documento como el resto de skills que generan documentos, con `scripts/stamp_doc.py` si esta disponible en el plugin.
 
 ### 6. Generacion de la vista HTML (complementaria)
 

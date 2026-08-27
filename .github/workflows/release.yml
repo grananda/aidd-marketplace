@@ -41,6 +41,7 @@ jobs:
         run: |
           python3 .github/scripts/check_manifests.py
           python3 .github/scripts/check_skills.py
+          python3 .github/scripts/check_plugin_assets.py
           python3 .github/scripts/check_generated_html.py
 
       # A quien consume el marketplace solo le importa si tiene que reinstalar

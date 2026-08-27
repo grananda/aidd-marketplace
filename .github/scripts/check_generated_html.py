@@ -26,7 +26,8 @@ DOCS = [
     ("native-ai-aidd-sdd-getting-started", "AIDD-SDD — Getting Started"),
 ]
 ESPEJO = ["aidd", "aisdd"]          # deben ser identicos entre si
-SUELTOS = [("aiad", "native-ai-aiad", "Native AI · AIAD — AI-Augmented Development")]
+SUELTOS = [("aiad", "native-ai-aiad", "Native AI · AIAD — AI-Augmented Development"),
+           ("aiba", "native-ai-aiba", "Native AI · AIBA — Análisis de negocio, entrega y medición")]
 
 errors: list[str] = []
 

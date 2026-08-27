@@ -1,6 +1,6 @@
 # Native AI · AIDD-SDD — Getting Started
 
-**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (planificación, diseño y entrega) sobre el proceso *Spec-Driven Development*, y el skill `aisdd-specs` (ejecución sobre OpenSpec).
+**Guía de arranque rápido** para desarrollar con la metodología **AIDD-SDD**: los skills `aidd` (definición y diseño) y `aiba` (negocio, entrega y medición) sobre el proceso *Spec-Driven Development*, y el skill `aisdd-specs` (ejecución sobre OpenSpec).
 
 > Documento de referencia completo: [native-ai-aidd-sdd.md](native-ai-aidd-sdd.md). Esta guía es el camino corto para ponerte en marcha en una tarde.
 
@@ -8,7 +8,7 @@
 
 ## 1. ¿Qué es esto en una frase?
 
-Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** → generas specs por *change* con `aisdd-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
+Un flujo de desarrollo donde **la especificación es el motor**: **defines y diseñas con los skills `aidd`** (y planificas la entrega con los `aiba`) → generas specs por *change* con `aisdd-specs` (sobre OpenSpec) → la IA implementa → un validador firma. El humano aprueba en cada transición y todo queda trazado.
 
 **Los cinco roles:**
 
@@ -16,7 +16,7 @@ Un flujo de desarrollo donde **la especificación es el motor**: **defines y dis
 | --- | --- | --- |
 | **AI Architect** | Requisitos, historias, arquitectura, prototipo | `aidd requirements`, `aidd user-stories`, `aidd user-story-details`, `aidd prototype-architecture`, `aidd prototype`, `aidd style-guide`, `aidd architecture-proposal`, `aidd architecture` |
 | **AI Lead** | Inicializa, fasea, **abre y valida los specs de todos los changes** | `aisdd init`, `aisdd roadmap`, `aisdd open change` |
-| **AI Delivery Manager** | Plan de recursos y reparto en sprints (capa Delivery, v4) | `aidd project-plan`, `aidd sprint-planning` |
+| **AI Delivery Manager** | Plan de recursos y reparto en sprints (capa Delivery, v4) | `aiba project-plan`, `aiba sprint-planning` |
 | **AI Developer** | Implementa, verifica, corrige bugs | `aisdd implement change` |
 | **Outcome Validator** | QA técnico + funcional, archiva | `aisdd close change` |
 
@@ -137,7 +137,7 @@ aidd user-story-details    # docs/detalle-historias-usuario.md — criterios de 
 Opcional, sobre las HU ya definidas — planificar su **revisión/validación** con negocio y TI en un Excel:
 
 ```text
-aidd hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
+aiba hu-review-plan        # docs/plan-revision-hu.md + docs/xlsx/plan-revision-hu.xlsx
                            #   (consolida mapa+detalle de HU: Detalle HU, Dashboard, Leyenda y Gantt de revisión)
 ```
 
@@ -166,11 +166,11 @@ aisdd roadmap
 
 ### Paso 3.5 — Planificación de entrega (AI Delivery Manager) · opcional
 
-Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills `aidd`, autónomos de OpenSpec):
+Traduce el diseño y el roadmap a recursos y calendario para un equipo humano (capa Delivery, v4; skills `aiba`, autónomos de OpenSpec):
 
 ```text
-aidd project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
-aidd sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)
+aiba project-plan      # docs/planificacion-proyecto.md  (tras aprobar el diseño; no necesita roadmap)
+aiba sprint-planning   # docs/sprint-plan.md             (ideal con docs/roadmap.md; sin él, modo degradado sobre las historias — re-ejecútalo tras el roadmap para re-fasear)
 ```
 
 Útil cuando un equipo Scrum va a ejecutar el desarrollo. No sustituye al roadmap: reparte sus changes en sprints respetando dependencias y **sin partir ningún change**.
@@ -254,9 +254,11 @@ openspec/
 | `aisdd lane [list\|switch\|status]` | AI Developer / AI Lead | Selecciona la línea de trabajo activa (solo roadmaps multilane) |
 | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
 | `aisdd uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
-| `aidd hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
-| `aidd project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
-| `aidd sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
+| `aiba hu-review-plan` | AI Architect / Delivery | Excel de planificación de la revisión de HU `docs/xlsx/plan-revision-hu.xlsx` (Detalle HU, Dashboard, Leyenda, Gantt) |
+| `aiba project-plan` | AI Delivery Manager | Plan de recursos `docs/planificacion-proyecto.md` (capa Delivery, v4) |
+| `aiba sprint-planning` | AI Delivery Manager | Reparto en sprints `docs/sprint-plan.md` (capa Delivery, v4) |
+| `aiba functional-design [HU-XX]` | Analista funcional | Un **DF en Word por historia** en `docs/df/`, contra el que se desarrolla y que el cliente firma |
+| `aiba metrics` | Delivery / Lead | KPIs **medidos** del uso de IA en `docs/kpis-ia.md` (requiere `docs/aidd-activity.md`) |
 
 ---
 
