@@ -15,6 +15,7 @@
 3. **No sugieras lo que ya esta hecho** ni lo que no puede ejecutarse todavia. Si un comando tiene precondiciones sin cumplir, o lo omites o dices que falta.
 4. **Di el porque en media linea** cuando no sea evidente: *"...porque el roadmap cambio y el sprint-plan quedo desalineado"*.
 5. **Si no hay siguiente paso claro, dilo.** Es informacion: el roadmap agotado o un bloqueo son estados legitimos.
+6. **Un comando que se detiene tambien sugiere.** Es donde mas falta hace: di la duda concreta que bloquea y el mismo comando para relanzarlo una vez resuelta. El paso final no se alcanza en ese camino, asi que la sugerencia va **en el propio punto de parada** (ver "Pre-flight de dudas", `references/preflight.md`, y los limites de `aisdd amend change`).
 
 ## Que sugerir, por comando
 
@@ -31,7 +32,7 @@ El roadmap es **insumo de la capa de entrega**, asi que aqui hay una bifurcacion
 
 | Estado | Sugerencia | Por que |
 |---|---|---|
-| No hay `docs/planificacion-proyecto.md` | `aiba project-plan` | Sin plan de recursos, `sprint-planning` no tiene con que dimensionar |
+| No hay `docs/planificacion-proyecto.md` | `aiba project-plan`, y **despues** `aiba sprint-planning` | Es el orden correcto: sin plan de recursos no hay capacidad contra la que planificar. Aun asi `sprint-planning` **no se detiene** — avisa y puede seguir con supuestos de equipo explicitos, asi que ofrecelo como alternativa si el usuario tiene prisa |
 | Hay plan de recursos, no hay `docs/sprint-plan.md` | `aiba sprint-planning` | Ya tiene sus dos insumos: roadmap y recursos |
 | Hay `sprint-plan.md` **anterior a este roadmap** | `aiba sprint-planning` otra vez | El faseado ha cambiado y el reparto en sprints quedo desalineado. **Dilo**: re-ejecutarlo es seguro, no recrea Stories |
 | Cualquiera | `booster-docs` sobre `docs/roadmap.md` | Vista HTML del roadmap, opcional |
@@ -75,5 +76,7 @@ Abrir el entregable generado, y volver al ciclo del change: `aisdd implement cha
 ## Lo que no se hace
 
 - **No inventes comandos.** Solo los que existen en `aidd`, `aisdd`, `aiba` y los boosters. `aisdd review change` es una **propuesta** del ROADMAP, no un comando.
-- **No sugieras `aiba sprint-planning` sin `docs/planificacion-proyecto.md`**, ni `aiba project-plan` sin la documentacion de diseno de AIDD: mandar a alguien a un comando que va a detenerse es peor que no sugerir nada.
+- **No mandes a nadie a un comando que se va a detener.** Distingue detenerse de degradar, porque no es lo mismo y suprimir una opcion valida deja al usuario sin salida:
+  - **Se detienen**: `aisdd roadmap` sin `docs/detalle-historias-usuario.md`, y `aiba functional-design` sin ese mismo fichero. No los sugieras: di que falta y quien lo genera (`aidd user-story-details`).
+  - **Degradan**: `aiba sprint-planning` sin `docs/planificacion-proyecto.md` y `aiba project-plan` sin `docs/arquitectura-base.md`. **Si los puedes sugerir**, diciendo con que se degradan.
 - **No repitas la verificacion final.** Aqui va lo que el usuario **hace ahora**, no lo que acaba de pasar.
