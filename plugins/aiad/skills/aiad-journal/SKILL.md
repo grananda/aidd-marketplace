@@ -3,14 +3,14 @@ name: aiad-journal
 description: AIAD (AI-Augmented Development, ia-in-the-loop) authorship-journal skill. Records and reports what the human authored versus what they delegated to the AI, via the command `aiad journal`. In `log` mode it appends a structured line to docs/aiad-journal.md (user story, skill, mode, who authored, one-line note). In `report` mode it summarizes the authorship ratio (% you wrote vs % delegated) per US, per period, or overall. It is the human-first inverse of the SDD audit: it records and celebrates your authorship, it never gates or restricts delegation (drift is the human's free choice). Use when the user says "log this", "record what I built", "my authorship report", "craft ratio", "how much did I write vs delegate", "AIAD journal", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiad-journal (AIAD · ia-in-the-loop)
 
 Use this skill to record or report human authorship across AIAD work, or when the human invokes:
 
-- `aiad journal` (infer the mode)
+- `aiad journal` (infer whether they mean `log` or `report`)
 - `aiad journal log <details>` (append an authorship entry)
 - `aiad journal report [us-id | period]` (summarize the authorship ratio)
 
@@ -43,8 +43,21 @@ Exit criterion: an entry is appended (`log`) or a clear authorship summary is pr
 `docs/aiad-journal.md` is an append-only Markdown list. Line format:
 
 ```
-- <date> | US:<us-id> | skill:<aiad-skill> | mode:<mode> | authored:<human|ai-tests|ai-fragment|advice-only|ai-edit> | note:<one line>
+- <date> | US:<us-id> | skill:<aiad-skill> | authored:<human|ai-tests|ai-fragment|advice-only|ai-edit> | note:<one line>
 ```
+
+Hook-captured lines carry two extra fields, `mode:` (the tool that made the edit:
+`Write`, `Edit`, `MultiEdit`) and `file:` (the path, relative to the project root):
+
+```
+- <date> | US:- | skill:aiad-hook | mode:Edit | authored:ai-edit | file:src/api.ts | note:auto-captured AI edit
+```
+
+Read the line by **field name, never by position**: the two sets differ, and older
+journals may carry a `mode:` on skill lines from before this was pinned down. That
+field never had a defined domain -- the format declared it, the hook filled it with
+tool names, no skill agreed on what to put there and `report` never read it. It stays
+as what it actually is, a hook detail, instead of a slot every writer fills at random.
 
 `authored` taxonomy:
 - `human` — the human wrote the production code themselves.
@@ -65,7 +78,7 @@ This makes the authorship ratio **factual rather than self-reported**: files the
 
 ### log mode
 
-1. Determine the fields from context (current US, the skill that just helped, the mode, the authorship class) and the human's note.
+1. Determine the fields from context (current US, the skill that just helped, the authorship class) and the human's note. **Do not write a `mode:`**: that field belongs to the hook, which fills it with the tool name.
 2. If `docs/aiad-journal.md` is missing, create it with a one-line header explaining what it is.
 3. Append the formatted line. Confirm briefly.
 

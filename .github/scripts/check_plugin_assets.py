@@ -48,6 +48,22 @@ COMPARTIDOS = [
 # Nombre de la constante -> ficheros que deben declararla igual. Se comparan por
 # valor, no por texto: dan igual el formato y el orden de las claves.
 CONSTANTES = [
+    # Los tres pines de Mermaid van juntos: version, hash e integridad del bundle.
+    # Si divergen, los dos renderizadores se pelean por el mismo fichero cacheado y
+    # cada uno rechaza por hash el que dejo el otro -- descargando en cada ejecucion
+    # sin decir por que. El README ya advertia de mantenerlos a la vez; nada lo comprobaba.
+    ("MERMAID_VERSION", [
+        "plugins/boosters/skills/booster-uml/scripts/render_uml_html.py",
+        "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
+    ]),
+    ("MERMAID_SHA256", [
+        "plugins/boosters/skills/booster-uml/scripts/render_uml_html.py",
+        "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
+    ]),
+    ("MERMAID_SIZE", [
+        "plugins/boosters/skills/booster-uml/scripts/render_uml_html.py",
+        "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
+    ]),
     ("EFFORT_DAYS", [
         "plugins/aisdd/skills/aisdd-specs/scripts/optimize_phasing.py",
         "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
