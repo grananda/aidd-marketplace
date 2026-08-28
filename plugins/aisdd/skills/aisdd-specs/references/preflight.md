@@ -70,7 +70,7 @@ Auto mode, CI, sin terminal, o el usuario pide no ser interrumpido:
 
 - No bloquees el comando por dudas no bloqueantes.
 - Toma el default recomendado para cada `preferencia` y `confirmacion`, y marcalo `Origen: auto-default` en `decisions.md`.
-- Para `bloqueantes` sin default seguro, **detente** y reporta las dudas pendientes; no ejecutes el comando OpenSpec (**[APERTURA]** `openspec new change`; **[IMPLEMENTACION]** `openspec instructions apply`).
+- Para `bloqueantes` sin default seguro, **detente** y reporta las dudas pendientes; no ejecutes el comando OpenSpec (**[APERTURA]** `openspec new change`; **[IMPLEMENTACION]** `openspec instructions apply`). **Antes de terminar, escribe la entrada de auditoria con `status: aborted`** y las dudas bloqueantes pendientes en `errors`: detenerse es un resultado del comando y tiene que quedar registrado igual que completarlo. Es el unico caso en el que la entrada no se escribe en el paso final del comando, porque ese paso no llega a ejecutarse.
 
 ### 7. Persistencia
 
@@ -97,7 +97,7 @@ Graba todas las respuestas en `openspec/changes/<change>/decisions.md`, una entr
 
 ### 8. Dudas aplazadas
 
-Si el usuario rechaza responder o pide aplazar, registra `Decision: pendiente`. Si era **bloqueante**, detente sin ejecutar el comando OpenSpec, informa de las dudas pendientes y termina.
+Si el usuario rechaza responder o pide aplazar, registra `Decision: pendiente`. Si era **bloqueante**, detente sin ejecutar el comando OpenSpec, informa de las dudas pendientes y termina. **Antes de terminar, escribe la entrada de auditoria con `status: aborted`** y las dudas bloqueantes pendientes en `errors`: detenerse es un resultado del comando y tiene que quedar registrado igual que completarlo. Es el unico caso en el que la entrada no se escribe en el paso final del comando, porque ese paso no llega a ejecutarse.
 
 ### 9. Sin dudas
 

@@ -96,7 +96,7 @@ Reglas para los campos:
   1. Clave `audit.retention_days` (entero positivo) en `config.yaml` de OpenSpec.
   2. Fichero `openspec/audit/.retention` con un entero positivo de dias en la primera linea.
   3. Default `365`.
-- Al inicio de cada comando, comprueba los ficheros `openspec/audit/YYYY-MM.jsonl`:
+- **Al escribir la entrada** (no antes), comprueba los ficheros `openspec/audit/YYYY-MM.jsonl`. `audit.py` lo hace por ti en la misma invocacion; a mano, hazlo justo despues de anadir la linea:
   - Si el ultimo dia del mes representado por el fichero es anterior a `hoy - retencion`, eliminalo.
   - No purgues entradas individuales dentro de un fichero. Trabaja por mes para preservar la integridad append-only.
 - Nunca apliques retencion menor a `30` dias aunque la configuracion lo indique: en ese caso usa `30` y avisa al usuario una vez.

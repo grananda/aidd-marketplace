@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.1.0"
+  version: "2.1.1"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -86,7 +86,7 @@ Al terminar cualquier comando, informa:
 - cambio objetivo, si aplica
 - artefactos creados o actualizados (incluye `decisions.md` si hubo pre-flight)
 - decisiones tomadas en el pre-flight y cuales quedan `pendientes`, si aplica
-- entrada de auditoria escrita: ruta del fichero `openspec/audit/YYYY-MM.jsonl` y `id` de la entrada
+- entrada de auditoria escrita: ruta del fichero `openspec/audit/YYYY-MM.jsonl`, `id` de la entrada y su `status` (`ok`, `partial` o `aborted`). **Un comando que se detuvo tambien deja entrada**, con `status: aborted`: la ausencia de entrada nunca es un resultado valido, salvo en `aisdd lane`
 - skills auxiliares usados o pendientes de instalar
 - errores o tareas manuales pendientes
 - documentación faltante (en caso de que aplique)
