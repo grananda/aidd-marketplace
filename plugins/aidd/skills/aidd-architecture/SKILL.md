@@ -3,7 +3,7 @@ name: aidd-architecture
 description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)
@@ -80,7 +80,6 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 
 > Documento de Fase 2 (AIDD · paso 2.4). Generado por `aidd architecture`.
 > Fuentes de verdad: detalle-historias-usuario.md, propuesta-arquitectura-base.md, guia-estilos.md.
-> Insumo principal del roadmap. Pendiente de aprobacion humana.
 
 ## 1. Objetivo y alcance
 ## 2. Principios y decisiones arquitectonicas
@@ -110,7 +109,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/arquitectura-base.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/arquitectura-base.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/arquitectura-base.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -139,3 +138,4 @@ Al terminar, informa:
 - Siguiente paso sugerido: **`aisdd init`** y despues **`aisdd roadmap`** (Fase 3 — Inicializacion y Roadmap, AI Lead). Aqui termina el diseno y empieza la ejecucion: es el punto donde AIDD entrega a AISDD.
 - **`aisdd roadmap` exige `docs/detalle-historias-usuario.md`** con sus tallas. Si vienes de la Fase 1 completa ya lo tienes; si no, el comando se detiene y remite a `aidd user-story-details`.
 - Si el proyecto va a planificar entrega y recursos, **`aiba project-plan`** puede ir antes o despues del roadmap: no depende de el, y `aiba sprint-planning` necesita los dos.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

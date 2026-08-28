@@ -3,7 +3,7 @@ name: aidd-user-story-details
 description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (XS/S/M/L/XL), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # aidd-user-story-details (AIDD · Fase 1 · paso 1.3)
@@ -93,7 +93,6 @@ Genera (o actualiza) `docs/detalle-historias-usuario.md` con esta estructura:
 
 > Documento de Fase 1 (AIDD · paso 1.3). Generado por `aidd user-story-details`.
 > Entradas: docs/requisitos.md, docs/mapa-historias-usuario.md. Cierra la Fase 1.
-> Pendiente de aprobacion humana.
 
 ## Historias detalladas
 
@@ -140,7 +139,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/detalle-historias-usuario.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/detalle-historias-usuario.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/detalle-historias-usuario.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -170,3 +169,4 @@ Al terminar, informa:
 - Criterio de salida de Fase 1: cada requisito tiene al menos una historia, cada historia tiene criterios de aceptacion verificables y el alcance esta definido. Indica si se cumple o que falta.
 - Siguiente paso sugerido: **`aidd prototype-architecture`** (paso 2.1), que abre la Fase 2 — Diseno. Detras van `aidd prototype` (2.2), `aidd style-guide` y `aidd architecture-proposal` (2.3, en cualquier orden) y `aidd architecture` (2.4).
 - Antes de la Fase 2, si el proyecto valida las HU con negocio y TI, el paso **1.4** es opcional y lo cubre **`aiba hu-review-plan`**: planifica esa revision a partir de este documento y del mapa. No bloquea la Fase 2.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

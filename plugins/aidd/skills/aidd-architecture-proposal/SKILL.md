@@ -3,7 +3,7 @@ name: aidd-architecture-proposal
 description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la propuesta de arquitectura base del producto, mediante el comando `aidd architecture-proposal` (alias `aidd fase 2.3 arquitectura`). Actua como experto en arquitectura de software que lee `docs/detalle-historias-usuario.md` y genera `docs/propuesta-arquitectura-base.md` con stack tecnico recomendado y justificado, organizacion de modulos y capas, gestion de estado y flujo de datos, estrategia de testing, y consideraciones de seguridad y escalabilidad alineadas con las historias. Paso del Diseno (AI Architect), complementario a la guia de estilos y previo a la arquitectura tecnica definitiva. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-architecture-proposal (AIDD · Fase 2 · paso 2.3)
@@ -79,7 +79,6 @@ Genera (o actualiza) `docs/propuesta-arquitectura-base.md` con esta estructura:
 
 > Documento de Fase 2 (AIDD · paso 2.3). Generado por `aidd architecture-proposal`.
 > Entrada: docs/detalle-historias-usuario.md. Propuesta, no arquitectura definitiva.
-> Pendiente de aprobacion humana.
 
 ## 1. Stack tecnico recomendado
 - Tecnologias por capa con **justificacion** ligada a historias/NFR/restricciones.
@@ -114,7 +113,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/propuesta-arquitectura-base.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/propuesta-arquitectura-base.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/propuesta-arquitectura-base.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -140,3 +139,4 @@ Al terminar, informa:
 - Decisiones de stack principales y las que quedan pendientes de confirmar.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd style-guide` (si no se hizo) y despues `aidd architecture` (arquitectura tecnica definitiva).
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

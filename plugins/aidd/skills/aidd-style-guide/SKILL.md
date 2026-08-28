@@ -3,7 +3,7 @@ name: aidd-style-guide
 description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma (via el MCP `figma-developer-mcp` con token, API REST o export de design tokens a JSON). Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-style-guide (AIDD · Fase 2 · paso 2.3)
@@ -109,7 +109,6 @@ Genera (o actualiza) `docs/guia-estilos.md` con esta estructura:
 
 > Documento de Fase 2 (AIDD · paso 2.3). Generado por `aidd style-guide`.
 > Entrada: docs/detalle-historias-usuario.md + referencia visual/marca.
-> Pendiente de aprobacion humana.
 
 ## 1. Principios de diseno y UX
 - Principios rectores y tono de la interfaz.
@@ -147,7 +146,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/guia-estilos.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/guia-estilos.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/guia-estilos.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -173,3 +172,4 @@ Al terminar, informa:
 - Si hay design tokens concretos y si la identidad visual es definitiva o provisional.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd architecture-proposal` (si no se hizo) y despues `aidd architecture` (arquitectura tecnica definitiva).
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

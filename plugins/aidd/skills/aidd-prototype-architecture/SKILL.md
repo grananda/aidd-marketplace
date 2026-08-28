@@ -3,7 +3,7 @@ name: aidd-prototype-architecture
 description: Fase 2 (paso 2.1) del conjunto AIDD (AI Driven Development). Disena la arquitectura de un prototipo 100% mockeado para validar requisitos con el cliente, mediante el comando `aidd prototype-architecture` (alias `aidd fase 2.1`). Actua como Product Owner y arquitecto de software que lee `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/arquitectura-base-prototipo.md` con stack minimo, componentes y modulos de los flujos principales, pantallas o endpoints clave, estrategia de mocks, datos de ejemplo del dominio, supuestos y exclusiones, y pasos minimos de implementacion. Primer paso del Diseno (AI Architect) y entrada de la implementacion del prototipo. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-prototype-architecture (AIDD · Fase 2 · paso 2.1)
@@ -83,7 +83,6 @@ Genera (o actualiza) `docs/arquitectura-base-prototipo.md` con esta estructura:
 
 > Documento de Fase 2 (AIDD · paso 2.1). Generado por `aidd prototype-architecture`.
 > Entradas: docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
-> Demo 100% mockeada para validacion con cliente. Pendiente de aprobacion humana.
 
 ## 1. Objetivo de la demo
 - Que se quiere validar con el cliente y que flujos cubre.
@@ -124,7 +123,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/arquitectura-base-prototipo.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/arquitectura-base-prototipo.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/arquitectura-base-prototipo.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -150,3 +149,4 @@ Al terminar, informa:
 - Flujos que la demo permitira recorrer y supuestos/exclusiones relevantes.
 - Recordatorio: pendiente de **aprobacion humana** antes de implementar la demo.
 - Siguiente paso sugerido: `aidd prototype` para implementar la demo (via `booster-ux`) y, tras presentarla al cliente, actualizar `docs/cliente-requisitos.md`. Si el feedback trae cambios significativos, se vuelve al paso 1.1 (`aidd requirements`).
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.
