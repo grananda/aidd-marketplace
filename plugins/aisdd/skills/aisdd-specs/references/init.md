@@ -91,13 +91,13 @@ El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca 
 
    - `aisdd init` — inicializa OpenSpec, comprueba dependencias y registra el contexto del proyecto (incluida la capa de entrega de AIBA).
    - `aisdd roadmap` — fasea el desarrollo (alineado al `docs/sprint-plan.md` si existe) y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
-   - `aisdd open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
-   - `aisdd implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.
+   - `aisdd open change [what-you-want-to-build]` — pre-flight de dudas y creacion del cambio OpenSpec.
+   - `aisdd implement change [change-slug]` — pre-flight de dudas y aplicacion de instrucciones del cambio.
    - `aisdd amend change [descripcion]` — incorpora una modificacion a un change ya abierto y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`).
-   - `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec.
+   - `aisdd close change [change-slug]` — archiva el cambio OpenSpec.
    - `aisdd lane [list | switch <lane-id> | status]` — consulta y cambia la linea de trabajo activa (solo en roadmaps `multilane`).
-   - `aisdd prototype-ux [what-you-want-to-build]` — genera prototipos UX con `booster-ux`.
-   - `aisdd uml <what-you-want-to-build>` — genera el HTML de diagramas del cambio con `booster-uml`.
+   - `aisdd prototype-ux [change-slug]` — genera prototipos UX con `booster-ux`.
+   - `aisdd uml [change-slug]` — genera el HTML de diagramas del cambio con `booster-uml`.
    <!-- END aisdd-specs commands -->
    ```
 

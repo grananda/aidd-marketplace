@@ -3,14 +3,14 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
 
 Usa este skill cuando el usuario quiera **incorporar una modificacion a un change que ya esta abierto** (tipicamente ya implementado en parte o del todo) y que esa modificacion se ejecute sin rehacer lo anterior. Comando:
 
-- `aisdd amend change [descripcion-del-cambio]`   (alias: `native-ai amend change ...`)
+- `aisdd amend change [descripcion]`   (alias: `native-ai amend change ...`)
 
 > **Alias legacy.** `aisdd <cmd>` y `native-ai <cmd>` son equivalentes. `aisdd` es el prefijo primario.
 
@@ -29,8 +29,8 @@ Es el brazo operativo de la "Regla de corte" de la metodologia (niveles de corre
 - **No re-aplica el change.** Nunca ejecutes `openspec instructions apply` desde este skill.
 - **No cierra ni archiva.** Eso sigue siendo `aisdd close change`.
 - **No amplia el alcance.** Implementa lo que el usuario describio y nada mas. Nada de mejoras de paso, refactores oportunistas, reformateos ni reordenar imports.
-- **Si la modificacion cambia el objetivo del change**, detente: no es una enmienda, es un change nuevo. Remite a `aisdd open change <slug>` y explica por que.
-- **Si el change ya esta archivado**, detente: no se reabre. Remite a `aisdd open change <slug>`.
+- **Si la modificacion cambia el objetivo del change**, detente: no es una enmienda, es un change nuevo. Remite a `aisdd open change [what-you-want-to-build]` y explica por que.
+- **Si el change ya esta archivado**, detente: no se reabre. Remite a `aisdd open change [what-you-want-to-build]`.
 - **Si el delta cruza lanes** (roadmaps `multilane`), no es un amend local: es una **parada coordinada** de los lanes hermanos. Sigue el procedimiento de "Deltas que cruzan lanes" — no lo ejecutes lane a lane como si fueran enmiendas independientes.
 - **No re-fasea el roadmap.** Puede *marcar* fases afectadas como senal para el humano, pero no reescribe `docs/roadmap.md` ni reordena fases: eso es `aisdd roadmap`.
 - **Detenerse tambien se audita.** Cualquiera de las paradas anteriores —objetivo distinto, change archivado, lanes que no se pueden detener, sin descripcion en modo no interactivo— **escribe igualmente la entrada de auditoria con `status: aborted`** y el motivo en `errors`, antes de terminar. La entrada normal sale del final del flujo, y ese final no se alcanza al detenerse: sin esta regla, pararse no dejaria rastro. Una parada es un resultado del comando.

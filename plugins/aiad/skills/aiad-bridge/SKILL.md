@@ -3,7 +3,7 @@ name: aiad-bridge
 description: AIAD (AI-Augmented Development, ia-in-the-loop) bridge skill. Lets the human switch between AIAD (human-engine) and SDD (AI-engine) by treating an OpenSpec change as equivalent to a user story, via the command `aiad bridge`. In `to-sdd` it wraps a US as an OpenSpec change to delegate execution to SDD (aisdd-specs); in `to-aiad` it reclaims control, returning a change to human treatment as a US. The stable unit is always the US; the change is its temporary SDD form. The engine switch can happen mid-US. It does NOT decide which engine to use for you: it performs the switch you ask for. If OpenSpec/aisdd-specs is unavailable, it says so and work continues standalone on the US. Use when the user says "let the AI take over this US", "move this to SDD", "I'm taking back this change", "back to AIAD", "wrap this US as a change", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # aiad-bridge (AIAD · ia-in-the-loop)
@@ -44,7 +44,7 @@ Exit criterion: after the switch the US is correctly represented in the target e
 
 1. **Identify the US** (id or description) in `docs/detalle-historias-usuario.md` and gather its context: acceptance criteria, relevant architecture, and the real work state if the human already started (branch, files, tests).
 2. **Check the tooling:** verify OpenSpec and `aisdd-specs` are available. If not, warn and offer to continue standalone.
-3. **Wrap the US as a change:** delegate to `aisdd open change <us-slug>` (through `aisdd-specs`), using a slug derived from the US. Pass the acceptance criteria and the in-progress state as context so the change does not ignore what is already done.
+3. **Wrap the US as a change:** delegate to `aisdd open change [what-you-want-to-build]` (through `aisdd-specs`), using a slug derived from the US. Pass the acceptance criteria and the in-progress state as context so the change does not ignore what is already done.
 4. **Record the US -> change link** in `docs/aiad-journal.md` (and, if the project uses SDD's Jira map, let `aisdd-specs` do its sync; this bridge does not duplicate it).
 5. **Hand off to SDD:** tell the human that from here they follow the SDD cycle (open/implement/close change) and that they can reclaim control with `to-aiad` whenever they want.
 

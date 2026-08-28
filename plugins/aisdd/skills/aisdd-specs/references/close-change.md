@@ -2,16 +2,13 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
-## `aisdd close change [what-you-want-to-build]`
+## `aisdd close change [change-slug]`
 
-> Alias: `native-ai close change [what-you-want-to-build]`.
+> Alias: `native-ai close change [change-slug]`.
 
 Archiva un cambio OpenSpec.
 
-1. Si llega `<what-you-want-to-build>`, usalo como cambio objetivo.
-2. Si no llega, lista cambios abiertos.
-3. Si solo hay un cambio abierto, usalo.
-4. Si hay mas de uno, pregunta cual desea archivar. **En modo `multilane`**, filtra primero por el lane activo (`openspec/.lane`): si ese lane tiene exactamente un change abierto, usalo sin preguntar; que otros lanes tengan changes vivos no genera ambiguedad, porque no son tuyos.
+1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional. **En modo `multilane`** el filtro por lane activo (`openspec/.lane`) va primero: si ese lane tiene exactamente un change abierto, usalo sin preguntar. Si tras filtrar sigue habiendo varios, presentalos con su contexto y deja elegir.
 5. **Verificacion de independencia (solo si `roadmap.mode` es `multilane`).** Antes de archivar, comprueba que el change respeto las fronteras de su lane. Es el punto donde la independencia deja de ser una promesa del faseado y pasa a estar verificada:
    - **Rutas**: obten los ficheros que el change toco (`git diff --name-only` contra el punto de partida del change, o el equivalente disponible) y comprueba que **todos** caen bajo los `paths` de su lane (`roadmap.lanes[].paths` en `config.yaml`).
    - **Specs**: comprueba que ningun `spec.md` modificado pertenece a otro lane.

@@ -2,16 +2,13 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
-## `aisdd implement change [what-you-want-to-build]`
+## `aisdd implement change [change-slug]`
 
-> Alias: `native-ai implement change [what-you-want-to-build]`.
+> Alias: `native-ai implement change [change-slug]`.
 
 Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver dudas con el usuario antes de tocar codigo.
 
-1. Si llega `<what-you-want-to-build>`, usalo como cambio objetivo.
-2. Si no llega, lista los cambios abiertos con OpenSpec.
-3. Si solo hay un cambio abierto, usalo.
-4. Si hay mas de uno, pregunta cual desea implementar.
+1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional; si no llega y hay varios changes abiertos —lo normal en `waves` y `multilane`— presenta los candidatos con su lane u oleada y deja elegir. No escojas tu.
 5. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
 6. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
    ```bash
@@ -51,7 +48,7 @@ Reglas de aplicacion:
 4. **No escales por defecto.** Un nivel 2 no se reporta al AI Lead ni se escala al Architect. Escalar cuesta un ciclo completo y solo se justifica en nivel 3.
 5. **Registra siempre el nivel 2.** El suelo de trazabilidad es una entrada en `decisions.md`; nunca cero. Sin ella el repositorio acaba contradiciendo a sus propios documentos sin constancia de cuando se torcio.
 6. **Si el mismo tipo de correccion se repite** en un change, dilo en el resumen del comando: varias correcciones del mismo tipo son sintoma de specs flojas y material a corregir en el siguiente `open change`.
-7. **Si el change ya esta archivado**, no lo reabras: la correccion va en un change nuevo (`aisdd open change <slug>`).
+7. **Si el change ya esta archivado**, no lo reabras: la correccion va en un change nuevo (`aisdd open change [what-you-want-to-build]`).
 8. **Nivel 4: parada coordinada (solo `multilane`).** No apliques la correccion. Haz esto:
    - **Detente y dilo.** Nombra que parte del contrato queda desmentida y que lanes dependen de ella (los que tengan changes abiertos, segun `openspec list` y el campo `lane` de sus fases).
    - **Registra** la entrada en `decisions.md` con `Nivel: 4` y `Estado: pendiente de barrera`, sin aplicar el cambio en codigo.

@@ -24,13 +24,13 @@ Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 %
 
 1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
 2. `aisdd roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
-3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
-4. `aisdd implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
-5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado (en roadmaps multilane, verifica antes que el change no escribio fuera de las rutas de su lane).
+3. `aisdd open change [what-you-want-to-build]` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
+4. `aisdd implement change [change-slug]` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
+5. `aisdd close change [change-slug]` — archiva el cambio OpenSpec indicado (en roadmaps multilane, verifica antes que el change no escribio fuera de las rutas de su lane).
 6. `aisdd lane [list | switch <lane-id> | status]` — consulta y cambia la linea de trabajo activa. Solo aplica a roadmaps `multilane`.
-7. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
+7. `aisdd prototype-ux [change-slug]` — lanza `booster-ux` por cada pantalla nueva del cambio.
 8. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
-9. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
+9. `aisdd uml [change-slug]` — genera el HTML con diagramas del cambio usando `booster-uml`.
 
 > **Skill hermano**: `aisdd amend change [descripcion]` (skill `aisdd-amend`) incorpora una modificacion a un change **ya abierto** y ejecuta solo ese delta, sin re-aplicar el change entero. Es la via operativa de la "Regla de corte" descrita en la seccion "Correcciones durante la implementacion" del `SKILL.md` de este skill.
 
@@ -108,13 +108,13 @@ Este comando no debe ejecutar `openspec new change` ni archivar cambios, ni edit
 
 El fichero `docs/prompts-roadmap-native-ai.md` debe usar como base operativa estos comandos:
 
-- `aisdd open change <what-you-want-to-build>`
-- `aisdd implement change <what-you-want-to-build>`
-- `aisdd close change <what-you-want-to-build>`
+- `aisdd open change [what-you-want-to-build]`
+- `aisdd implement change [change-slug]`
+- `aisdd close change [change-slug]`
 
 Los prompts deben incluir el contexto minimo necesario para cada fase y evitar arrastrar informacion de fases futuras si no es necesaria todavia.
 
-### `aisdd open change <what-you-want-to-build>`
+### `aisdd open change [what-you-want-to-build]`
 
 Crea un cambio OpenSpec en dos fases:
 
@@ -127,7 +127,7 @@ Crea un cambio OpenSpec en dos fases:
 
 El argumento es opcional. Si no se indica, el agente debe crear un identificador razonable a partir del objetivo del usuario.
 
-Tras crear el cambio, el agente evalua si los diagramas aportan comprension real (interaccion multi-componente, entidades o relaciones nuevas, maquina de estados, flujo con ramificaciones, integracion externa) y solo entonces pasa `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml`. En changes triviales (scaffolding, config, textos, bugfix puntual) se omite con aviso; `aisdd uml <slug>` los genera bajo demanda. En caso de duda, se generan.
+Tras crear el cambio, el agente evalua si los diagramas aportan comprension real (interaccion multi-componente, entidades o relaciones nuevas, maquina de estados, flujo con ramificaciones, integracion externa) y solo entonces pasa `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml`. En changes triviales (scaffolding, config, textos, bugfix puntual) se omite con aviso; `aisdd uml [change-slug]` los genera bajo demanda. En caso de duda, se generan.
 
 Comportamientos clave del pre-flight:
 
@@ -137,7 +137,7 @@ Comportamientos clave del pre-flight:
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, marca cada decisión con `Origen: auto-default` y, si hay `bloqueantes` sin default seguro, detiene el comando sin ejecutar `openspec new change`.
 - Si tras la lectura inicial no detecta dudas reales, registra una única entrada con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`, y procede a crear el cambio.
 
-### `aisdd implement change <what-you-want-to-build>`
+### `aisdd implement change [change-slug]`
 
 Implementa un cambio en dos fases:
 
@@ -167,7 +167,7 @@ Selecciona la **linea de trabajo activa** del dev, igual que `git switch` selecc
 
 El puntero `openspec/.lane` es **estado local de cada dev** y va en `.gitignore` (lo anade `aisdd init`): dos personas trabajando lanes distintos no deben pisarse el puntero en cada commit. Si el roadmap es `atomic`, el comando avisa de que el proyecto no usa lanes y no crea nada.
 
-### `aisdd close change <what-you-want-to-build>`
+### `aisdd close change [change-slug]`
 
 Archiva un cambio:
 
@@ -177,7 +177,7 @@ openspec archive <what-you-want-to-build>
 
 El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea archivar.
 
-### `aisdd prototype-ux <what-you-want-to-build>`
+### `aisdd prototype-ux [change-slug]`
 
 Identifica las pantallas nuevas del cambio indicado y lanza el skill `booster-ux` por cada pantalla.
 
@@ -185,7 +185,7 @@ Identifica las pantallas nuevas del cambio indicado y lanza el skill `booster-ux
 
 Lanza directamente el skill `booster-ux` y sigue su flujo de preguntas.
 
-### `aisdd uml <what-you-want-to-build>`
+### `aisdd uml [change-slug]`
 
 Genera el HTML con diagramas asociados al cambio indicado usando `booster-uml`. Las entradas esperadas son:
 

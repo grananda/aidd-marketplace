@@ -7,7 +7,7 @@ Skill para **incorporar una modificacion a un change de OpenSpec ya abierto** y 
 ## Comando
 
 ```text
-aisdd amend change [descripcion-del-cambio]
+aisdd amend change [descripcion]
 ```
 
 Si no aportas la descripcion, el skill te la pide. A partir de ahi la IA especifica e implementa: tu describes, ella desarrolla.
@@ -68,7 +68,7 @@ Sin esa baseline, ninguna afirmacion sobre regresiones seria fiable.
 
 | Situacion | Comando |
 |-----------|---------|
-| Empezar trabajo nuevo | `aisdd open change <slug>` |
-| Implementar lo especificado | `aisdd implement change <slug>` |
+| Empezar trabajo nuevo | `aisdd open change [what-you-want-to-build]` |
+| Implementar lo especificado | `aisdd implement change [change-slug]` |
 | **Meter una modificacion en lo que ya esta en marcha** | **`aisdd amend change`** |
-| Dar por terminado | `aisdd close change <slug>` |
+| Dar por terminado | `aisdd close change [change-slug]` |

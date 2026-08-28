@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.1.1"
+  version: "2.2.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -13,11 +13,11 @@ Usa este skill cuando el usuario pida trabajar con especificaciones AISDD / Open
 - `aisdd init`            (alias: `native-ai init`)
 - `aisdd roadmap`         (alias: `native-ai roadmap`)
 - `aisdd open change [what-you-want-to-build]`       (alias: `native-ai open change ...`)
-- `aisdd implement change [what-you-want-to-build]`  (alias: `native-ai implement change ...`)
-- `aisdd close change [what-you-want-to-build]`      (alias: `native-ai close change ...`)
+- `aisdd implement change [change-slug]`  (alias: `native-ai implement change ...`)
+- `aisdd close change [change-slug]`      (alias: `native-ai close change ...`)
 - `aisdd lane [list | switch <lane-id> | status]`    (alias: `native-ai lane ...`)
-- `aisdd prototype-ux [what-you-want-to-build]`      (alias: `native-ai prototype-ux ...`)
-- `aisdd uml [what-you-want-to-build]`               (alias: `native-ai uml ...`)
+- `aisdd prototype-ux [change-slug]`      (alias: `native-ai prototype-ux ...`)
+- `aisdd uml [change-slug]`               (alias: `native-ai uml ...`)
 
 > **Alias legacy.** `aisdd <cmd>` y `native-ai <cmd>` son **equivalentes**: ejecutan exactamente el mismo flujo. `aisdd` es el prefijo primario (consistente con `aidd`/`aiad`); `native-ai` se conserva para no romper `AGENTS.md`, roadmaps y referencias de proyectos ya iniciados. En este documento el prefijo `aisdd` es el canonico; donde leas un comando, el equivalente `native-ai` es igual de valido.
 
@@ -36,6 +36,7 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 | Implementar un change (`aisdd implement change`) y clasificar correcciones | `references/implement-change.md` |
 | Cerrar un change (`aisdd close change`) | `references/close-change.md` |
 | Cambiar de linea de trabajo (`aisdd lane`) | `references/lane.md` |
+| Resolver el change objetivo cuando el argumento no llega | `references/target-change.md` |
 | Resolver dudas antes de generar specs o de implementar | `references/preflight.md` |
 | Prototipos UX (`aisdd prototype-ux`) | `references/prototype-ux.md` |
 | Diagramas UML (`aisdd uml`) | `references/uml.md` |
@@ -46,6 +47,7 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 **Dependencias frecuentes entre ficheros**, para no leer de mas ni de menos:
 
 - `open-change.md` e `implement-change.md` **requieren** `preflight.md`: el pre-flight es obligatorio en ambos y esta descrito una sola vez.
+- `open/implement/close-change.md` y `uml.md` **requieren** `target-change.md` cuando el comando llega sin argumento: los cuatro lo resuelven igual, y con varios changes abiertos la desambiguacion es obligatoria.
 - `roadmap.md` **requiere** `parallelism.md` si el proyecto tiene mas de un developer.
 - `open/implement/close-change.md` **requieren** `parallelism.md` solo si `roadmap.mode` es `waves` o `multilane`.
 - **Todos los comandos salvo `aisdd lane` requieren `audit.md`**: la entrada de auditoria es obligatoria y cada ficha la ordena en su paso final, con el `prompt_version` que le corresponde. Requieren ademas `scripts.md`, porque `audit.py` es la via preferente para componerla.

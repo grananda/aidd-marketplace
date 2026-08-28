@@ -42,13 +42,13 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 |------|---------|-----|---------------|
 | 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**). En **proyecto existente**, siembra además las **specs base** en `openspec/specs/` a partir del código |
 | 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` o `multilane`) |
-| 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
-| 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
+| 4 | `aisdd open change [what-you-want-to-build]` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
+| 4 | `aisdd implement change [change-slug]` | AI Developer | Pre-flight + implementa el código del change |
 | 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
-| 4 | `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| 4 | `aisdd close change [change-slug]` | Outcome Validator | Valida y archiva el change |
 | 4 | `aisdd lane [list \| switch \| status]` | AI Developer / AI Lead | Selecciona la **línea de trabajo activa** (solo roadmaps `multilane`), como `git switch` con las ramas |
-| 2 / 4 (aux) | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
-| aux | `aisdd uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
+| 2 / 4 (aux) | `aisdd prototype-ux [change-slug]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
+| aux | `aisdd uml [change-slug]` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
 
 #### Cómo paralelizar el trabajo (tres modos)
 

@@ -2,9 +2,9 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
-## `aisdd prototype-ux [what-you-want-to-build]`
+## `aisdd prototype-ux [change-slug]`
 
-> Alias: `native-ai prototype-ux [what-you-want-to-build]`.
+> Alias: `native-ai prototype-ux [change-slug]`.
 
 Genera prototipos UX.
 

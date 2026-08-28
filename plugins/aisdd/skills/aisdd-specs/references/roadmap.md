@@ -91,9 +91,9 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - **si el modo es `waves`**: la **organizacion en oleadas** y, por cada fase, su oleada y de que fases depende. Escribe la oleada en la tabla de fases con la forma literal `Oleada <N>` (no solo el numero): asi la vista HTML de `booster-docs` la reconoce y la pinta como chip. Anade una vista de la oleada completa (que fases corren a la vez y con que dev).
    - **si el modo es `multilane`**: las dos secciones adicionales descritas en "Secciones de lanes en `docs/roadmap.md`", y el identificador de cada fase segun la nomenclatura `F0` / `F-<lane-id>-NN` / `FB-NN`.
 13. Genera `docs/prompts-roadmap-native-ai.md` con los prompts que deben ejecutarse hasta finalizar el desarrollo, usando solo estos comandos del skill:
-   - `aisdd open change <what-you-want-to-build>`
-   - `aisdd implement change <what-you-want-to-build>`
-   - `aisdd close change <what-you-want-to-build>`
+   - `aisdd open change [what-you-want-to-build]`
+   - `aisdd implement change [change-slug]`
+   - `aisdd close change [change-slug]`
    - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane)
 14. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
    - que documentos o secciones pasar al modelo
@@ -101,9 +101,9 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - que no debe incluirse todavia para no contaminar contexto
    - cuando conviene dividir una fase en varios changes OpenSpec
    - el sprint al que pertenece la fase (si hay `sprint-plan.md`)
-   - el prompt exacto para abrir el change con `aisdd open change <what-you-want-to-build>`
-   - el prompt exacto para implementar con `aisdd implement change <what-you-want-to-build>`
-   - el prompt exacto para cerrar con `aisdd close change <what-you-want-to-build>`
+   - el prompt exacto para abrir el change con `aisdd open change [what-you-want-to-build]`
+   - el prompt exacto para implementar con `aisdd implement change [change-slug]`
+   - el prompt exacto para cerrar con `aisdd close change [change-slug]`
 15. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
 16. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
 17. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
