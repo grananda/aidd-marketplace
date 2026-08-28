@@ -4,13 +4,14 @@
 
 ## Scripts del skill
 
-El skill trae tres scripts en `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/`. Cubren las tres mecanicas que antes eran **prosa que el agente debia ejecutar bien cada vez**: componer la entrada de auditoria, reemplazar un bloque delimitado y detectar mojibake. Las tres son exactas o no son — y una sola equivocacion no deja rastro de cuando ocurrio.
+El skill trae cuatro scripts en `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/`. Cubren las tres mecanicas que antes eran **prosa que el agente debia ejecutar bien cada vez**: componer la entrada de auditoria, reemplazar un bloque delimitado y detectar mojibake. Las tres son exactas o no son — y una sola equivocacion no deja rastro de cuando ocurrio.
 
 | Script | Sustituye a | Invocado desde |
 |---|---|---|
 | `audit.py` | Composicion manual de la entrada JSONL, hashes y purga | Todos los comandos que escriben auditoria |
 | `agents_block.py` | Reemplazo manual de bloques en `AGENTS.md` | `aisdd init` (bloque `commands`), `aisdd roadmap` (bloque `roadmap`) |
-| `check_mojibake.py` | Nada (capacidad nueva) | Verificacion final, sobre los artefactos escritos |
+| `check_mojibake.py` | Nada (capacidad nueva) | **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, y en `aisdd amend change`. Justo **antes** de la entrada de auditoria |
+| `optimize_phasing.py` | Estimacion "a ojo" del calendario de cada modo | **Obligatorio** en `aisdd roadmap`, paso 11, salvo con un solo dev |
 
 Solo requieren **Python 3 y biblioteca estandar**: sin dependencias que instalar.
 
@@ -36,12 +37,35 @@ echo '<contenido sin marcadores>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-
 
 `<marker>` es `commands` o `roadmap`. Crea `AGENTS.md` si falta, reemplaza el bloque si existe y lo anade al final si no, **sin tocar el resto del fichero ni el otro bloque**. Migra automaticamente un bloque legacy `native-ai-specs <marker>` al nombre actual. Devuelve `{file, action, marker}` con `action` = `created` | `replaced` | `appended` | `migrated`.
 
+### `optimize_phasing.py`
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/optimize_phasing.py" \
+  --input <plan.json> --out docs/html/faseado-comparativa.html
+```
+
+Recibe el grafo de fases (`id`, `depends_on`, esfuerzo en dias o talla, `shared`) y calcula el calendario de cada modo con cada numero de developers. Emite un resumen JSON por stdout y un HTML autocontenido con los caminos superpuestos.
+
+Los tres modos son el **mismo** problema de scheduling con `N` maquinas; lo que cambia es cuantas sincronizaciones se fuerzan: `waves` paga una barrera por oleada, `multilane` solo en las fases compartidas, `atomic` corre con una sola maquina. De ahi que se cumpla siempre `multilane <= waves <= atomic` a igual `N`.
+
+El **camino critico** acota por debajo cualquier calendario: cuando un modo lo toca, anadir devs no compra ni un dia. El numero de `multilane` es una **cota optimista**, porque el corte de lanes real exige ademas rutas disjuntas.
+
+El flujo completo esta en "Pre-flight de optimizacion del faseado" (`references/optimizer.md`).
+
 ### `check_mojibake.py`
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/check_mojibake.py" [--fix] <fichero...>
 ```
 
-Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Pasalo sobre los artefactos que el comando haya escrito (`proposal.md`, `design.md`, `spec.md`, `decisions.md`, documentos de `docs/`): son texto en espanol con tildes, generado por el agente y leido despues por otras herramientas.
+Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Importa porque los artefactos son texto en espanol con tildes, los escribe el agente y los leen despues otras herramientas: un `decisions.md` donde cada `o` acentuada se ha convertido en el par `U+00C3 U+00B3` no es un defecto estetico, porque los comandos siguientes se alimentan de el. (Se cita por codepoint y no por el caracter: escribir la secuencia literal en un `.md` hace fallar la comprobacion de la propia CI, que es la misma razon por la que no se pasa sobre codigo fuente.)
+
+**Cuando.** Justo antes de escribir la entrada de auditoria. El orden importa: `audit.py` calcula el hash de cada fichero, asi que reparar despues registraria el hash de la version corrupta.
+
+**Sobre que, y sobre que no.** Solo sobre los **artefactos documentales** que el comando escribe: los `.md` del change y de `docs/`, `openspec/config.yaml`, `AGENTS.md` y el HTML de diagramas. Cada ficha de `references/` enumera los suyos.
+
+**Nunca sobre codigo fuente**, aunque este en los `output_files` de la auditoria. Hay ficheros que llevan esas secuencias **a proposito**: el propio `check_mojibake.py` y el `render_docs_html.py` de `booster-docs` las tienen en sus tablas de deteccion, y ambos dan positivo si te los pasas por encima. Con `--fix` no solo darias un falso positivo: reescribirias la herramienta. Por eso la CI del repo tambien se limita a `*.md`.
+
+**Sin el script.** Si `python3` no esta disponible, la degradacion no es saltarse el paso: busca a mano en esos mismos ficheros las secuencias `U+00C3`, `U+00C2`, `U+00E2 U+20AC` y `U+FFFD` —la misma lista que usa `booster-uml`—, corrige lo que puedas y di en el resumen que la comprobacion fue manual.
 
 Codigo de salida `1` si queda mojibake. Con `--fix` repara in situ, token a token y **solo cuando el resultado mejora**. El caracter de reemplazo `U+FFFD` se detecta pero **no se puede reparar**: ahi la informacion original ya se perdio, y hay que regenerar el fichero.

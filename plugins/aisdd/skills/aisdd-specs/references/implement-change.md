@@ -2,27 +2,28 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
-## `aisdd implement change [what-you-want-to-build]`
+## `aisdd implement change [change-slug]`
 
-> Alias: `native-ai implement change [what-you-want-to-build]`.
+> Alias: `native-ai implement change [change-slug]`.
 
 Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver dudas con el usuario antes de tocar codigo.
 
-1. Si llega `<what-you-want-to-build>`, usalo como cambio objetivo.
-2. Si no llega, lista los cambios abiertos con OpenSpec.
-3. Si solo hay un cambio abierto, usalo.
-4. Si hay mas de uno, pregunta cual desea implementar.
-5. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
-6. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
+1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional; si no llega y hay varios changes abiertos —lo normal en `waves` y `multilane`— presenta los candidatos con su lane u oleada y deja elegir. No escojas tu.
+2. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
+3. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
    ```bash
-   openspec instructions apply --change <what-you-want-to-build>
+   openspec instructions apply --change <change-slug>
    ```
-7. **Transicion en Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)" (`references/jira.md`)), al arrancar la implementacion:
+4. **Transicion en Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)" (`references/jira.md`)), al arrancar la implementacion:
    - Localiza en `docs/jira-sync.md` las **HU del change** y resuelve el **modo** de cada una (Story directa vs sub-tarea). Si una HU en modo sub-tarea no tiene aun la sub-tarea de este change (p. ej. se abrio sin Jira), creala ahora como en `open change`; si una HU no tiene Story, omitela con aviso.
    - Resuelve el usuario asignado (cuenta del MCP o `assignee_override`) y mueve a **In Progress** (descubriendo la transicion, sin hardcodear): en modo directo la **Story**; en modo sub-tarea la **sub-tarea y su Story padre**. Asigna al usuario resuelto lo que muevas.
    - Actualiza el estado de cada HU implicada en `docs/jira-sync.md` a `in_progress`.
-8. Si durante la implementacion, o en la validacion posterior, surge un cambio que ningun spec habia especificado (incompatibilidad de versiones, ajuste de configuracion, peticion del usuario sobre la marcha), **no escales por defecto**: clasificalo segun "Correcciones durante la implementacion" y resuelvelo en el nivel que le corresponda.
-9. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente.
+5. Si durante la implementacion, o en la validacion posterior, surge un cambio que ningun spec habia especificado (incompatibilidad de versiones, ajuste de configuracion, peticion del usuario sobre la marcha), **no escales por defecto**: clasificalo segun "Correcciones durante la implementacion" y resuelvelo en el nivel que le corresponda.
+6. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `tasks.md`, `decisions.md` y, si la integracion con Jira esta activa, `docs/jira-sync.md`. **El codigo fuente no entra**, aunque figure en `output_files` (ver `references/scripts.md`). Los `spec.md` tampoco: este comando los **lee**, no los reescribe. **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.
+
+7. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente. Di tambien el **resultado de la comprobacion de mojibake**: sin incidencias, ficheros reparados, o ficheros que hay que regenerar por tener `U+FFFD`.
+8. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:implement-change/preflight`. Incluye en `decisions[]` las decisiones del pre-flight y las entradas `Tipo: correccion` que hayas registrado. Reporta despues su ruta y su `id` en la verificacion final.
+9. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Correcciones durante la implementacion
 
@@ -49,7 +50,7 @@ Reglas de aplicacion:
 4. **No escales por defecto.** Un nivel 2 no se reporta al AI Lead ni se escala al Architect. Escalar cuesta un ciclo completo y solo se justifica en nivel 3.
 5. **Registra siempre el nivel 2.** El suelo de trazabilidad es una entrada en `decisions.md`; nunca cero. Sin ella el repositorio acaba contradiciendo a sus propios documentos sin constancia de cuando se torcio.
 6. **Si el mismo tipo de correccion se repite** en un change, dilo en el resumen del comando: varias correcciones del mismo tipo son sintoma de specs flojas y material a corregir en el siguiente `open change`.
-7. **Si el change ya esta archivado**, no lo reabras: la correccion va en un change nuevo (`aisdd open change <slug>`).
+7. **Si el change ya esta archivado**, no lo reabras: la correccion va en un change nuevo (`aisdd open change [what-you-want-to-build]`).
 8. **Nivel 4: parada coordinada (solo `multilane`).** No apliques la correccion. Haz esto:
    - **Detente y dilo.** Nombra que parte del contrato queda desmentida y que lanes dependen de ella (los que tengan changes abiertos, segun `openspec list` y el campo `lane` de sus fases).
    - **Registra** la entrada en `decisions.md` con `Nivel: 4` y `Estado: pendiente de barrera`, sin aplicar el cambio en codigo.

@@ -32,7 +32,7 @@ Inicializa AISDD (OpenSpec) en el proyecto.
        - docs/requisitos.md
        - docs/detalle-historias-usuario.md
        - docs/arquitectura-base.md
-     delivery_docs:          # capa de entrega AIDD (solo las que existan)
+     delivery_docs:          # capa de entrega AIBA (solo las que existan)
        - docs/planificacion-proyecto.md
        - docs/sprint-plan.md
        - docs/plan-revision-hu.md
@@ -47,9 +47,13 @@ Inicializa AISDD (OpenSpec) en el proyecto.
      confirmaciones: all    # all | entero >= 0
    ```
    Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight" (`references/preflight.md`)). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
-11. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIDD es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido" (`references/jira.md`)). Son avisos, no errores: continua igualmente.
+11. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIBA es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido" (`references/jira.md`)). Son avisos, no errores: continua igualmente.
 12. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
 13. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
+
+14. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `openspec/config.yaml`, `AGENTS.md` y las specs base **si las sembraste** (en proyecto nuevo no hay). **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.
+15. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:init`. Reporta despues su ruta y su `id` en la verificacion final.
+16. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Onboarding de proyecto existente: specs base
 
@@ -89,13 +93,13 @@ El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca 
 
    - `aisdd init` — inicializa OpenSpec, comprueba dependencias y registra el contexto del proyecto (incluida la capa de entrega de AIBA).
    - `aisdd roadmap` — fasea el desarrollo (alineado al `docs/sprint-plan.md` si existe) y genera `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md` y la seccion `roadmap` de `openspec/config.yaml`.
-   - `aisdd open change <what-you-want-to-build>` — pre-flight de dudas y creacion del cambio OpenSpec.
-   - `aisdd implement change <what-you-want-to-build>` — pre-flight de dudas y aplicacion de instrucciones del cambio.
+   - `aisdd open change [what-you-want-to-build]` — pre-flight de dudas y creacion del cambio OpenSpec.
+   - `aisdd implement change [change-slug]` — pre-flight de dudas y aplicacion de instrucciones del cambio.
    - `aisdd amend change [descripcion]` — incorpora una modificacion a un change ya abierto y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`).
-   - `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec.
+   - `aisdd close change [change-slug]` — archiva el cambio OpenSpec.
    - `aisdd lane [list | switch <lane-id> | status]` — consulta y cambia la linea de trabajo activa (solo en roadmaps `multilane`).
-   - `aisdd prototype-ux [what-you-want-to-build]` — genera prototipos UX con `booster-ux`.
-   - `aisdd uml <what-you-want-to-build>` — genera el HTML de diagramas del cambio con `booster-uml`.
+   - `aisdd prototype-ux [change-slug]` — genera prototipos UX con `booster-ux`.
+   - `aisdd uml [change-slug]` — genera el HTML de diagramas del cambio con `booster-uml`.
    <!-- END aisdd-specs commands -->
    ```
 

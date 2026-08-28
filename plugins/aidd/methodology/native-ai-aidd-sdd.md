@@ -178,7 +178,7 @@ Implementa el código a partir de los specs **ya abiertos y validados por el AI 
 |---|---|
 | **Recibe los specs validados del change** | El AI Lead le entrega el change ya abierto con sus artefactos validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El Developer **no** ejecuta `aisdd open change` |
 | **Revisa los artefactos recibidos** | Lee y comprende `proposal.md`, `design.md`, los `spec.md` y `decisions.md` antes de implementar |
-| **Lanza la implementación** | Ejecuta `aisdd implement change <slug>` (incluye su propio pre-flight de dudas antes de tocar código; las dudas de spec o arquitectura las eleva, no las inventa) |
+| **Lanza la implementación** | Ejecuta `aisdd implement change <change-slug>` (incluye su propio pre-flight de dudas antes de tocar código; las dudas de spec o arquitectura las eleva, no las inventa) |
 | **Genera UML/prototipos si aplica** | Puede ejecutar `aisdd uml <slug>` y `aisdd prototype-ux <slug>` para documentar visualmente el change |
 | **Valida y testea el código generado** | Prueba manualmente que la aplicación funciona end-to-end |
 | **Corrige los bugs que identifique** | Itera sobre los bugs de implementación que detecte hasta que el código está limpio para entregar al Outcome Validator |
@@ -200,7 +200,7 @@ Capa de diagnóstico, QA técnico y funcional. Es el único rol que puede escala
 | **Devuelve al AI Developer** | Solo para problemas de implementación — con descripción, criterio que falla y evidencia |
 | **Eleva al AI Lead, de común acuerdo con el Developer** | Para problemas de spec o arquitectónicos que superan el scope del Developer. La elevación se acuerda entre ambos para que ninguno se entere después de una decisión que le afecta. **Si no hay acuerdo, se eleva igualmente registrando las dos posturas**: que quien validó y quien implementó discrepen es información que el Lead necesita, no algo que ocultarle hasta resolverlo |
 | **Aprobación de Merge Requests** | Es la firma final antes de que el change se integre en la rama principal |
-| **Archiva el change validado** | Ejecuta `aisdd close change <slug>` (envuelve `openspec archive`) |
+| **Archiva el change validado** | Ejecuta `aisdd close change <change-slug>` (envuelve `openspec archive`) |
 | **Lanza el siguiente change** | Tras archivar, habilita al **AI Lead** para que abra y valide el siguiente change (`aisdd open change`) y lo entregue al Developer |
 
 ### AI Delivery Manager · **rol movido a AIBA**
@@ -651,8 +651,8 @@ Un **change** es la unidad de trabajo: equivale a una fase del roadmap o feature
 | Comando | Quién lo ejecuta | Qué hace |
 |---|---|---|
 | `aisdd open change <slug>` | **AI Lead** (todos los changes) | **Pre-flight de dudas** (máx. 7) → `openspec new change` → genera `proposal.md`, `design.md` y `spec.md`, y persiste `decisions.md`. El Lead **valida** los specs antes de entregarlos. Opcionalmente dispara `booster-uml`. |
-| `aisdd implement change <slug>` | AI Developer | **Pre-flight de dudas** (máx. 7) → `openspec instructions apply --change <slug>` → produce el código. |
-| `aisdd close change <slug>` | Outcome Validator | `openspec archive <slug>` → cierra y archiva el change validado. |
+| `aisdd implement change <change-slug>` | AI Developer | **Pre-flight de dudas** (máx. 7) → `openspec instructions apply --change <slug>` → produce el código. |
+| `aisdd close change <change-slug>` | Outcome Validator | `openspec archive <slug>` → cierra y archiva el change validado. |
 | `aisdd uml <slug>` | Cualquier rol | Genera HTML de diagramas del change con `booster-uml` (entrada: `design.md`, `proposal.md`, `spec.md`). |
 | `aisdd prototype-ux [<slug>]` | AI Architect / Developer | Genera prototipos UX con `booster-ux`, una vez por pantalla nueva del change. |
 
@@ -786,8 +786,8 @@ CRITERIOS DE ACEPTACIÓN BLOQUEANTES
 **Reparto de responsabilidades en el ciclo:**
 
 - **AI Lead** — ejecuta `aisdd open change <slug>`, responde el pre-flight, revisa y **valida** los artefactos (`proposal.md`, `design.md`, `spec.md`, `decisions.md`) y entrega specs validados al Developer.
-- **AI Developer** — recibe los specs validados, ejecuta `aisdd implement change <slug>` (responde su pre-flight antes de que se aplique el código), prueba end-to-end y **corrige los bugs de implementación que identifique**. No abre el change.
-- **Outcome Validator** — valida (técnico + funcional + trazabilidad), aprueba el MR, ejecuta `aisdd close change <slug>` y habilita al AI Lead para abrir el siguiente change.
+- **AI Developer** — recibe los specs validados, ejecuta `aisdd implement change <change-slug>` (responde su pre-flight antes de que se aplique el código), prueba end-to-end y **corrige los bugs de implementación que identifique**. No abre el change.
+- **Outcome Validator** — valida (técnico + funcional + trazabilidad), aprueba el MR, ejecuta `aisdd close change <change-slug>` y habilita al AI Lead para abrir el siguiente change.
 
 #### Enlace con Jira (opcional): HU vs change
 
@@ -1076,14 +1076,14 @@ Cada comando `aisdd` escribe una entrada estructurada en `openspec/audit/YYYY-MM
 - [ ] **[AI Lead]** Revisa y **valida** los artefactos generados (`proposal.md`, `design.md`, `spec.md`) antes del handoff
 - [ ] **[AI Lead]** Entrega los specs validados al AI Developer
 - [ ] **[AI Developer]** Revisa los specs recibidos (`proposal.md`, `design.md`, `spec.md`, `decisions.md`)
-- [ ] **[AI Developer]** Ejecuta `aisdd implement change <slug>` (responde su pre-flight) sin errores
+- [ ] **[AI Developer]** Ejecuta `aisdd implement change <change-slug>` (responde su pre-flight) sin errores
 - [ ] **[AI Developer]** Prueba manualmente end-to-end y corrige los bugs de implementación que identifique
 - [ ] **[AI Developer]** Prepara la feature para integración — branch actualizado, sin conflictos, MR listo
 - [ ] **[Outcome Validator]** Verifica todos los criterios de aceptación (funcional + técnico)
 - [ ] **[Outcome Validator]** Verifica trazabilidad (`decisions.md` + entrada de auditoría)
 - [ ] **[Outcome Validator]** Diagnostica y escala cualquier problema de spec o arquitectónico al AI Lead
 - [ ] **[Outcome Validator]** Aprueba el Merge Request
-- [ ] **[Outcome Validator]** Ejecuta `aisdd close change <slug>`
+- [ ] **[Outcome Validator]** Ejecuta `aisdd close change <change-slug>`
 - [ ] **[Outcome Validator]** Lanza el siguiente change — habilita al **AI Lead** para abrir y validar el próximo change
 
 ---
@@ -1119,8 +1119,8 @@ Para equipos que vienen de la metodología v2.0 (OpenSpec a pelo):
 | Sprints calendarizados para equipo humano | **`aiba sprint-planning`** → `docs/sprint-plan.md` sobre el roadmap (capa Delivery, v4) |
 | Framework de prompting (`prompts_a_ejecutar.md`) | `docs/prompts-roadmap-native-ai.md` (generado por `aisdd roadmap`) |
 | `/opsx:propose [name]` | `aisdd open change <slug>` (**+ pre-flight de dudas** → `decisions.md`) |
-| `/opsx:apply [name]` | `aisdd implement change <slug>` (**+ pre-flight de dudas**) |
-| `/opsx:archive [name]` | `aisdd close change <slug>` |
+| `/opsx:apply [name]` | `aisdd implement change <change-slug>` (**+ pre-flight de dudas**) |
+| `/opsx:archive [name]` | `aisdd close change <change-slug>` |
 | `/opsx:explore` (checklist go-live) | Revisión del roadmap (`docs/roadmap.md`) y criterios de cierre por fase |
 | Artefactos del change (`proposal/design/tasks`) | `proposal.md`, `design.md`, `spec.md` + `decisions.md` |
 | Diagramas (manual) | `aisdd uml <slug>` (booster-uml) |

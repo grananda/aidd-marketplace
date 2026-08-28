@@ -7,7 +7,7 @@ Skill para **incorporar una modificacion a un change de OpenSpec ya abierto** y 
 ## Comando
 
 ```text
-aisdd amend change [descripcion-del-cambio]
+aisdd amend change [descripcion]
 ```
 
 Si no aportas la descripcion, el skill te la pide. A partir de ahi la IA especifica e implementa: tu describes, ella desarrolla.
@@ -29,7 +29,10 @@ Es el brazo operativo de la "Regla de corte" de la metodologia (ver `aisdd-specs
 5. Escribe el delta: criterios en `spec.md`, decision en `design.md` si aplica, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`.
 6. Implementa **solo** las tareas nuevas. Nunca ejecuta `openspec instructions apply`.
 7. Verifica contra la baseline que no hay regresiones en el radio de impacto del cambio.
-8. Escribe la entrada de auditoria en `openspec/audit/`, usando el script `audit.py` de `aisdd-specs` (compone la entrada, calcula los hashes y purga por retencion de forma determinista). Si Python no esta disponible o el plugin `aisdd` no esta instalado junto a este skill, la compone a mano y lo dice en el resumen.
+8. Comprueba el **mojibake** de los artefactos documentales que la enmienda ha tocado (`spec.md`, `design.md`, `tasks.md`, `decisions.md`, y los de todos los changes si cruzo lanes) con `check_mojibake.py --fix` de `aisdd-specs`. Es obligatorio, y va **antes** de la auditoria porque esta hashea los ficheros. El codigo que la enmienda escribe no entra.
+9. Escribe la entrada de auditoria en `openspec/audit/`, usando el script `audit.py` de `aisdd-specs` (compone la entrada, calcula los hashes y purga por retencion de forma determinista). Si Python no esta disponible o el script falla, la compone a mano y lo dice en el resumen; nunca la omite.
+
+**La auditoria es obligatoria tambien cuando el comando se detiene.** `aisdd amend change` tiene cuatro puntos de parada —change ya archivado, delta que cambia el objetivo del change, delta que cruza el contrato compartido sin coordinacion posible, y espejo que no confirmas—; en los cuatro escribe su entrada con `status: aborted`. Detenerse es un resultado del comando, no un no-evento.
 
 ## La baseline, y por que importa
 
@@ -68,7 +71,7 @@ Sin esa baseline, ninguna afirmacion sobre regresiones seria fiable.
 
 | Situacion | Comando |
 |-----------|---------|
-| Empezar trabajo nuevo | `aisdd open change <slug>` |
-| Implementar lo especificado | `aisdd implement change <slug>` |
+| Empezar trabajo nuevo | `aisdd open change [what-you-want-to-build]` |
+| Implementar lo especificado | `aisdd implement change [change-slug]` |
 | **Meter una modificacion en lo que ya esta en marcha** | **`aisdd amend change`** |
-| Dar por terminado | `aisdd close change <slug>` |
+| Dar por terminado | `aisdd close change [change-slug]` |

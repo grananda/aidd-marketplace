@@ -3,14 +3,14 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.5.1"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
 
 Usa este skill cuando el usuario quiera **incorporar una modificacion a un change que ya esta abierto** (tipicamente ya implementado en parte o del todo) y que esa modificacion se ejecute sin rehacer lo anterior. Comando:
 
-- `aisdd amend change [descripcion-del-cambio]`   (alias: `native-ai amend change ...`)
+- `aisdd amend change [descripcion]`   (alias: `native-ai amend change ...`)
 
 > **Alias legacy.** `aisdd <cmd>` y `native-ai <cmd>` son equivalentes. `aisdd` es el prefijo primario.
 
@@ -29,10 +29,11 @@ Es el brazo operativo de la "Regla de corte" de la metodologia (niveles de corre
 - **No re-aplica el change.** Nunca ejecutes `openspec instructions apply` desde este skill.
 - **No cierra ni archiva.** Eso sigue siendo `aisdd close change`.
 - **No amplia el alcance.** Implementa lo que el usuario describio y nada mas. Nada de mejoras de paso, refactores oportunistas, reformateos ni reordenar imports.
-- **Si la modificacion cambia el objetivo del change**, detente: no es una enmienda, es un change nuevo. Remite a `aisdd open change <slug>` y explica por que.
-- **Si el change ya esta archivado**, detente: no se reabre. Remite a `aisdd open change <slug>`.
+- **Si la modificacion cambia el objetivo del change**, detente: no es una enmienda, es un change nuevo. Remite a `aisdd open change [what-you-want-to-build]` y explica por que.
+- **Si el change ya esta archivado**, detente: no se reabre. Remite a `aisdd open change [what-you-want-to-build]`.
 - **Si el delta cruza lanes** (roadmaps `multilane`), no es un amend local: es una **parada coordinada** de los lanes hermanos. Sigue el procedimiento de "Deltas que cruzan lanes" — no lo ejecutes lane a lane como si fueran enmiendas independientes.
 - **No re-fasea el roadmap.** Puede *marcar* fases afectadas como senal para el humano, pero no reescribe `docs/roadmap.md` ni reordena fases: eso es `aisdd roadmap`.
+- **Detenerse tambien se audita.** Cualquiera de las paradas anteriores —objetivo distinto, change archivado, lanes que no se pueden detener, sin descripcion en modo no interactivo— **escribe igualmente la entrada de auditoria con `status: aborted`** y el motivo en `errors`, antes de terminar. La entrada normal sale del final del flujo, y ese final no se alcanza al detenerse: sin esta regla, pararse no dejaria rastro. Una parada es un resultado del comando.
 
 > "Sin rehacer lo que ya se hizo" **no** significa "no tocar nada existente". Si la modificacion sustituye un comportamiento ya implementado, ajusta ese codigo y retira el que quede muerto. Lo prohibido es **regenerar trabajo equivalente** (volver a scaffoldear, reescribir un modulo entero para cambiar un detalle), no editar lo que la modificacion afecta de verdad.
 
@@ -93,7 +94,7 @@ Para cerrar ese agujero, sin re-fasear:
 1. Identifica las fases futuras afectadas en `roadmap.phases` (las de otros lanes que dependan del contrato o de las specs que el delta cambia).
 2. **Marcalas**: anade a cada una en `openspec/config.yaml` una clave `amended_by: <slug-del-change-enmendado>` y una linea en la seccion correspondiente de `docs/roadmap.md` indicando que la fase debe leer esa enmienda antes de abrirse.
 3. **No cambies nada mas del roadmap**: ni el orden, ni el alcance, ni los `change_hint`. La marca es una senal, no un re-faseado.
-   `aisdd open change` la recoge en su paso 5: al abrir esa fase lee el `decisions.md` del change indicado, incorpora el delta a sus specs y retira la marca. Si `aisdd roadmap` se re-ejecuta antes, conserva los `amended_by` de las fases que sobrevivan con el mismo `change_hint`.
+   `aisdd open change` la recoge en su paso "Enmiendas pendientes de esta fase": al abrir esa fase lee el `decisions.md` del change indicado, incorpora el delta a sus specs y retira la marca. Si `aisdd roadmap` se re-ejecuta antes, conserva los `amended_by` de las fases que sobrevivan con el mismo `change_hint`.
 4. Dilo en el resumen final: que fases quedaron marcadas y que lanes las ejecutaran.
 
 Es el mismo patron que ya usa `aisdd roadmap` cuando registra "Conflictos de alineacion roadmap<->sprint" en lugar de reescribir el `sprint-plan.md`: **quien detecta el desajuste lo senala; quien tiene la competencia lo resuelve.**
@@ -214,6 +215,23 @@ Si la integracion con Jira esta activa (seccion `jira:` en `openspec/config.yaml
 
 Si Jira no esta configurado, omite el bloque sin error.
 
+### 9. Comprobar el mojibake de lo escrito
+
+**Obligatorio**, igual que en el resto de comandos AISDD. Pasa `check_mojibake.py --fix`
+de `aisdd-specs` (ver `aisdd-specs`, `references/scripts.md`) sobre los artefactos **documentales**
+que la enmienda haya tocado: el `spec.md`, `design.md`, `tasks.md` y `decisions.md` del
+change, y los de **todos** los changes si la enmienda cruzo lanes. **El codigo que la
+enmienda escribe no entra**, aunque figure en `output_files`: ver `aisdd-specs`,
+`references/scripts.md`.
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/check_mojibake.py" --fix <ficheros>
+```
+
+Va **antes** de la entrada de auditoria porque `audit.py` calcula el hash de cada fichero:
+repararlo despues registraria el hash de la version corrupta. Si algo queda con `U+FFFD`,
+no se puede reparar — hay que regenerar el fichero; dilo en la verificacion final.
+
 ## Auditoria y trazabilidad
 
 Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `aisdd-specs`, `references/audit.md`): fichero `openspec/audit/YYYY-MM.jsonl`, append-only, una entrada por invocacion.
@@ -224,7 +242,7 @@ Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `
 echo '<json>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
 ```
 
-Si el plugin `aisdd` no esta instalado junto a este skill, compon la entrada a mano segun `references/audit.md` y dilo en el resumen.
+Si Python no esta disponible o el script falla, compon la entrada a mano segun `aisdd-specs`, `references/audit.md`, y dilo en el resumen. **No la omitas**: la auditoria es obligatoria tambien cuando el script no puede escribirla.
 
 Particularidades de este comando:
 
@@ -233,8 +251,9 @@ Particularidades de este comando:
 - `input_files`: artefactos del change leidos + ficheros de codigo que la enmienda toca.
 - `output_files`: artefactos del change modificados + ficheros de codigo escritos.
 - `decisions`: incluye la entrada `correccion` de la enmienda.
-- `status`: `ok` si el delta quedo implementado y verificado; `partial` si quedaron fallos preexistentes o verificaciones no realizables; `aborted` si te detuviste (sin descripcion, change archivado, alcance de change nuevo).
+- `status`: `ok` si el delta quedo implementado y verificado; `partial` si quedaron fallos preexistentes o verificaciones no realizables; `aborted` si te detuviste en cualquiera de los puntos de parada (ver "Limites explicitos"): sin descripcion en modo no interactivo, change archivado, alcance de change nuevo, o lanes hermanos que no se pueden detener. **Una parada siempre deja entrada**; la ausencia de entrada no es un resultado valido.
 - `errors`: incluye los fallos **preexistentes** detectados en la baseline, como mensajes cortos. Que consten sin atribuirselos a la enmienda.
+- `notes`: si hubo acciones en Jira (comentarios en Stories o sub-tareas), una linea por issue tocado. Son acciones con efecto externo que no son ficheros, asi que no caben en `output_files`.
 
 ## Verificacion final
 
@@ -247,5 +266,12 @@ Al terminar, informa:
 - **Baseline vs resultado**: build y tests antes / despues, con los fallos preexistentes listados aparte de los que provoco (y arreglo) la enmienda.
 - Criterios ya satisfechos que has re-verificado, y los que no has podido verificar.
 - Recordatorio, en una linea: la coherencia con la documentacion AIDD se asumio, no se comprobo.
+- Resultado de la comprobacion de mojibake: sin incidencias, ficheros reparados, o ficheros que hay que regenerar por tener `U+FFFD`.
 - Entrada de auditoria escrita (ruta e `id`).
 - Tareas manuales pendientes, si las hay.
+
+## Proximos pasos
+
+**Tambien cuando el comando se detiene.** En las cuatro paradas —change ya archivado, delta que cambia el objetivo, delta cross-contrato sin coordinacion posible, y espejo sin confirmar— di **que comando desbloquea**: `aisdd open change` para un change nuevo si el objetivo cambio, o el mismo `aisdd amend change` tras acordar el alcance. Ese camino no llega al final del flujo, asi que la sugerencia va en la parada.
+
+Cierra con lo que el usuario hace ahora, con el comando resuelto: `aisdd implement change <change-slug>` si quedan tareas del delta, o `aisdd close change <change-slug>` si ya esta. **Si marcaste fases futuras con `amended_by`, nombralas**: quien las abra tiene que saber que arrastran una enmienda. Reglas completas en `aisdd-specs`, `references/next-steps.md`.

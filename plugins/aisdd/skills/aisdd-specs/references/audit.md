@@ -46,6 +46,7 @@ Cada linea es un objeto JSON con estos campos:
   ],
   "status": "ok | partial | aborted",
   "errors": [ "<mensaje corto>" ],
+  "notes": [ "<nota corta y factual, opcional>" ],
   "correction_of": "<id de entrada corregida, opcional>"
 }
 ```
@@ -58,10 +59,11 @@ Reglas para los campos:
 - `output_hash`: misma formula sobre `output_files`. Si el comando no produce ficheros nuevos ni modificados, usa el hash del string vacio y deja `output_files` vacio.
 - `input_files`: ficheros leidos como entrada relevante del comando (artefactos del cambio, configuracion, documentos del usuario). No incluyas codigo fuente del repositorio salvo que el comando lo procese explicitamente.
 - `output_files`: ficheros creados o modificados por el comando (proposal.md, design.md, spec.md, decisions.md, roadmap.md, HTML de UML, etc.).
-- `decisions`: solo para comandos que recogen decisiones humanas (hoy: `implement change`). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
+- `decisions`: solo para los comandos que recogen decisiones humanas, que son **`open change` e `implement change`** (los dos ejecutan el pre-flight). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
+- `notes`: lista opcional de notas cortas y factuales sobre acciones con efecto externo que no son ficheros y por tanto no caben en `output_files`. Hoy su unico uso son las **acciones de Jira** (claves de issue afectadas y transicion aplicada, p. ej. `"ABC-45 -> In Progress"`). Sin datos personales ni texto libre del usuario. Lista vacia u omitida si no hubo ninguna.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
-- `prompt_version`: usa la version del skill seguida del slug del comando. Ejemplos: `2.0.0:implement-change/preflight`, `2.0.0:open-change/preflight`, `2.0.0:roadmap`, `2.0.0:close-change`, `2.0.0:init`, `2.0.0:prototype-ux`, `2.0.0:uml`. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
+- `prompt_version`: la version del skill (frontmatter, sin fijarla aqui) seguida de `:` y el slug del comando. Los slugs son `init`, `roadmap`, `open-change/preflight`, `implement-change/preflight`, `close-change`, `prototype-ux`, `uml` y `amend-change`. Cada ficha de `references/` declara el suyo en su paso final. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 
 ### Calculo de hashes
 
@@ -94,7 +96,7 @@ Reglas para los campos:
   1. Clave `audit.retention_days` (entero positivo) en `config.yaml` de OpenSpec.
   2. Fichero `openspec/audit/.retention` con un entero positivo de dias en la primera linea.
   3. Default `365`.
-- Al inicio de cada comando, comprueba los ficheros `openspec/audit/YYYY-MM.jsonl`:
+- **Al escribir la entrada** (no antes), comprueba los ficheros `openspec/audit/YYYY-MM.jsonl`. `audit.py` lo hace por ti en la misma invocacion; a mano, hazlo justo despues de anadir la linea:
   - Si el ultimo dia del mes representado por el fichero es anterior a `hoy - retencion`, eliminalo.
   - No purgues entradas individuales dentro de un fichero. Trabaja por mes para preservar la integridad append-only.
 - Nunca apliques retencion menor a `30` dias aunque la configuracion lo indique: en ese caso usa `30` y avisa al usuario una vez.

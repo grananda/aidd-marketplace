@@ -17,11 +17,11 @@ En **proyecto ya existente**, `aisdd init` añade un paso antes: analiza el cód
 
 ---
 
-## ¿Qué se crea con un `aisdd open change <slug>`?
+## ¿Qué se crea con un `aisdd open change [what-you-want-to-build]`?
 
 1. **Pre-flight de dudas** (las bloqueantes se preguntan todas; las preferencias y confirmaciones se acotan por proyecto en la sección `preflight` de `openspec/config.yaml`): las respuestas se persisten en `openspec/changes/<slug>/decisions.md`.
 2. **El change de OpenSpec** (`openspec new change`): la carpeta `openspec/changes/<slug>/` con sus specs validados — `proposal.md`, `design.md`, `spec.md` (uno o varios) y el `decisions.md` del pre-flight.
-3. **Diagramas UML** (HTML vía `booster-uml`) **solo si el change lo amerita**: flujos multi-componente, entidades nuevas, máquinas de estados, integraciones. En changes triviales (scaffolding, config, textos) se omite con aviso; `aisdd uml <slug>` los genera bajo demanda.
+3. **Diagramas UML** (HTML vía `booster-uml`) **solo si el change lo amerita**: flujos multi-componente, entidades nuevas, máquinas de estados, integraciones. En changes triviales (scaffolding, config, textos) se omite con aviso; `aisdd uml [change-slug]` los genera bajo demanda.
 4. **Entrada de auditoría** en `openspec/audit/YYYY-MM.jsonl` (hashes de input/output, modelo, decisiones).
 
 **No se crea código**: abrir un change es diseñar y validar las specs. El código llega con `implement`.
@@ -36,14 +36,14 @@ En **proyecto ya existente**, `aisdd init` añade un paso antes: analiza el cód
   - HU repartida entre **2 o más changes** → se crea la **sub-tarea de este change** bajo la Story de esa HU (en To Do), para poder seguir el progreso atómico.
 - Un mismo change puede mezclar ambos modos si implementa varias HU.
 
-## ¿Qué ocurre con un `aisdd implement change <slug>`?
+## ¿Qué ocurre con un `aisdd implement change [change-slug]`?
 
 1. **Pre-flight de dudas** sobre las specs del change (lee `design.md`, `proposal.md`, `spec.md`, `decisions.md` previos; las bloqueantes sin límite, el resto según `preflight` en `config.yaml`; preguntas; los bloqueantes sin respuesta detienen el comando).
 2. **Implementación del código** (`openspec instructions apply --change <slug>`): la IA escribe el código siguiendo las specs.
 3. **Jira**: mueve a **In Progress** las Stories de **todas** las HU que implementa el change (y la sub-tarea del change, si esa HU está repartida), **asignándolas** al usuario autenticado en el MCP (o al `assignee_override`).
 4. Entrada de auditoría.
 
-## ¿Qué ocurre con un `aisdd close change <slug>`?
+## ¿Qué ocurre con un `aisdd close change [change-slug]`?
 
 1. **Archivo del change** (`openspec archive`): el change deja de estar abierto y sus specs quedan consolidadas.
 2. **Jira**, por cada HU del change:

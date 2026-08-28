@@ -11,6 +11,11 @@ Este documento registra los cambios funcionales del skill y debe actualizarse en
 
 ## Historial
 
+### 1.2.1 - 2026-08-28
+
+- El reporte final ya no enlaza la pagina de SharePoint de Booster: no describe las versiones de este fork y no es accesible fuera de la organizacion. En su lugar indica como actualizar los plugins del marketplace (`/plugin marketplace update aidd-sdd`).
+- La linea de version del reporte deja de traer un numero literal de ejemplo y se lee de `metadata.version` del frontmatter, que es lo que la propia instruccion pedia.
+
 ### 1.2.0 - 2026-05-11
 
 - La pregunta `Pantalla a diseñar` pide también el tipo de aplicación objetivo, por ejemplo SAP, Android, web, escritorio, intranet o portal cliente.

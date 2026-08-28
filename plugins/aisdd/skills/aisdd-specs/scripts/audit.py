@@ -170,6 +170,10 @@ def main() -> int:
         "decisions": entry.get("decisions", []),
         "status": status,
         "errors": entry.get("errors", []),
+        # Acciones con efecto externo que no son ficheros (hoy, Jira). Sin este campo
+        # el registro las perdia en silencio, que en una auditoria obligatoria es
+        # peor que no prometerlas.
+        "notes": entry.get("notes", []),
     }
     if entry.get("correction_of"):
         record["correction_of"] = entry["correction_of"]

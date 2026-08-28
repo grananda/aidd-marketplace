@@ -4,15 +4,19 @@
 
 ## Modos de faseado (paralelismo)
 
-Por defecto, AISDD es **mono-hilo**: un change abierto a la vez. Esa regla existe por una razon concreta — al cerrar un change se consolidan decisiones en `decisions.md`, y dos changes vivos sobre la **misma superficie de decision** producirian specs que se contradicen sin que nada lo detecte.
+Por defecto, AISDD **plantea** un solo hilo: un change abierto a la vez. La razon es concreta — al cerrar un change se consolidan decisiones en `decisions.md`, y dos changes vivos sobre la **misma superficie de decision** producirian specs que se contradicen sin que nada lo detecte.
+
+**Pero es una convencion del faseado, no un guard.** Fuera de `multilane`, ningun comando comprueba cuantos changes hay abiertos: en `atomic` puedes abrir un segundo change y nada te lo impide. Es deliberado (ver el guard de `open change`, `references/open-change.md`), y conviene saberlo antes de elegir modo.
 
 Hay **tres modos** de fasear. El modo se decide en `aisdd roadmap` y queda registrado en `openspec/config.yaml` (`roadmap.mode`). Los demas comandos lo leen; **no lo preguntan de nuevo**.
 
 | Modo | Que paraleliza | Garantia de coherencia | Cuando |
 |---|---|---|---|
-| **`atomic`** | Nada. Un change abierto en todo el proyecto. | Total, por construccion. | Un solo dev, o cuando no hay base para cortar con garantias. **Es el default.** |
+| **`atomic`** | Nada. El roadmap es secuencial. | **Por convencion.** Nada impide abrir un segundo change. | Un solo dev, o cuando no hay base para cortar con garantias. **Es el default.** |
 | **`waves`** (oleadas) | Hasta `N` fases a la vez, una por dev, respetando dependencias. | **Ninguna.** Ordena, no protege. | Equipo con `N` devs y fases claramente separables, cuando no se puede o no se quiere declarar superficies disjuntas. |
 | **`multilane`** (lanes) | `N` lineas de trabajo persistentes, un change abierto **por lane**. | Declarada y **verificada** al cerrar. | Cuando el corte en superficies disjuntas es defendible. |
+
+**En cuanto a lo que el tooling impone, `atomic` y `waves` estan al mismo nivel**: los dos comprueban `depends_on` y nada mas. Lo que los separa es la exposicion, no la proteccion — un roadmap secuencial no invita a tener dos changes vivos; uno en oleadas de `N` lo hace por diseno. La unica garantia verificada por un comando es la de `multilane`, en `close change`.
 
 **La diferencia de fondo entre `waves` y `multilane`** merece entenderse antes de elegir:
 

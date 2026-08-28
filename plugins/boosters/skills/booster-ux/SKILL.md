@@ -3,7 +3,7 @@ name: booster-ux
 description: Diseña pantallas o prototipos UX como paso previo a su validación. Activar cuando el usuario diga frases como "diseña una pantalla", "quiero crear un prototipo de pantalla", "quiero crear un prototipo ux", "haz un mockup", "esboza la vista de", "necesito un wireframe de", "maqueta el formulario de", "prototipa el dashboard de", o cualquier petición de diseñar, prototipar, esbozar, maquetar o mockupear una pantalla, vista, formulario, listado, dashboard, panel o flujo de UI. Genera dos variantes paralelas (v1 criterio editorial, v2 cumplimiento Web Interface Guidelines) como imagen y HTML navegable. Tras invocarse, pregunta al usuario 6 puntos (pantalla y tipo de aplicación, audiencia/contexto opcional, datos clave opcional, marca de agua NTT DATA, referencia de estilo opcional — URL, HTML local o guía de estilos, y formato de salida opcional), identifica los elementos principales de la pantalla y pide confirmar o corregir su posición antes de generar ambas variantes.
 metadata:
   author: NTT DATA — GDN-e Spain Booster
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # booster-ux
@@ -283,8 +283,8 @@ Cuando ambos agentes terminen:
 
 1. Verifica que existen los archivos esperados según el formato solicitado. Por defecto deben existir: `index-vN.html`, `preview-vN.png`, `notes-vN.md`, `index-v(N+1).html`, `preview-v(N+1).png`, `notes-v(N+1).md`. Si el usuario pidió solo imagen u otros formatos, verifica esos entregables y las notas correspondientes.
 2. Reporta al usuario un resumen comparativo de máximo 8 líneas: filosofía aplicada en cada variante y diferencia clave entre ambas.
-3. Indica siempre qué versión del skill se ha ejecutado, usando la versión declarada en el frontmatter de este archivo. Formato sugerido: `Versión del skill ejecutada: booster-ux 1.2.0`.
-4. Añade siempre esta línea: `Puedes comprobar la última versión disponible en https://everisgroup.sharepoint.com/sites/Booster/SitePages/booster-skills.aspx`.
+3. Indica siempre qué versión del skill se ha ejecutado, leyendo `metadata.version` del frontmatter de este archivo. Formato sugerido: `Versión del skill ejecutada: booster-ux <version>`. No copies aquí un número literal: quedaría desfasado en el primer bump.
+4. Añade siempre esta línea: `Puedes actualizar los plugins con /plugin marketplace update aidd-sdd`.
 5. **Indica siempre el directorio de salida** donde se han generado los ficheros (ruta absoluta resuelta), incluso si fue el directorio de trabajo por defecto. Formato sugerido: `Directorio de salida: <ruta-absoluta>` como línea destacada al final del reporte, antes del Recommended Next Step.
 6. Sugiere como Recommended Next Step: abrir las previews y, si se generó HTML, abrir también los HTML en navegador para validar antes de la fase de validación formal.
 

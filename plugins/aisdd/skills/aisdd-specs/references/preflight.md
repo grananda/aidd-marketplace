@@ -37,7 +37,7 @@ Comun a ambos:
 - Objetivo y alcance explicitos del usuario o del prompt del roadmap.
 - **El faseado del roadmap y el reparto en sprints**: que HU entran en este change ya esta decidido (fase + sprint). **No ofrezcas adelantar HU de otras fases** ni ampliar el alcance — no es una duda, es una decision ya tomada (ver "El faseado es normativo"). Las dudas de alcance legitimas son sobre el **COMO** de las HU de esta fase, no sobre el QUE ni el CUANDO.
 - Puntos ya cubiertos por specs OpenSpec previas o por cambios relacionados ya cerrados.
-- **En modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada. Incorporalo (paso 6 de `open change`) en vez de preguntarlo.
+- **En modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada. Incorporalo (paso "Enmiendas pendientes de esta fase" de `open change`) en vez de preguntarlo.
 - **En modo `multilane`, el contrato compartido**: esquema de datos, contrato de API, eventos y tipos compartidos quedaron fijados en `F0` o en una barrera. **No los renegocies en el pre-flight de una fase de lane** — leelos de las specs archivadas y trabaja contra ellos. Si el contrato resulta insuficiente, eso no es una duda de pre-flight: es un fallo de faseado. Detente, dilo, y remite al dueno del contrato (`roadmap.contract_owner`) y a una barrera.
 
 **[IMPLEMENTACION]**:
@@ -70,7 +70,7 @@ Auto mode, CI, sin terminal, o el usuario pide no ser interrumpido:
 
 - No bloquees el comando por dudas no bloqueantes.
 - Toma el default recomendado para cada `preferencia` y `confirmacion`, y marcalo `Origen: auto-default` en `decisions.md`.
-- Para `bloqueantes` sin default seguro, **detente** y reporta las dudas pendientes; no ejecutes el comando OpenSpec (**[APERTURA]** `openspec new change`; **[IMPLEMENTACION]** `openspec instructions apply`).
+- Para `bloqueantes` sin default seguro, **detente** y reporta las dudas pendientes; no ejecutes el comando OpenSpec (**[APERTURA]** `openspec new change`; **[IMPLEMENTACION]** `openspec instructions apply`). **Antes de terminar, di como desbloquear**: la duda concreta que falta por resolver y el mismo comando para relanzarlo una vez resuelta. Detenerse sin decir por donde seguir deja al usuario adivinando. Y **escribe la entrada de auditoria con `status: aborted`** y las dudas bloqueantes pendientes en `errors`: detenerse es un resultado del comando y tiene que quedar registrado igual que completarlo. Es el unico caso en el que la entrada no se escribe en el paso final del comando, porque ese paso no llega a ejecutarse.
 
 ### 7. Persistencia
 
@@ -97,7 +97,7 @@ Graba todas las respuestas en `openspec/changes/<change>/decisions.md`, una entr
 
 ### 8. Dudas aplazadas
 
-Si el usuario rechaza responder o pide aplazar, registra `Decision: pendiente`. Si era **bloqueante**, detente sin ejecutar el comando OpenSpec, informa de las dudas pendientes y termina.
+Si el usuario rechaza responder o pide aplazar, registra `Decision: pendiente`. Si era **bloqueante**, detente sin ejecutar el comando OpenSpec, informa de las dudas pendientes y termina. **Antes de terminar, di como desbloquear**: la duda concreta que falta por resolver y el mismo comando para relanzarlo una vez resuelta. Detenerse sin decir por donde seguir deja al usuario adivinando. Y **escribe la entrada de auditoria con `status: aborted`** y las dudas bloqueantes pendientes en `errors`: detenerse es un resultado del comando y tiene que quedar registrado igual que completarlo. Es el unico caso en el que la entrada no se escribe en el paso final del comando, porque ese paso no llega a ejecutarse.
 
 ### 9. Sin dudas
 

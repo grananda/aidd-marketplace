@@ -42,17 +42,17 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 |------|---------|-----|---------------|
 | 3.1 | `aisdd init` | AI Lead | Inicializa OpenSpec + `AGENTS.md` + `openspec/config.yaml` (registra diseño **y capa de entrega**). En **proyecto existente**, siembra además las **specs base** en `openspec/specs/` a partir del código |
 | 3.3 | `aisdd roadmap` | AI Lead | `docs/roadmap.md` + `docs/prompts-roadmap-native-ai.md` + sección `roadmap` en `config.yaml` + bloque en `AGENTS.md` (fasea por contexto, **alineado al `sprint-plan.md`** si existe, y elige **modo de paralelismo**: `atomic`, `waves` o `multilane`) |
-| 4 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
-| 4 | `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código del change |
+| 4 | `aisdd open change [what-you-want-to-build]` | AI Lead | Pre-flight + genera specs validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El 1.º siempre es `foundation` (scaffolding). En `multilane`, **un change abierto por lane** |
+| 4 | `aisdd implement change [change-slug]` | AI Developer | Pre-flight + implementa el código del change |
 | 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
-| 4 | `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change |
+| 4 | `aisdd close change [change-slug]` | Outcome Validator | Valida y archiva el change |
 | 4 | `aisdd lane [list \| switch \| status]` | AI Developer / AI Lead | Selecciona la **línea de trabajo activa** (solo roadmaps `multilane`), como `git switch` con las ramas |
-| 2 / 4 (aux) | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
-| aux | `aisdd uml <slug>` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
+| 2 / 4 (aux) | `aisdd prototype-ux [change-slug]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
+| aux | `aisdd uml [change-slug]` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
 
 #### Cómo paralelizar el trabajo (tres modos)
 
-Por defecto el ciclo es **mono-hilo**: un change abierto a la vez. Con varios developers eso deja a casi todos esperando, así que `aisdd roadmap` pregunta cuántos trabajan en paralelo y ofrece dos formas de repartir. **No compiten: son ejes perpendiculares.**
+Por defecto el ciclo **plantea** un solo hilo: un change abierto a la vez. Es una convención del faseado, no un guard — fuera de `multilane` nada comprueba cuántos changes hay abiertos. Con varios developers eso deja a casi todos esperando, así que `aisdd roadmap` pregunta cuántos trabajan en paralelo y ofrece dos formas de repartir. **No compiten: son ejes perpendiculares.**
 
 ```
                 Oleada 1    Oleada 2         Oleada 3    Oleada 4
@@ -70,7 +70,7 @@ lane import     │          │ F-import-01   │           │          │
 
 | Modo | Qué paraleliza | Garantía | Cuándo |
 |------|----------------|----------|--------|
-| `atomic` | Nada | Total, por construcción | Un dev, o sin base para separar. **Default** |
+| `atomic` | Nada | **Por convención**, no verificada | Un dev, o sin base para separar. **Default** |
 | `waves` (oleadas) | Hasta `N` fases a la vez, respetando dependencias | **Ninguna** — ordena, no protege | Varios devs sin superficies declarables |
 | `multilane` (lanes) | `N` líneas persistentes, un change **por lane** | Declarada y **verificada** al cerrar | Módulos con rutas de código disjuntas |
 
@@ -96,6 +96,40 @@ Sin esa línea base, el primer `open change` no puede saber qué existe ya y aca
 - Antes de escribir nada se acuerda el **alcance** y se propone la **lista de capacidades** para que la confirmes. No sobrescribe specs que ya existan.
 
 A partir de ahí el flujo es el normal: `aisdd roadmap` para fasear lo pendiente y el ciclo de changes aplicando **deltas sobre esas specs base**.
+
+#### Cada comando te dice cuál es el siguiente
+
+El ciclo de `aisdd` no es una secuencia fija: qué toca ahora depende del modo, de qué changes hay vivos, de si queda una barrera bloqueada y de si existe capa de entrega. Por eso **cada comando cierra con el siguiente paso ya resuelto**, listo para copiar — no «considera implementar el change», sino `aisdd implement change portal-catalogo`.
+
+Donde más se nota es en los dos empalmes que no son obvios:
+
+- **Tras `aisdd roadmap`**, hacia la capa de entrega: `aiba project-plan` si aún no hay plan de recursos, `aiba sprint-planning` cuando ya lo hay — y si el `sprint-plan.md` es anterior a este roadmap, avisa de que quedó desalineado y de que re-ejecutarlo es seguro.
+- **Tras `aisdd close change`**, hacia la siguiente fase: con `multilane` incluye el `aisdd lane switch` previo si la fase es de otro lane, y si lo que toca es una barrera te dice si ya se desbloqueó o qué lanes faltan por cerrar.
+
+Cuando el roadmap se agota, lo dice y sugiere `aiba metrics`.
+
+#### El sistema calcula el óptimo y te lo enseña
+
+Elegir modo y número de developers a ciegas es elegir mal: la diferencia entre `waves` con 2 devs y `multilane` con 3 puede ser de semanas, y no se ve mirando una lista de fases.
+
+`aisdd roadmap` **te pregunta primero** qué modo elegirías tú. Después, ya con las fases diseñadas y sus dependencias, calcula el calendario de cada modo con cada número de devs y genera `docs/html/faseado-comparativa.html`: **tu camino y el óptimo, uno al lado del otro**, a la misma escala de tiempo, con las barreras marcadas. Si el óptimo necesita más gente de la que hay, lo dice con el coste en días — es el argumento de negocio para pedir equipo.
+
+El orden importa. Se pregunta antes de calcular, porque proponer el óptimo primero convertiría la comparativa en una recomendación con una alternativa de adorno.
+
+Dos cifras que el diagrama pone delante:
+
+- **El camino crítico** — la cadena de dependencias más larga. Ningún reparto baja de ahí. Cuando un camino la toca, añadir gente ya no compra calendario.
+- **Las fases sin proteger** — fuera de `multilane`, las que tocan contrato o esquema corren sin barrera. Un camino más corto con esas barras es más rápido *y* más frágil, y el calendario solo no lo cuenta.
+
+**Con el proyecto ya en marcha** funciona igual, pero comparando el calendario **restante**: entra un developer nuevo, o el ritmo no da y quieres replantear el modo. Las fases ya cerradas se congelan —conservan su identificador y su enlace con Jira— y solo se re-fasean las pendientes; las que están en vuelo quedan ancladas a su dev, porque un change abierto no se mueve de línea a mitad. En el diagrama aparecen las tres: lo hecho en una banda antes de *hoy*, lo en curso marcado como no reasignable, y lo pendiente ya repartido según la estrategia nueva.
+
+Ahí la respuesta más útil suele ser la que menos gusta: si el calendario restante ya toca el camino crítico, el cuello es una cadena de dependencias y **el developer que acabas de incorporar no va a acelerar nada**. El pre-flight lo dice en una línea en vez de dejarte deducirlo de dos cifras iguales.
+
+Requiere `docs/detalle-historias-usuario.md`: sin las tallas no hay esfuerzo por fase, y sin esfuerzo el calendario sería inventado.
+
+#### Qué pasa si omites el argumento
+
+Todos los argumentos son **opcionales**, y con paralelismo tener varios changes abiertos es lo normal, no la excepción. Si lo omites, el comando no elige por su cuenta: reúne los candidatos y, si hay más de uno, **te los presenta con el contexto que permite reconocerlos** —fase y objetivo, más la oleada en `waves`, más el lane en `multilane`— para que no tengas que ir a buscar el slug. Con un solo candidato lo usa y te lo dice. Si no puede preguntar (modo no interactivo) y hay ambigüedad, **se detiene** en vez de escoger.
 
 #### Cuánto pregunta el pre-flight
 

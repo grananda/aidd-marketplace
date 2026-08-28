@@ -39,6 +39,33 @@ jobs:
           fi
           echo "VERSION -> $(cat VERSION). Correcto."
 
+      # La comprobacion de arriba va en un solo sentido: plugin -> VERSION. Faltaba
+      # la otra, contenido -> plugin, y por ahi se cuelan cambios que el usuario
+      # nunca recibe: Claude Code cree que su copia instalada esta al dia.
+      - name: Cada plugin tocado sube su version
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          FALLOS=""
+          for p in plugins/*/; do
+            NAME=$(basename "$p")
+            git diff --quiet "$BASE"...HEAD -- "$p" && continue
+            MAN="${p}.claude-plugin/plugin.json"
+            OLD=$(git show "$BASE:$MAN" 2>/dev/null \
+                  | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])' 2>/dev/null || echo "")
+            [ -z "$OLD" ] && { echo "$NAME es nuevo en esta rama."; continue; }
+            NEW=$(python3 -c 'import json;print(json.load(open("'"$MAN"'"))["version"])')
+            if [ "$OLD" = "$NEW" ]; then
+              FALLOS="$FALLOS $NAME($NEW)"
+            else
+              echo "$NAME $OLD -> $NEW. Correcto."
+            fi
+          done
+          if [ -n "$FALLOS" ]; then
+            echo "::error::Plugins con ficheros modificados y la misma version:$FALLOS. Subela, o los usuarios ya instalados no recibiran el cambio."
+            exit 1
+          fi
+
       - name: Manifiestos validos y rutas existentes
         run: python3 .github/scripts/check_manifests.py
 

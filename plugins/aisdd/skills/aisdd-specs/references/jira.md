@@ -94,4 +94,4 @@ Para **cada HU** que implementa el change, resuelve su modo (directa vs sub-tare
 
 En modo `multilane`, `open change` anade ademas el `lane-id` como **etiqueta** de la Story (y de la sub-tarea si la crea). Es informativo: si falla, avisa y continua.
 
-Toda accion de Jira se refleja en el resumen del comando (claves de issue afectadas y transicion aplicada) y se anota en la entrada de auditoria (`output_files`/`notes`). Si una accion de Jira falla, **no bloquees** el resultado funcional del comando OpenSpec: informa el fallo en el resumen y deja el estado reconstruible.
+Toda accion de Jira se refleja en el resumen del comando (claves de issue afectadas y transicion aplicada) y se anota en el campo `notes` de la entrada de auditoria (una linea por issue, p. ej. `ABC-45 -> In Progress`). Si una accion de Jira falla, **no bloquees** el resultado funcional del comando OpenSpec: informa el fallo en el resumen y deja el estado reconstruible.

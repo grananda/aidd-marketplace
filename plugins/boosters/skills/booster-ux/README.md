@@ -129,4 +129,4 @@ booster-ux/
 
 ## Recommended Next Step
 
-Tras la generación, abre las dos PNG y, si se generó HTML, los dos HTML en navegador. Comprueba filtro, ordenación y descarga CSV cuando aplique. El reporte final indicará la versión del skill ejecutada y el enlace para comprobar la última versión disponible: https://everisgroup.sharepoint.com/sites/Booster/SitePages/booster-skills.aspx
+Tras la generación, abre las dos PNG y, si se generó HTML, los dos HTML en navegador. Comprueba filtro, ordenación y descarga CSV cuando aplique. El reporte final indicará la versión del skill ejecutada y cómo actualizar los plugins: `/plugin marketplace update aidd-sdd`.

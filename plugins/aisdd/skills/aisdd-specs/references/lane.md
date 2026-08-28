@@ -46,3 +46,7 @@ Informa de:
 - si el puntero apunta a un `lane-id` que ya no existe en `config.yaml` (roadmap re-generado): avisa y propon `aisdd lane switch` a uno valido
 
 Si `openspec/.lane` no existe y el modo es `multilane`, no falles: informa de que no hay lane activo y lista los disponibles.
+
+### Proximos pasos
+
+Termina diciendo que se puede hacer en el lane activo, con el comando resuelto: `aisdd open change` si esta libre, `aisdd implement`/`close change <change-slug>` si tiene uno vivo, o las barreras que lo bloquean. Ver "Proximos pasos al terminar un comando" (`references/next-steps.md`).

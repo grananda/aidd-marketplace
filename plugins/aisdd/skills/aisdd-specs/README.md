@@ -15,7 +15,7 @@ references/
   open-change.md  implement-change.md  close-change.md  lane.md
   prototype-ux.md  uml.md  jira.md  audit.md  scripts.md
 scripts/
-  audit.py  agents_block.py  check_mojibake.py
+  audit.py  agents_block.py  check_mojibake.py  optimize_phasing.py
 ```
 
 Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 % no aplicara al comando en curso.
@@ -24,13 +24,13 @@ Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 %
 
 1. `aisdd init` — inicializa OpenSpec en el proyecto y comprueba dependencias.
 2. `aisdd roadmap` — fasea el desarrollo y genera `docs/roadmap.md` y prompts asociados.
-3. `aisdd open change <what-you-want-to-build>` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
-4. `aisdd implement change <what-you-want-to-build>` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
-5. `aisdd close change <what-you-want-to-build>` — archiva el cambio OpenSpec indicado (en roadmaps multilane, verifica antes que el change no escribio fuera de las rutas de su lane).
+3. `aisdd open change [what-you-want-to-build]` — crea un cambio OpenSpec y genera los diagramas UML **solo si el change lo amerita** (flujos multi-componente, entidades nuevas, estados, integraciones; se omiten en changes triviales, con `aisdd uml` disponible bajo demanda).
+4. `aisdd implement change [change-slug]` — ejecuta un pre-flight de dudas con el usuario y luego aplica las instrucciones del cambio OpenSpec indicado.
+5. `aisdd close change [change-slug]` — archiva el cambio OpenSpec indicado (en roadmaps multilane, verifica antes que el change no escribio fuera de las rutas de su lane).
 6. `aisdd lane [list | switch <lane-id> | status]` — consulta y cambia la linea de trabajo activa. Solo aplica a roadmaps `multilane`.
-7. `aisdd prototype-ux <what-you-want-to-build>` — lanza `booster-ux` por cada pantalla nueva del cambio.
+7. `aisdd prototype-ux [change-slug]` — lanza `booster-ux` por cada pantalla nueva del cambio.
 8. `aisdd prototype-ux` — lanza `booster-ux` directamente siguiendo su flujo de preguntas.
-9. `aisdd uml <what-you-want-to-build>` — genera el HTML con diagramas del cambio usando `booster-uml`.
+9. `aisdd uml [change-slug]` — genera el HTML con diagramas del cambio usando `booster-uml`.
 
 > **Skill hermano**: `aisdd amend change [descripcion]` (skill `aisdd-amend`) incorpora una modificacion a un change **ya abierto** y ejecuta solo ese delta, sin re-aplicar el change entero. Es la via operativa de la "Regla de corte" descrita en la seccion "Correcciones durante la implementacion" del `SKILL.md` de este skill.
 
@@ -108,13 +108,13 @@ Este comando no debe ejecutar `openspec new change` ni archivar cambios, ni edit
 
 El fichero `docs/prompts-roadmap-native-ai.md` debe usar como base operativa estos comandos:
 
-- `aisdd open change <what-you-want-to-build>`
-- `aisdd implement change <what-you-want-to-build>`
-- `aisdd close change <what-you-want-to-build>`
+- `aisdd open change [what-you-want-to-build]`
+- `aisdd implement change [change-slug]`
+- `aisdd close change [change-slug]`
 
 Los prompts deben incluir el contexto minimo necesario para cada fase y evitar arrastrar informacion de fases futuras si no es necesaria todavia.
 
-### `aisdd open change <what-you-want-to-build>`
+### `aisdd open change [what-you-want-to-build]`
 
 Crea un cambio OpenSpec en dos fases:
 
@@ -125,9 +125,9 @@ Crea un cambio OpenSpec en dos fases:
    openspec new change <what-you-want-to-build>
    ```
 
-El argumento es opcional. Si no se indica, el agente debe crear un identificador razonable a partir del objetivo del usuario.
+**El argumento es siempre opcional.** Si no llega, el agente no inventa un identificador: resuelve **que fase del roadmap toca abrir** entre las abribles ahora (no archivadas, con sus `depends_on` cerradas y —en `multilane`— del lane activo si es fase de lane, o con todos los lanes libres si es barrera). Con varias, las presenta con su contexto y deja elegir. El guard de apertura se aplica **despues**, ya sobre la fase elegida.
 
-Tras crear el cambio, el agente evalua si los diagramas aportan comprension real (interaccion multi-componente, entidades o relaciones nuevas, maquina de estados, flujo con ramificaciones, integracion externa) y solo entonces pasa `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml`. En changes triviales (scaffolding, config, textos, bugfix puntual) se omite con aviso; `aisdd uml <slug>` los genera bajo demanda. En caso de duda, se generan.
+Tras crear el cambio, el agente evalua si los diagramas aportan comprension real (interaccion multi-componente, entidades o relaciones nuevas, maquina de estados, flujo con ramificaciones, integracion externa) y solo entonces pasa `design.md`, `proposal.md` y los ficheros `spec.md` al skill `booster-uml`. En changes triviales (scaffolding, config, textos, bugfix puntual) se omite con aviso; `aisdd uml [change-slug]` los genera bajo demanda. En caso de duda, se generan.
 
 Comportamientos clave del pre-flight:
 
@@ -137,7 +137,7 @@ Comportamientos clave del pre-flight:
 - En modo no interactivo toma el default recomendado para `preferencia` y `confirmacion`, marca cada decisión con `Origen: auto-default` y, si hay `bloqueantes` sin default seguro, detiene el comando sin ejecutar `openspec new change`.
 - Si tras la lectura inicial no detecta dudas reales, registra una única entrada con `Tipo: confirmacion`, `Pregunta: No se detectaron dudas durante el pre-flight` y `Decision: continuar`, y procede a crear el cambio.
 
-### `aisdd implement change <what-you-want-to-build>`
+### `aisdd implement change [change-slug]`
 
 Implementa un cambio en dos fases:
 
@@ -145,10 +145,10 @@ Implementa un cambio en dos fases:
 2. **Aplicacion de instrucciones**:
 
    ```bash
-   openspec instructions apply --change <what-you-want-to-build>
+   openspec instructions apply --change <change-slug>
    ```
 
-El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea implementar.
+**El argumento es siempre opcional.** Si no llega, el agente reune los candidatos y: con **uno**, lo usa y lo dice; con **varios**, los presenta con el contexto que permite reconocerlos —fase y objetivo en `atomic`, ademas la oleada en `waves`, ademas el lane en `multilane`— y deja elegir, marcando `(Recomendada)` solo si tiene criterio real. **Nunca elige en silencio.** En modo no interactivo con varios candidatos, se detiene y audita con `status: aborted`. Los candidatos son los changes **abiertos** (`openspec list`).
 
 Comportamientos clave del pre-flight:
 
@@ -167,17 +167,17 @@ Selecciona la **linea de trabajo activa** del dev, igual que `git switch` selecc
 
 El puntero `openspec/.lane` es **estado local de cada dev** y va en `.gitignore` (lo anade `aisdd init`): dos personas trabajando lanes distintos no deben pisarse el puntero en cada commit. Si el roadmap es `atomic`, el comando avisa de que el proyecto no usa lanes y no crea nada.
 
-### `aisdd close change <what-you-want-to-build>`
+### `aisdd close change [change-slug]`
 
 Archiva un cambio:
 
 ```bash
-openspec archive <what-you-want-to-build>
+openspec archive <change-slug>
 ```
 
-El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea archivar.
+**El argumento es siempre opcional.** Si no llega, el agente reune los candidatos y: con **uno**, lo usa y lo dice; con **varios**, los presenta con el contexto que permite reconocerlos —fase y objetivo en `atomic`, ademas la oleada en `waves`, ademas el lane en `multilane`— y deja elegir, marcando `(Recomendada)` solo si tiene criterio real. **Nunca elige en silencio.** En modo no interactivo con varios candidatos, se detiene y audita con `status: aborted`. Los candidatos son los changes **abiertos**; en `multilane` se miran **primero los del lane activo**: si ese lane tiene exactamente uno, lo usa sin preguntar, porque el trabajo vivo de otros lanes no genera ambiguedad.
 
-### `aisdd prototype-ux <what-you-want-to-build>`
+### `aisdd prototype-ux [change-slug]`
 
 Identifica las pantallas nuevas del cambio indicado y lanza el skill `booster-ux` por cada pantalla.
 
@@ -185,9 +185,9 @@ Identifica las pantallas nuevas del cambio indicado y lanza el skill `booster-ux
 
 Lanza directamente el skill `booster-ux` y sigue su flujo de preguntas.
 
-### `aisdd uml <what-you-want-to-build>`
+### `aisdd uml [change-slug]`
 
-Genera el HTML con diagramas asociados al cambio indicado usando `booster-uml`. Las entradas esperadas son:
+Genera el HTML con diagramas asociados al cambio indicado usando `booster-uml`. El argumento se resuelve igual que en `implement change`: si falta, candidatos = changes abiertos, y con varios se presentan con su contexto. Las entradas esperadas son:
 
 - `design.md`
 - `proposal.md`
@@ -225,13 +225,14 @@ aisdd close change alta-clientes-portal
 
 ## Scripts del skill
 
-Tres scripts en `scripts/`, solo con biblioteca estandar de Python 3:
+Cuatro scripts en `scripts/`, solo con biblioteca estandar de Python 3:
 
 | Script | Que hace |
 |---|---|
 | `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
 | `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
-| `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252 en los artefactos escritos |
+| `optimize_phasing.py` | Calcula el calendario de cada modo de faseado con cada numero de developers, encuentra el optimo y emite un HTML con los caminos enfrentados. **Obligatorio** en `aisdd roadmap` salvo con un solo dev |
+| `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252. **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, justo antes de la entrada de auditoria y solo sobre los artefactos documentales, nunca sobre codigo fuente |
 
 Cubren las tres mecanicas que antes eran prosa que el agente debia ejecutar bien **cada vez**. Son exactas o no son, y una equivocacion no deja rastro de cuando ocurrio.
 
@@ -239,7 +240,7 @@ Cubren las tres mecanicas que antes eran prosa que el agente debia ejecutar bien
 
 ## Auditoria y trazabilidad
 
-Cada invocacion de cualquier comando que toque artefactos del proyecto escribe una entrada estructurada en JSON Lines bajo `openspec/audit/YYYY-MM.jsonl` (`aisdd lane` queda fuera: solo mueve un puntero local del dev) (un fichero por mes natural, modo append-only). El objetivo es permitir auditorias futuras del uso del skill.
+**La auditoria es obligatoria**, no un extra: cada invocacion escribe una entrada estructurada en JSON Lines bajo `openspec/audit/YYYY-MM.jsonl` (`aisdd lane` queda fuera: solo mueve un puntero local del dev) (un fichero por mes natural, modo append-only). El objetivo es permitir auditorias futuras del uso del skill.
 
 Campos minimos de cada entrada:
 
@@ -248,7 +249,8 @@ Campos minimos de cada entrada:
 - `model`, `platform`, `user`
 - `input_hash` y `input_files[]` con SHA-256 por fichero
 - `output_hash` y `output_files[]` con SHA-256 por fichero
-- `decisions[]` con `slug`, `type`, `origen`, `decision` (solo para `implement change`)
+- `decisions[]` con `slug`, `type`, `origen`, `decision` (solo para `open change` e `implement change`, los dos que ejecutan pre-flight; incluye tambien las entradas `Tipo: correccion` de la implementacion)
+- `notes[]`: acciones con efecto externo que no son ficheros y por tanto no caben en `output_files`. Hoy solo Jira, p. ej. `"ABC-45 -> Done"`
 - `status` (`ok | partial | aborted`), `errors[]`
 
 Comportamiento clave:
@@ -263,7 +265,7 @@ Comportamiento clave:
 2. Fichero `openspec/audit/.retention` con el numero de dias en la primera linea
 3. Default `365`
 
-La purga es por meses completos: cuando el ultimo dia del mes representado por un `YYYY-MM.jsonl` es anterior a `hoy - retencion`, el fichero se elimina al inicio del siguiente comando. Nunca se aplica retencion inferior a `30` dias.
+La purga es por meses completos: cuando el ultimo dia del mes representado por un `YYYY-MM.jsonl` es anterior a `hoy - retencion`, el fichero se elimina **en la misma invocacion que escribe la entrada** (lo hace `audit.py`), no en la siguiente. La purga es por meses comando. Nunca se aplica retencion inferior a `30` dias.
 
 El JSONL es plano y sin transformaciones, listo para ingestar en Splunk, ELK o BigQuery. La decision de versionar `openspec/audit/` en Git es del proyecto.
 
@@ -276,6 +278,8 @@ El agente debe informar siempre de:
 - cambio objetivo, si aplica
 - artefactos creados o actualizados (incluye `decisions.md` si hubo pre-flight)
 - decisiones tomadas en el pre-flight y cuales quedan `pendientes`, si aplica
-- entrada de auditoria escrita: ruta del fichero `openspec/audit/YYYY-MM.jsonl` y `id` de la entrada
+- entrada de auditoria escrita: ruta del fichero `openspec/audit/YYYY-MM.jsonl`, `id` y `status` (`ok`, `partial` o `aborted`). Un comando que se detuvo tambien deja entrada: la ausencia no es un resultado valido salvo en `aisdd lane`
+- resultado de `check_mojibake.py` sobre los artefactos escritos, y que ficheros quedan sin reparar (los que tengan `U+FFFD` hay que regenerarlos)
+- **proximos pasos**: hasta tres comandos ejecutables, resueltos segun el estado. Tras `roadmap` encadena con `aiba project-plan` / `aiba sprint-planning`, que consumen el roadmap; tras `close change`, con la siguiente fase abrible — incluido el `aisdd lane switch` previo si es de otro lane, o los lanes que faltan por cerrar si lo que toca es una barrera
 - skills auxiliares usados o pendientes de instalar
 - errores o tareas manuales pendientes

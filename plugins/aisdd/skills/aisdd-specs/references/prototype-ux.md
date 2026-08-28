@@ -2,13 +2,16 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
-## `aisdd prototype-ux [what-you-want-to-build]`
+## `aisdd prototype-ux [change-slug]`
 
-> Alias: `native-ai prototype-ux [what-you-want-to-build]`.
+> Alias: `native-ai prototype-ux [change-slug]`.
 
 Genera prototipos UX.
 
-- Si llega `<what-you-want-to-build>`, identifica en el cambio las pantallas nuevas o modificadas revisando `design.md`, `proposal.md` y `spec.md`.
+- Si llega `<change-slug>`, identifica en ese change las pantallas nuevas o modificadas revisando `design.md`, `proposal.md` y `spec.md`.
 - Lanza el skill `booster-ux` una vez por cada pantalla nueva identificada.
 - Si no llega argumento, lanza directamente `booster-ux` y sigue su flujo de preguntas.
 - Si no existe `booster-ux`, avisa donde debe instalarse y no generes prototipos por otro camino salvo peticion expresa del usuario.
+- **Sin comprobacion de mojibake propia**: este comando no escribe artefactos de texto, solo delega en `booster-ux`, que ya verifica la codificacion de su salida.
+- **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:prototype-ux`. Reporta despues su ruta y su `id` en la verificacion final.
+- **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
