@@ -10,7 +10,7 @@ El skill trae tres scripts en `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/
 |---|---|---|
 | `audit.py` | Composicion manual de la entrada JSONL, hashes y purga | Todos los comandos que escriben auditoria |
 | `agents_block.py` | Reemplazo manual de bloques en `AGENTS.md` | `aisdd init` (bloque `commands`), `aisdd roadmap` (bloque `roadmap`) |
-| `check_mojibake.py` | Nada (capacidad nueva) | Verificacion final, sobre los artefactos escritos |
+| `check_mojibake.py` | Nada (capacidad nueva) | **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, y en `aisdd amend change`. Justo **antes** de la entrada de auditoria |
 
 Solo requieren **Python 3 y biblioteca estandar**: sin dependencias que instalar.
 
@@ -42,6 +42,8 @@ echo '<contenido sin marcadores>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/check_mojibake.py" [--fix] <fichero...>
 ```
 
-Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Pasalo sobre los artefactos que el comando haya escrito (`proposal.md`, `design.md`, `spec.md`, `decisions.md`, documentos de `docs/`): son texto en espanol con tildes, generado por el agente y leido despues por otras herramientas.
+Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Pasalo sobre los artefactos de texto que el comando haya escrito (`proposal.md`, `design.md`, `spec.md`, `decisions.md`, documentos de `docs/`): son texto en espanol con tildes, generado por el agente y leido despues por otras herramientas.
+
+**Cuando.** Justo antes de escribir la entrada de auditoria, y sobre el mismo conjunto de ficheros que esa entrada declara en `output_files`. El orden importa: `audit.py` calcula el hash de cada fichero, asi que reparar despues registraria el hash de la version corrupta.
 
 Codigo de salida `1` si queda mojibake. Con `--fix` repara in situ, token a token y **solo cuando el resultado mejora**. El caracter de reemplazo `U+FFFD` se detecta pero **no se puede reparar**: ahi la informacion original ya se perdio, y hay que regenerar el fichero.

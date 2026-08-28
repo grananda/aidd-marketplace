@@ -3,7 +3,7 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.2"
+  version: "1.4.0"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
@@ -215,6 +215,21 @@ Si la integracion con Jira esta activa (seccion `jira:` en `openspec/config.yaml
 
 Si Jira no esta configurado, omite el bloque sin error.
 
+### 9. Comprobar el mojibake de lo escrito
+
+**Obligatorio**, igual que en el resto de comandos AISDD. Pasa `check_mojibake.py --fix`
+de `aisdd-specs` (ver `aisdd-specs`, `references/scripts.md`) sobre los artefactos de texto
+que la enmienda haya tocado: el `spec.md`, `design.md`, `tasks.md` y `decisions.md` del
+change, y los de **todos** los changes si la enmienda cruzo lanes.
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/check_mojibake.py" --fix <ficheros>
+```
+
+Va **antes** de la entrada de auditoria porque `audit.py` calcula el hash de cada fichero:
+repararlo despues registraria el hash de la version corrupta. Si algo queda con `U+FFFD`,
+no se puede reparar — hay que regenerar el fichero; dilo en la verificacion final.
+
 ## Auditoria y trazabilidad
 
 Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `aisdd-specs`, `references/audit.md`): fichero `openspec/audit/YYYY-MM.jsonl`, append-only, una entrada por invocacion.
@@ -249,5 +264,6 @@ Al terminar, informa:
 - **Baseline vs resultado**: build y tests antes / despues, con los fallos preexistentes listados aparte de los que provoco (y arreglo) la enmienda.
 - Criterios ya satisfechos que has re-verificado, y los que no has podido verificar.
 - Recordatorio, en una linea: la coherencia con la documentacion AIDD se asumio, no se comprobo.
+- Resultado de la comprobacion de mojibake: sin incidencias, ficheros reparados, o ficheros que hay que regenerar por tener `U+FFFD`.
 - Entrada de auditoria escrita (ruta e `id`).
 - Tareas manuales pendientes, si las hay.
