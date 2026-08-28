@@ -3,7 +3,7 @@ name: aiba-functional-design
 description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # aiba-functional-design (AIBA · Diseno Funcional)
@@ -167,3 +167,23 @@ Concretamente:
 - **Sin logotipos** por defecto. Si el usuario aporta uno, va en la cabecera, no incrustado en la portada como imagen suelta.
 
 Con esto, aplicar despues una identidad corporativa es modificar los estilos del documento o adjuntarle una plantilla `.dotx`, sin tocar el contenido.
+
+## Verificacion final
+
+Al terminar, informa:
+
+- Comando ejecutado (`aiba functional-design`) y **que HU** se han documentado.
+- **Rutas de los `.docx` generados** en `docs/df/`, una por HU. Sin esto el usuario no sabe donde ha quedado el entregable.
+- **Decision de marca** y su origen: sin marca (default), carpeta local o URL, y que se extrajo de ella. Es la unica eleccion real del comando y la que mas cambia el resultado.
+- **Puntos abiertos** que han quedado en cada documento: cuantos y de que tipo. Son el trabajo que el DF deja pendiente, no un detalle de formato.
+- **Documentacion de origen que faltaba** y con que se ha suplido, si aplica.
+- Recordatorio: el `.docx` es el entregable para negocio; la fuente de verdad sigue siendo `docs/detalle-historias-usuario.md`.
+
+> **Sin auditoria estructurada.** Como el resto de skills de AIBA, este no escribe en `openspec/audit/`. A diferencia de ellos, tampoco puede dejar sus decisiones dentro del entregable: el DF es un documento para negocio, y una seccion de decisiones internas no pinta nada ahi. Por eso **la traza vive en esta verificacion final**, y por eso la decision de marca se reporta siempre, tambien cuando se tomo el default.
+
+## Siguiente paso sugerido
+
+- Revisar el `.docx` con negocio y resolver los **Puntos abiertos** que haya dejado.
+- Si la revision cambia la HU, el cambio va a `docs/detalle-historias-usuario.md` (`aidd user-story-details`) y despues se regenera el DF: **no edites el `.docx` a mano**, porque la proxima generacion lo sobrescribe.
+- Si el proyecto ya tiene roadmap, el DF no lo altera: sigue con `aisdd open change` para la fase que corresponda.
+
