@@ -270,8 +270,16 @@ EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 # separator tolerates the closing </strong> left by bold conversion, colons and spaces.
 PRIO_INLINE_RE = re.compile(
     r"(Prioridad(?:\s|:|</strong>){0,6})(Alta|Media|Baja|Cr[íi]tica)\b", re.IGNORECASE)
-EFFORT_INLINE_RE = re.compile(
+# Dos formatos, dos regex. La decoracion corre sobre HTML ya escapado, donde el
+# `**Estimacion**` del markdown es `<strong>Estimacion</strong>`; el recuento de
+# KPIs corre sobre el markdown crudo, con los asteriscos intactos. Compartir uno
+# solo hacia que el recuento no encontrase nada: el panel decia 0 dias sobre un
+# documento donde todas las historias tenian talla, y sin fallar.
+# El de markdown es identico al de compute_kpis.py, que lee el mismo fichero.
+EFFORT_INLINE_HTML_RE = re.compile(
     r"(Estimaci[oó]n(?:\s|:|</strong>){0,6})(XS|XL|S|M|L)\b")
+EFFORT_INLINE_MD_RE = re.compile(
+    r"(Estimaci[oó]n(?:\s|:|\*){0,6})(XS|XL|S|M|L)\b")
 ESTIM_BREAK_RE = re.compile(r"(\S)[ \t]+(?=(?:<strong>)?Estimaci[oó]n\b)")
 
 # Color codes (style guides / design tokens): show a swatch next to the code so the
@@ -311,7 +319,7 @@ def decorate_meta(escaped: str) -> str:
         return f'{m.group(1)}<span class="chip {EFFORT[m.group(2).lower()]}">{m.group(2).upper()}</span>'
 
     escaped = PRIO_INLINE_RE.sub(_prio, escaped)
-    escaped = EFFORT_INLINE_RE.sub(_eff, escaped)
+    escaped = EFFORT_INLINE_HTML_RE.sub(_eff, escaped)
     return escaped
 
 
@@ -402,7 +410,7 @@ def build_kpis(markdown: str, doc_type: str) -> list[dict]:
     # XS=0.5 · S=1.5 · M=3 · L=5 · XL=8. Counts "Estimacion: <talla>" inline labels
     # when present; otherwise standalone size cells in tables. Never both (a story's
     # inline size often reappears in a summary table and would double-count).
-    sizes = [m.group(2).upper() for m in EFFORT_INLINE_RE.finditer(markdown)]
+    sizes = [m.group(2).upper() for m in EFFORT_INLINE_MD_RE.finditer(markdown)]
     if not sizes:
         for tline in markdown.splitlines():
             t = tline.strip()

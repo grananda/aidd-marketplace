@@ -172,7 +172,8 @@ def percentile(values: list[float], pct: float) -> float:
 def read_baseline_days(details: Path) -> tuple[float, int]:
     """Human baseline in person-days from the XS/S/M/L/XL sizes of the stories.
 
-    Mirrors the renderer: prefer inline ``Estimacion: <talla>`` labels and fall
+    Same rule as booster-docs on the same file: prefer inline ``Estimacion:
+    <talla>`` labels -- the markdown form, with asterisks -- and fall
     back to standalone size cells in tables, never both (a story's inline size
     usually reappears in a summary table and would double-count).
     """
