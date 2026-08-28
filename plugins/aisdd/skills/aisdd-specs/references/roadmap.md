@@ -112,7 +112,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 18. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
 19. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
 20. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
-21. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 19. Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
+21. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en "Actualizacion de `openspec/config.yaml` tras el roadmap". Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
 
 22. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md`, `openspec/config.yaml` y `AGENTS.md`. **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.
 23. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:roadmap`. Reporta despues su ruta y su `id` en la verificacion final.
@@ -164,7 +164,7 @@ Estas orientaciones valen para la **preferencia** del paso 9. La eleccion defini
 
 1. Construye el grafo de dependencias entre fases (`depends_on`).
 2. **Oleada 1**: todas las fases sin dependencias, hasta un maximo de `parallel_developers`. Si existe `foundation`, va sola en la oleada 1.
-3. **Oleada k+1**: las fases cuyas dependencias esten todas en oleadas <= k, hasta el maximo de ancho.
+3. **Oleada k+1**: las fases cuyas dependencias esten todas en oleadas <= k, hasta el maximo de ancho. **Cuando haya mas elegibles que ancho, toma las de mayor esfuerzo primero.** Una oleada dura lo que su fase mas larga, asi que juntar las largas paga ese maximo una vez; repartirlas entre oleadas lo paga en cada una. No es un detalle: sobre el mismo grafo, el reparto equivocado puede alargar el calendario a mas del doble, y es lo que compara el paso 11.
 4. Repite hasta colocar todas las fases. Si una fase nunca es colocable, hay un **ciclo** en `depends_on`: corrigelo antes de escribir nada.
 5. Comprueba el ancho real de cada oleada. Si la media queda muy por debajo de `parallel_developers`, dilo: el faseado no es paralelizable y quiza `parallel_developers` esta sobreestimado, o las fases estan mal cortadas.
 
@@ -358,7 +358,7 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
 El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como se trabaja en paralelo** sin tener que bucear en `openspec/config.yaml`. `aisdd roadmap` lo registra en un bloque idempotente **propio**, delimitado por sus marcadores, **hermano e independiente** del bloque de comandos que gestiona `aisdd init`.
 
 1. Localiza `AGENTS.md` en la raiz. Si no existe, crealo con una cabecera minima (`# AGENTS.md`) seguida del bloque.
-2. Construye el contenido segun el modo, con los valores confirmados en el paso 9 ("Resuelve los parametros de paralelismo") del flujo principal:
+2. Construye el contenido segun el modo, con los valores que **confirma el pre-flight de optimizacion** (paso 11 del flujo principal, `references/optimizer.md`) — no con la preferencia que el usuario dio en el paso 9, que es provisional:
 
    ```markdown
    <!-- BEGIN aisdd-specs roadmap (auto-generado, no editar a mano) -->
