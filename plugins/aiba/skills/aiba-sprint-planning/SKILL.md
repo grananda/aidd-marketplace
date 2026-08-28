@@ -3,7 +3,7 @@ name: aiba-sprint-planning
 description: Fase 3.5 (paso 3.5.2) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Distribuye el trabajo en sprints una vez que existe el roadmap y el plan de recursos, mediante el comando `aiba sprint-planning` (alias `aiba planificacion sprints`). Actua como planificador de delivery (Scrum) que lee `docs/roadmap.md`, `docs/planificacion-proyecto.md`, `docs/detalle-historias-usuario.md` y, si existe, `docs/plan-revision-hu.md` (antesala: estado de revision de cada HU y personas envueltas, generado por `aiba hu-review-plan`) para no planificar por libre, y genera `docs/sprint-plan.md` con parametros de planificacion, unidades de trabajo con estimacion (esfuerzo real con IA frente al bruto humano XS/S/M/L/XL), mapa de dependencias y prerequisitos, distribucion en sprints con objetivo, capacidad y asignacion de perfiles, hitos, y riesgos de planificacion. Dimensiona la duracion del sprint por la carga real y el numero de ciclos por los gates/dependencias, evitando rellenar sprints sin sentido. Respeta el faseado por contexto del roadmap (no parte un change). Soporta los tres modos de faseado del roadmap. En **`waves`** (oleadas) cada oleada es un tramo cuya duracion es el `max` de sus fases y una frontera de sprint natural, y su ancho frente a `parallel_developers` revela los tramos con gente ociosa. En **`multilane`**: cuando el faseado viene repartido en lineas de trabajo paralelas (`F0` / `F-<lane>-NN` / barreras `FB-NN`), el calendario deja de ser una unica cadena critica y pasa a ser el `max` de las cadenas de cada lane entre barreras; **cada sprint toma unidades de varios lanes a la vez**, la carga vs capacidad se declara **por lane** ademas de agregada, las barreras son fronteras de sprint naturales, y se avisa de los lanes sin asignacion (dev parado) y de las dependencias cross-lane fuera de barrera (conflicto de faseado que resuelve `aisdd roadmap`). Como paso final opcional, vuelca el plan a Jira via el MCP de Atlassian (crea sprints en el board del proyecto indicado y las historias asignadas a cada sprint), siempre con confirmacion humana previa. El volcado se puede ejecutar mas de una vez de forma segura (p. ej. antes del roadmap en modo degradado y de nuevo con el roadmap para re-fasear): las Stories nunca se recrean (se preservan las claves de issue), el re-faseado se hace moviendo las HU entre sprints y limpiando sprints vacios. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # aiba-sprint-planning (AIBA · Fase 3.5 · paso 3.5.2 · sprints)
@@ -150,7 +150,7 @@ Genera (o actualiza) `docs/sprint-plan.md` con esta estructura:
 
 > Documento de Planificacion de entrega (AIBA). Generado por `aiba sprint-planning`.
 > Fuentes: docs/roadmap.md, docs/planificacion-proyecto.md, docs/detalle-historias-usuario.md.
-> Respeta el faseado por contexto del roadmap. Pendiente de aprobacion humana.
+> Respeta el faseado por contexto del roadmap.
 
 ## 1. Parametros de planificacion
 - Duracion de sprint, capacidad por sprint, fecha de inicio, velocity asumida (acelerada por IA o bruta), **carga total estimada** (real con IA vs bruto humano) y recursos/equipo de referencia.
@@ -274,7 +274,7 @@ Convencion del enlace entre los dos planos (negocio y ejecucion), que este skill
 Tras escribir o actualizar `docs/sprint-plan.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/sprint-plan.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/sprint-plan.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -302,3 +302,4 @@ Al terminar, informa:
 - Recordatorio del enlace: los changes se crearan como sub-tareas de su HU al ejecutar `aisdd open change`, y `implement`/`close change` moveran los tickets de columna automaticamente.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: ejecutar el desarrollo segun el plan. En la metodologia completa, el AI Lead abre cada change con `aisdd open change` siguiendo el orden de los sprints; el equipo humano usa este plan para su seguimiento Scrum.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

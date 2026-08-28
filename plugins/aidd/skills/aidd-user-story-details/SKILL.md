@@ -3,7 +3,7 @@ name: aidd-user-story-details
 description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (XS/S/M/L/XL), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.1"
+  version: "1.5.0"
 ---
 
 # aidd-user-story-details (AIDD · Fase 1 · paso 1.3)
@@ -48,6 +48,7 @@ Criterio de salida del paso: existe `docs/detalle-historias-usuario.md` donde ca
 - No inventes historias nuevas. Detallas las que existen en el mapa. Si detectas que falta una historia o un RF sin cobertura, marcalo y propon volver al paso 1.2, no lo improvises aqui.
 - **Cobertura obligatoria**: detalla **todas** las historias del mapa. Lista las que queden sin detallar como pendientes; no las omitas en silencio.
 - Conserva los IDs de historia (`HU-XX`) del mapa. No los renumeres.
+- **La talla de cada historia no es orientativa aguas abajo.** Este documento es el eje del que cuelga todo lo que viene: `aisdd roadmap` **se detiene** sin el, porque su pre-flight de optimizacion calcula el calendario de cada modo de faseado a partir de estas tallas; `aiba project-plan` deriva de ellas el esfuerzo humano frente al esfuerzo con IA; `aiba sprint-planning` dimensiona los sprints; y `aiba metrics` las usa de baseline para medir el ahorro. Una historia sin talla no rompe nada aqui — desaparece de esos cuatro calculos sin avisar. **Lista en la seccion de cobertura las que se quedaron sin estimar**, que es donde alguien puede verlo a tiempo.
 - Criterios de aceptacion verificables: usa formato Dado/Cuando/Entonces o lista numerada comprobable. Marca con `[IMPRESCINDIBLE]` los criterios **esenciales** para dar la historia por terminada (los que no pueden faltar para aceptarla).
 - **Semantica del marcado (importante):** `[IMPRESCINDIBLE]` es un criterio de aceptacion que **no puede faltar**, pero **no es un impedimento** para hacer la historia; es un requisito de calidad/aceptacion. **No uses `[BLOQUEANTE]` en los criterios de aceptacion**: "bloqueante" es un impedimento real (una dependencia o duda sin resolver que frena el trabajo) y solo aplica a preguntas abiertas / pendientes, no a los criterios. Marcar criterios como "bloqueantes" genera una sensacion de alerta que no corresponde: un criterio imprescindible es normal y esperable en una historia.
 - Estimacion orientativa con la **escala de tallas** (1 d = jornada laboral de 8 h; puntos fijos, no rangos): **XS** = 0,5 d · **S** = 1,5 d · **M** = 3 d · **L** = 5 d · **XL** = 8 d. Elige la talla mas cercana al esfuerzo humano de la historia. Es la fuente de la doble estimacion (humano vs IA) que calcula `aiba project-plan`.
@@ -93,7 +94,6 @@ Genera (o actualiza) `docs/detalle-historias-usuario.md` con esta estructura:
 
 > Documento de Fase 1 (AIDD · paso 1.3). Generado por `aidd user-story-details`.
 > Entradas: docs/requisitos.md, docs/mapa-historias-usuario.md. Cierra la Fase 1.
-> Pendiente de aprobacion humana.
 
 ## Historias detalladas
 
@@ -140,7 +140,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/detalle-historias-usuario.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/detalle-historias-usuario.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/detalle-historias-usuario.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -165,7 +165,10 @@ Al terminar, informa:
 - Ruta del documento generado o actualizado (`docs/detalle-historias-usuario.md`).
 - Ruta de la vista HTML generada (`docs/html/detalle-historias-usuario.html`), o aviso si no se pudo generar el HTML.
 - Numero de historias detalladas frente al total del mapa (pendientes destacadas) y criterios imprescindibles.
+- **Historias sin talla**, si las hay, nombradas una a una. Desaparecen sin aviso del calendario de `aisdd roadmap`, del esfuerzo de `aiba project-plan`, del dimensionado de `aiba sprint-planning` y del baseline de `aiba metrics`: son cuatro cifras que salen mal sin que nadie lo note.
 - Confirma que el detalle de las HU quedo **limpio (client-ready)** y que los cambios se registraron en el **Change log** al final (no dentro de las historias).
 - Recordatorio del gate de Fase 1: los tres documentos (`requisitos.md`, `mapa-historias-usuario.md`, `detalle-historias-usuario.md`) requieren **aprobacion humana** antes de pasar a Fase 2.
 - Criterio de salida de Fase 1: cada requisito tiene al menos una historia, cada historia tiene criterios de aceptacion verificables y el alcance esta definido. Indica si se cumple o que falta.
-- Siguiente paso sugerido: Fase 2 — Diseno (AI Architect): prototipo, guia de estilos y arquitectura (aun sin skill propio en el conjunto AIDD).
+- Siguiente paso sugerido: **`aidd prototype-architecture`** (paso 2.1), que abre la Fase 2 — Diseno. Detras van `aidd prototype` (2.2), `aidd style-guide` y `aidd architecture-proposal` (2.3, en cualquier orden) y `aidd architecture` (2.4).
+- Antes de la Fase 2, si el proyecto valida las HU con negocio y TI, el paso **1.4** es opcional y lo cubre **`aiba hu-review-plan`**: planifica esa revision a partir de este documento y del mapa. No bloquea la Fase 2.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

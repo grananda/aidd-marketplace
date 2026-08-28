@@ -3,7 +3,7 @@ name: aiba-hu-review-plan
 description: Paso 1.4 (opcional) del proceso AIDD-SDD, cubierto por el conjunto AIBA (AI Business Analyst): capa de planificacion de la revision de historias de usuario con negocio y TI. Genera un fichero Excel (.xlsx) de planificacion consolidando `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md`, mediante el comando `aiba hu-review-plan` (alias `aiba planificacion revision hu`, `aiba revision historias`). Produce cuatro pestañas — "Detalle HU" (todas las HU combinadas, con las palabras Como/quiero/para resaltadas en negrita), "Dashboard" (KPIs y graficas: HU pendientes de cerrar, bloqueadas, por fase/persona/prioridad), "Leyenda" (significado de campos codificados como Persona P1/P5 o GAP) y "Gantt <Mes>" (planificacion de la revision de HU, con el mes real en el nombre de la pestaña: kickoff, semana 1 de revision de documentacion del cliente y resto del mes de reuniones funcionales con negocio y tecnicas con TI, con detalle por HU). El `.md` de plan sigue siendo la fuente de verdad; el Excel es el entregable rico. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # aiba-hu-review-plan (AIBA · planificacion de la revision de HU · Excel)
@@ -103,7 +103,7 @@ Genera (o actualiza) `docs/plan-revision-hu.md` con esta estructura:
 
 > Documento de planificacion de la revision de HU (AIBA). Generado por `aiba hu-review-plan`.
 > Fuentes: docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
-> El Excel docs/xlsx/plan-revision-hu.xlsx es la vista rica de este plan. Pendiente de aprobacion humana.
+> El Excel docs/xlsx/plan-revision-hu.xlsx es la vista rica de este plan.
 
 ## 1. Parametros de planificacion
 - Kickoff, periodo objetivo, reuniones/semana, agrupacion por reunion, separacion funcional/tecnica.
@@ -189,7 +189,7 @@ Reglas del manifiesto:
 Tras escribir o actualizar `docs/plan-revision-hu.md`, y **antes** de generar el Excel, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/plan-revision-hu.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/plan-revision-hu.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -230,6 +230,7 @@ Al terminar, informa:
 - Resumen: numero de HU consolidadas, cuantas pendientes / bloqueadas, numero de reuniones planificadas (funcionales vs tecnicas) y si todas las HU caben en el periodo objetivo.
 - Campos de la Leyenda que han quedado **sin significado** y que el humano debe completar.
 - Recordatorio: pendiente de **aprobacion humana**; el `.md` es la fuente de verdad y el `.xlsx` su vista rica.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.
 
 ## Siguiente paso sugerido
 

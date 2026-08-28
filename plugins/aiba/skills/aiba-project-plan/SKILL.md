@@ -3,7 +3,7 @@ name: aiba-project-plan
 description: Fase 3.5 (paso 3.5.1) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aiba project-plan` (alias `aiba planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aiba-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # aiba-project-plan (AIBA · Fase 3.5 · paso 3.5.1 · recursos)
@@ -83,7 +83,7 @@ Genera (o actualiza) `docs/planificacion-proyecto.md` con esta estructura:
 
 > Documento de Planificacion de entrega (AIBA). Generado por `aiba project-plan`.
 > Fuentes: docs/arquitectura-base.md, docs/mapa-historias-usuario.md, docs/detalle-historias-usuario.md.
-> Insumo de `aiba sprint-planning`. Pendiente de aprobacion humana.
+> Insumo de `aiba sprint-planning`.
 
 ## 1. Objetivo y resumen
 - Que se va a construir (1-2 frases) y resumen del equipo y recursos necesarios.
@@ -147,7 +147,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/planificacion-proyecto.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/planificacion-proyecto.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/planificacion-proyecto.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -174,3 +174,4 @@ Al terminar, informa:
 - **KPIs de esfuerzo humano vs IA**: esfuerzo humano total, esfuerzo con IA total, ahorro absoluto, % de reduccion y factor de aceleracion.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aiba sprint-planning` para distribuir el trabajo en sprints usando estos recursos (requiere `docs/roadmap.md`; si no existe, generarlo antes con el AI Lead via `aisdd roadmap`).
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

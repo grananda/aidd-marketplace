@@ -3,7 +3,7 @@ name: aiba-metrics
 description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.4.1"
+  version: "0.4.2"
 ---
 
 # aiba-metrics (AIBA · medicion · KPIs de uso de IA)

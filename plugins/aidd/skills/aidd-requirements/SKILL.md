@@ -3,7 +3,7 @@ name: aidd-requirements
 description: Fase 1 (paso 1.1) del conjunto AIDD (AI Driven Development). Transforma el brief del cliente en requisitos formales trazables, mediante el comando `aidd requirements` (alias `aidd fase 1.1`). Actua como Product Owner experto en el dominio que lee `docs/cliente-requisitos.md` y genera `docs/requisitos.md` con descripcion del sistema, usuarios y roles con permisos, requisitos funcionales numerados (RF-XX), requisitos no funcionales (NFR-XX), restricciones tecnicas no negociables, alcance dentro/fuera y variables de entorno requeridas. Primer paso de la Definicion (AI Architect) y entrada del mapa de historias de usuario. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-requirements (AIDD · Fase 1 · paso 1.1)
@@ -90,7 +90,6 @@ Genera (o actualiza) `docs/requisitos.md` con esta estructura:
 
 > Documento de Fase 1 (AIDD · paso 1.1). Generado por `aidd requirements`.
 > Entrada: docs/cliente-requisitos.md. Salida hacia: docs/mapa-historias-usuario.md.
-> Pendiente de aprobacion humana.
 
 ## 1. Descripcion del sistema y objetivos
 - Que es el sistema, problema que resuelve y objetivos medibles.
@@ -134,7 +133,7 @@ Reglas de contenido:
 Tras escribir o actualizar `docs/requisitos.md`, y **antes** de generar la vista HTML, sella el documento:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/requisitos.md
+python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input docs/requisitos.md --gated
 ```
 
 Anade/actualiza la cabecera `> **Version N** - **Generado:** fecha hora`, **incrementa la version en cada regeneracion** (via `docs/.aidd-doc-meta.json`) y usa la **fecha y hora reales**. No inventes la version ni la hora: las pone el script y esa linea no se edita a mano. Si Python no esta disponible, avisa pero no bloquees.
@@ -160,3 +159,4 @@ Al terminar, informa:
 - Recordatorio: el documento queda **pendiente de aprobacion humana** antes del handoff.
 - Criterio de salida: indica si los requisitos son suficientes para arrancar el paso 1.2 o que falta.
 - Siguiente paso sugerido: `aidd user-stories` (mapa de historias de usuario) a partir de `docs/requisitos.md`.
+- **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.
