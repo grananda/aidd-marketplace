@@ -157,9 +157,10 @@ Procedimiento:
 1. **Clasifica las fases.** Cruza `roadmap.phases` con `openspec list` y con `openspec/changes/archive/` usando el `change_hint`. Si una fase no tiene change asociado, es pendiente.
 2. **Pregunta que ha cambiado**: cuantos developers hay **ahora** y si el usuario quiere replantear el modo. Su respuesta es la `eleccion_usuario` del paso siguiente.
 3. **Estima lo que queda de las fases en curso.** Preguntalo; sin dato, el script asume la fase entera, que retrasa el plan en vez de prometerlo antes de tiempo.
-4. **Lanza el pre-flight de optimizacion** (`references/optimizer.md`) con los estados marcados. Compara **calendario restante**, no total: lo entregado no vuelve.
-5. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
-6. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
+4. **Comprueba que la foto es coherente.** Si hay mas changes abiertos que developers, alguien lleva dos o el equipo esta mal contado: el script lo avisa y el calendario sale optimista. Y si una fase cerrada depende de una que no lo esta, el calculo se detiene: es una historia imposible, y ahi el problema son los estados, no el faseado.
+5. **Lanza el pre-flight de optimizacion** (`references/optimizer.md`) con los estados marcados. Compara **calendario restante**, no total: lo entregado no vuelve.
+6. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
+7. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
 
 **Lo que este camino no arregla.** Si el pre-flight dice que el calendario ya toca el camino critico, **el cuello es una cadena de dependencias y no la plantilla**: anadir gente no lo acorta. Dilo tal cual. Acortarlo exige romper esa cadena partiendo o reordenando fases pendientes, que es una decision de faseado, no de estrategia.
 

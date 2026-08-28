@@ -82,6 +82,10 @@ Mismo pre-flight, con dos diferencias que cambian como se lee:
 
 El campo `diagnostico` del JSON resume la situacion en una linea. **Presentalo tal cual**, sobre todo cuando dice que el calendario ya toca el camino critico: significa que el cuello es una cadena de dependencias y que el developer que acaban de incorporar **no va a acelerar nada**. Es la respuesta que menos gusta y la que mas falta hace.
 
+El campo **`avisos`** trae los problemas de consistencia que el calculo detecta pero no puede resolver. Hoy uno: **mas fases en curso que developers declarados**, que significa o que el equipo esta mal contado o que alguien lleva dos changes abiertos — y en cualquier caso que el calendario sale optimista. Salen tambien en el HTML, arriba del todo: son razones para desconfiar de las cifras, asi que se leen antes que ellas.
+
+**Dos incoherencias abortan el calculo** en vez de avisar, porque describen una historia imposible y cualquier numero derivado de ellas seria falso: una fase `hecha` que depende de otra que no lo esta, y un `estado` que no es ninguno de los tres.
+
 ## Reglas al recomendar
 
 - **No decidas tu.** El pre-flight informa; el modo lo elige el usuario. Presenta el optimo como opcion marcada `(Recomendada)`, no como hecho consumado.

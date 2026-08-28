@@ -157,10 +157,18 @@ def lee_fases(datos: dict) -> list[dict]:
             "foundation": bool(f.get("foundation")),
         })
 
+    por_id = {f["id"]: f for f in fases}
     for f in fases:
         for d in f["depends_on"]:
             if d not in vistos:
                 raise EntradaInvalida(f"{f['id']} depende de '{d}', que no existe")
+            # Un change archivado cuya dependencia no lo esta describe una historia
+            # imposible: o el estado esta mal, o se cerro saltandose el guard.
+            if f["estado"] == "hecha" and por_id[d]["estado"] != "hecha":
+                raise EntradaInvalida(
+                    f"{f['id']} esta 'hecha' pero depende de {d}, que esta "
+                    f"'{por_id[d]['estado']}'. Revisa los estados: un change archivado "
+                    f"no puede depender de uno sin cerrar")
     return fases
 
 
@@ -309,7 +317,15 @@ def _reparte(fases: list[dict], por_id: dict, topo: list[str],
             if not elegibles:
                 raise EntradaInvalida("ciclo en depends_on al construir oleadas")
             fund = [k for k in elegibles if por_id[k]["foundation"]]
-            if n == 1 and fund:
+            vivas = [k for k in elegibles if por_id[k]["estado"] == "en_curso"]
+            if n == 1 and vivas:
+                # Reality first: un change abierto ya esta consumiendo un dev. Si
+                # son mas que `devs`, la oleada se pasa de ancho a proposito --
+                # el problema esta en el proyecto, no en el reparto, y se avisa.
+                resto = sorted((k for k in elegibles if k not in set(vivas)),
+                               key=lambda k: -por_id[k]["dias"])
+                tanda = vivas + resto[:max(0, devs - len(vivas))]
+            elif n == 1 and fund:
                 tanda = fund[:1]
             else:
                 # Las mas largas primero. Una oleada cuesta el `max` de lo que
@@ -481,7 +497,7 @@ def banda_hechas(hechas: list[dict]) -> str:
 
 
 def render(datos: dict, res: dict, caminos: list[tuple[str, str, dict, str]],
-           hechas: list[dict] | None = None) -> str:
+           hechas: list[dict] | None = None, avisos: list[str] | None = None) -> str:
     peor = max(p["makespan"] for _, _, p, _ in caminos) or 1.0
     escala = 100.0 / peor
     proyecto = html.escape(str(datos.get("proyecto") or "Comparativa de faseado"))
@@ -541,13 +557,16 @@ h1{{font-size:1.9rem;margin:0 0 .3rem;letter-spacing:-.01em}}
   background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,
   color-mix(in srgb,var(--barrera) 22%,transparent) 3px,
   color-mix(in srgb,var(--barrera) 22%,transparent) 6px)}}
+.aviso{{background:var(--barrera-bg);border:1px solid var(--barrera);border-radius:4px;
+  padding:.75rem 1rem;margin-bottom:1rem;font-size:.88rem;color:var(--ink)}}
+.aviso b{{color:var(--barrera);margin-right:.3rem}}
 .hechas{{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);
   border-radius:4px;padding:1.1rem 1.25rem;margin-bottom:0;opacity:.8}}
 .hechas h2{{font-size:1.05rem;margin:0}}
 .chips{{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.7rem}}
 .chip{{font-family:var(--mono);font-size:.68rem;padding:.2rem .5rem;border-radius:2px;
   border:1px solid var(--line);background:var(--ground);color:var(--ink-2)}}
-.chip::before{{content:"\2713\00a0";color:var(--opt)}}
+.chip::before{{content:"✓ ";color:var(--opt)}}
 .hoy{{display:flex;align-items:center;gap:.6rem;margin:.9rem 0 1.1rem;
   font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}}
 .hoy::before,.hoy::after{{content:"";flex:1;height:1px;background:var(--line)}}
@@ -570,6 +589,7 @@ compartida</b> —contrato, esquema, permisos, rollout— corriendo <b>sin barre
 Solo aparecen fuera de <code>multilane</code>: es la diferencia que el calendario no muestra.
 Un camino más corto con esas barras es más rápido <em>y</em> más frágil.</p>
 
+{"".join(f'<div class="aviso"><b>Aviso</b> {html.escape(a)}</div>' for a in (avisos or []))}
 {banda_hechas(hechas or [])}
 {"".join(bloque(t, s, p, escala, tono) for t, s, p, tono in caminos)}
 
@@ -681,13 +701,27 @@ def main() -> int:
             f"{absoluto['devs'] - equipo} developer(s) más de los que hay hoy",
             absoluto, "max"))
 
+    vivas = [f["id"] for f in restantes if f["estado"] == "en_curso"]
+    avisos = []
+    if len(vivas) > equipo:
+        avisos.append(
+            f"{len(vivas)} fases en curso ({', '.join(vivas)}) con solo {equipo} developer(s) "
+            f"declarado(s). O el equipo esta mal contado, o alguien lleva dos changes abiertos. "
+            f"El calendario asume que caben, asi que saldra optimista.")
+
     if args.out:
-        Path(args.out).write_text(render(datos, res, caminos, hechas), encoding="utf-8")
+        Path(args.out).write_text(render(datos, res, caminos, hechas, avisos), encoding="utf-8")
 
     # El diagnostico en una linea. Sin el, "ahorro 0 / coste 0" obliga a deducir
     # que pasa, y lo que pasa -- que el cuello es una cadena, no la plantilla --
     # es justo lo que el usuario necesita oir cuando acaba de contratar a alguien.
-    if con_equipo["makespan"] <= res["critico"] + 1e-9:
+    sin_pendientes = all(f["estado"] == "en_curso" for f in restantes)
+    if sin_pendientes:
+        diagnostico = (
+            "Todo lo que queda esta ya en curso: no hay ninguna fase pendiente que reordenar. "
+            "Cambiar de estrategia ahora no tiene efecto -- los changes abiertos siguen donde "
+            "estan. Vuelve a plantearlo cuando cierre alguno.")
+    elif con_equipo["makespan"] <= res["critico"] + 1e-9:
         diagnostico = (
             f"El calendario ya toca el camino critico ({res['critico']:g} d): el cuello es una "
             f"cadena de dependencias, no el numero de developers. Anadir gente no lo acorta; "
@@ -705,6 +739,7 @@ def main() -> int:
 
     resumen = {
         "diagnostico": diagnostico,
+        "avisos": avisos,
         "critico_dias": res["critico"],
         "ya_hecho": {"fases": [f["id"] for f in hechas],
                      "dias": round(sum(f["esfuerzo_original"] for f in hechas), 2)},
