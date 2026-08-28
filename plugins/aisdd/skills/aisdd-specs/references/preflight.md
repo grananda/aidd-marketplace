@@ -37,7 +37,7 @@ Comun a ambos:
 - Objetivo y alcance explicitos del usuario o del prompt del roadmap.
 - **El faseado del roadmap y el reparto en sprints**: que HU entran en este change ya esta decidido (fase + sprint). **No ofrezcas adelantar HU de otras fases** ni ampliar el alcance — no es una duda, es una decision ya tomada (ver "El faseado es normativo"). Las dudas de alcance legitimas son sobre el **COMO** de las HU de esta fase, no sobre el QUE ni el CUANDO.
 - Puntos ya cubiertos por specs OpenSpec previas o por cambios relacionados ya cerrados.
-- **En modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada. Incorporalo (paso 6 de `open change`) en vez de preguntarlo.
+- **En modo `multilane`, las enmiendas ya registradas**: si la fase trae `amended_by`, ese delta es una decision tomada. Incorporalo (paso "Enmiendas pendientes de esta fase" de `open change`) en vez de preguntarlo.
 - **En modo `multilane`, el contrato compartido**: esquema de datos, contrato de API, eventos y tipos compartidos quedaron fijados en `F0` o en una barrera. **No los renegocies en el pre-flight de una fase de lane** — leelos de las specs archivadas y trabaja contra ellos. Si el contrato resulta insuficiente, eso no es una duda de pre-flight: es un fallo de faseado. Detente, dilo, y remite al dueno del contrato (`roadmap.contract_owner`) y a una barrera.
 
 **[IMPLEMENTACION]**:

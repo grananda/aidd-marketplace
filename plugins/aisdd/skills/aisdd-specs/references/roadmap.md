@@ -354,7 +354,7 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
 El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como se trabaja en paralelo** sin tener que bucear en `openspec/config.yaml`. `aisdd roadmap` lo registra en un bloque idempotente **propio**, delimitado por sus marcadores, **hermano e independiente** del bloque de comandos que gestiona `aisdd init`.
 
 1. Localiza `AGENTS.md` en la raiz. Si no existe, crealo con una cabecera minima (`# AGENTS.md`) seguida del bloque.
-2. Construye el contenido segun el modo, con los valores confirmados en el paso 9:
+2. Construye el contenido segun el modo, con los valores confirmados en el paso 9 ("Resuelve los parametros de paralelismo") del flujo principal:
 
    ```markdown
    <!-- BEGIN aisdd-specs roadmap (auto-generado, no editar a mano) -->
