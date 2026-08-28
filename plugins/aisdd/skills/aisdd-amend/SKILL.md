@@ -3,7 +3,7 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.3"
+  version: "1.5.0"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
@@ -269,3 +269,7 @@ Al terminar, informa:
 - Resultado de la comprobacion de mojibake: sin incidencias, ficheros reparados, o ficheros que hay que regenerar por tener `U+FFFD`.
 - Entrada de auditoria escrita (ruta e `id`).
 - Tareas manuales pendientes, si las hay.
+
+## Proximos pasos
+
+Cierra con lo que el usuario hace ahora, con el comando resuelto: `aisdd implement change <change-slug>` si quedan tareas del delta, o `aisdd close change <change-slug>` si ya esta. **Si marcaste fases futuras con `amended_by`, nombralas**: quien las abra tiene que saber que arrastran una enmienda. Reglas completas en `aisdd-specs`, `references/next-steps.md`.

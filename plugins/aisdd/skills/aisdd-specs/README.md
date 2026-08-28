@@ -280,5 +280,6 @@ El agente debe informar siempre de:
 - decisiones tomadas en el pre-flight y cuales quedan `pendientes`, si aplica
 - entrada de auditoria escrita: ruta del fichero `openspec/audit/YYYY-MM.jsonl`, `id` y `status` (`ok`, `partial` o `aborted`). Un comando que se detuvo tambien deja entrada: la ausencia no es un resultado valido salvo en `aisdd lane`
 - resultado de `check_mojibake.py` sobre los artefactos escritos, y que ficheros quedan sin reparar (los que tengan `U+FFFD` hay que regenerarlos)
+- **proximos pasos**: hasta tres comandos ejecutables, resueltos segun el estado. Tras `roadmap` encadena con `aiba project-plan` / `aiba sprint-planning`, que consumen el roadmap; tras `close change`, con la siguiente fase abrible — incluido el `aisdd lane switch` previo si es de otro lane, o los lanes que faltan por cerrar si lo que toca es una barrera
 - skills auxiliares usados o pendientes de instalar
 - errores o tareas manuales pendientes

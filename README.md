@@ -97,6 +97,17 @@ Sin esa línea base, el primer `open change` no puede saber qué existe ya y aca
 
 A partir de ahí el flujo es el normal: `aisdd roadmap` para fasear lo pendiente y el ciclo de changes aplicando **deltas sobre esas specs base**.
 
+#### Cada comando te dice cuál es el siguiente
+
+El ciclo de `aisdd` no es una secuencia fija: qué toca ahora depende del modo, de qué changes hay vivos, de si queda una barrera bloqueada y de si existe capa de entrega. Por eso **cada comando cierra con el siguiente paso ya resuelto**, listo para copiar — no «considera implementar el change», sino `aisdd implement change portal-catalogo`.
+
+Donde más se nota es en los dos empalmes que no son obvios:
+
+- **Tras `aisdd roadmap`**, hacia la capa de entrega: `aiba project-plan` si aún no hay plan de recursos, `aiba sprint-planning` cuando ya lo hay — y si el `sprint-plan.md` es anterior a este roadmap, avisa de que quedó desalineado y de que re-ejecutarlo es seguro.
+- **Tras `aisdd close change`**, hacia la siguiente fase: con `multilane` incluye el `aisdd lane switch` previo si la fase es de otro lane, y si lo que toca es una barrera te dice si ya se desbloqueó o qué lanes faltan por cerrar.
+
+Cuando el roadmap se agota, lo dice y sugiere `aiba metrics`.
+
 #### El sistema calcula el óptimo y te lo enseña
 
 Elegir modo y número de developers a ciegas es elegir mal: la diferencia entre `waves` con 2 devs y `multilane` con 3 puede ser de semanas, y no se ve mirando una lista de fases.

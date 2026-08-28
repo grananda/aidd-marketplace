@@ -23,6 +23,7 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 
 7. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente. Di tambien el **resultado de la comprobacion de mojibake**: sin incidencias, ficheros reparados, o ficheros que hay que regenerar por tener `U+FFFD`.
 8. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:implement-change/preflight`. Incluye en `decisions[]` las decisiones del pre-flight y las entradas `Tipo: correccion` que hayas registrado. Reporta despues su ruta y su `id` en la verificacion final.
+9. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Correcciones durante la implementacion
 

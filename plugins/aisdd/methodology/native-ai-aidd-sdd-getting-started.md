@@ -249,8 +249,8 @@ openspec/
 | `aisdd init` | AI Lead | Inicializa OpenSpec + dependencias + `AGENTS.md` |
 | `aisdd roadmap` | AI Lead | Fasea el desarrollo y genera los prompts por fase |
 | `aisdd open change <slug>` | AI Lead | Pre-flight + genera specs validados del change |
-| `aisdd implement change <slug>` | AI Developer | Pre-flight + implementa el código |
-| `aisdd close change <slug>` | Outcome Validator | Valida y archiva el change (en multilane, verifica que no salió de las rutas de su lane) |
+| `aisdd implement change <change-slug>` | AI Developer | Pre-flight + implementa el código |
+| `aisdd close change <change-slug>` | Outcome Validator | Valida y archiva el change (en multilane, verifica que no salió de las rutas de su lane) |
 | `aisdd lane [list\|switch\|status]` | AI Developer / AI Lead | Selecciona la línea de trabajo activa (solo roadmaps multilane) |
 | `aisdd prototype-ux [<slug>]` | Architect / Developer | Prototipos UX (booster-ux) |
 | `aisdd uml <slug>` | Cualquiera | Diagramas HTML del change (booster-uml) |
