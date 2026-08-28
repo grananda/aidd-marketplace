@@ -51,6 +51,8 @@ Inicializa AISDD (OpenSpec) en el proyecto.
 12. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
 13. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
+14. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:init`. Reporta despues su ruta y su `id` en la verificacion final.
+
 ### Onboarding de proyecto existente: specs base
 
 Cuando el proyecto ya esta en marcha, el objetivo es **capturar su estado actual como specs base de OpenSpec**, para que los changes posteriores tengan contra que contrastar. Sin esto, el primer `aisdd open change` genera specs sin linea base: no puede saber que ya existe, y acaba especificando de nuevo lo que el codigo ya hace.

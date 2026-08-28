@@ -111,6 +111,8 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 19. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
 20. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en el paso 19. Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
 
+21. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:roadmap`. Reporta despues su ruta y su `id` en la verificacion final.
+
 ### Anotar un roadmap existente (solo modo `waves`)
 
 Este camino existe porque **una oleada es una anotacion, no una particion**: se puede calcular sobre un faseado ya hecho sin alterarlo. Es el caso tipico de un proyecto ya disenado y planificado al que se le quiere anadir paralelismo porque ahora hay mas devs.

@@ -24,6 +24,8 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 8. Si durante la implementacion, o en la validacion posterior, surge un cambio que ningun spec habia especificado (incompatibilidad de versiones, ajuste de configuracion, peticion del usuario sobre la marcha), **no escales por defecto**: clasificalo segun "Correcciones durante la implementacion" y resuelvelo en el nivel que le corresponda.
 9. Resume instrucciones aplicadas, ficheros afectados si OpenSpec los indica, decisiones y correcciones grabadas en `decisions.md`, la transicion de Jira aplicada (claves de sub-tarea y Story, columna destino, asignado) si la hubo, y cualquier accion manual pendiente.
 
+10. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:implement-change/preflight`. Incluye en `decisions[]` las decisiones del pre-flight y las entradas `Tipo: correccion` que hayas registrado. Reporta despues su ruta y su `id` en la verificacion final.
+
 ### Correcciones durante la implementacion
 
 Durante `implement change`, o en la validacion posterior, aparecen cambios que nadie habia especificado: una incompatibilidad de versiones, un ajuste de configuracion, un matiz visual que el usuario pide sobre la marcha. **No todos merecen el mismo proceso.** Clasifica antes de actuar:
