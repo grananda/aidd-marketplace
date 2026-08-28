@@ -17,8 +17,16 @@ Dos invariantes:
    plugins (el hook de actividad, `stamp_doc.py`) son identicos entre si.
    Se replican porque cada plugin debe ser autosuficiente; nada garantiza que
    se editen los N a la vez, y una copia rezagada no falla, solo miente.
+
+3. **Constantes replicadas** — la escala de tallas AIDD vive duplicada en tres
+   scripts de tres plugins distintos, por la misma razon: no se pueden importar
+   entre si. De ella salen el calendario de `aisdd roadmap`, el panel de KPIs de
+   `booster-docs` y el ahorro que calcula `aiba metrics`. Si una copia se queda
+   atras, los tres siguen dando numeros y ninguno coincide, sin que nada avise.
 """
 from __future__ import annotations
+
+import ast
 
 import hashlib
 import re
@@ -36,6 +44,30 @@ COMPARTIDOS = [
     ("hooks/hooks.json", ["aidd", "aisdd", "aiba", "boosters"]),  # aiad suma su journal
     ("scripts/stamp_doc.py", ["aidd", "aiba"]),
 ]
+
+# Nombre de la constante -> ficheros que deben declararla igual. Se comparan por
+# valor, no por texto: dan igual el formato y el orden de las claves.
+CONSTANTES = [
+    ("EFFORT_DAYS", [
+        "plugins/aisdd/skills/aisdd-specs/scripts/optimize_phasing.py",
+        "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
+        "plugins/aiba/skills/aiba-metrics/scripts/compute_kpis.py",
+    ]),
+]
+
+
+def literal_de(ruta: Path, nombre: str):
+    """Valor de una asignacion de nivel de modulo, sin ejecutar el fichero."""
+    arbol = ast.parse(ruta.read_text(encoding="utf-8"))
+    for nodo in arbol.body:
+        if isinstance(nodo, ast.Assign) and any(
+                isinstance(d, ast.Name) and d.id == nombre for d in nodo.targets):
+            try:
+                return ast.literal_eval(nodo.value)
+            except ValueError:
+                return None
+    return None
+
 
 errors: list[str] = []
 comprobadas = 0
@@ -70,10 +102,28 @@ for ruta, plugins in COMPARTIDOS:
         grupos = " vs ".join("+".join(v) for v in huellas.values())
         errors.append(f"{ruta}: las copias han divergido ({grupos})")
 
+for nombre, rutas in CONSTANTES:
+    valores: dict[str, list[str]] = {}
+    for rel in rutas:
+        f = ROOT / rel
+        if not f.is_file():
+            errors.append(f"{rel}: falta, pero debe declarar {nombre}")
+            continue
+        v = literal_de(f, nombre)
+        if v is None:
+            errors.append(f"{rel}: no declara {nombre} como literal de modulo")
+            continue
+        valores.setdefault(repr(sorted(v.items()) if isinstance(v, dict) else v),
+                           []).append(rel)
+    if len(valores) > 1:
+        detalle = " vs ".join(f"{v[0]} {k}" for k, v in valores.items())
+        errors.append(f"{nombre}: las copias no coinciden -> {detalle}")
+
 if errors:
     print("Plugins con dependencias rotas o copias desincronizadas:", file=sys.stderr)
     for e in errors:
         print(f"  - {e}", file=sys.stderr)
     sys.exit(1)
 print(f"Plugins autosuficientes: {comprobadas} referencias resueltas y "
-      f"{len(COMPARTIDOS)} ficheros compartidos sincronizados.")
+      f"{len(COMPARTIDOS)} ficheros compartidos sincronizados, "
+      f"{len(CONSTANTES)} constantes replicadas coherentes.")

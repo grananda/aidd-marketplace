@@ -86,9 +86,18 @@ import json
 import sys
 from pathlib import Path
 
-# Escala de tallas AIDD, 1 d = jornada de 8 h. Misma tabla que EFFORT_DAYS de
-# booster-docs y que la que declara aidd-user-story-details: si cambia en un
-# sitio, cambia en los tres o los calendarios dejan de ser comparables.
+# Escala de tallas AIDD, 1 d = jornada de 8 h.
+#
+# SYNC: esta tabla vive replicada en tres scripts de tres plugins, porque no se
+# pueden importar entre si (Claude Code instala cada plugin por separado). Si
+# cambia en uno, cambia en los tres:
+#   plugins/aisdd/skills/aisdd-specs/scripts/optimize_phasing.py
+#   plugins/boosters/skills/booster-docs/scripts/render_docs_html.py
+#   plugins/aiba/skills/aiba-metrics/scripts/compute_kpis.py
+# Y en la prosa que la declara: aidd-user-story-details y aiba-hu-review-plan.
+# De ella salen el calendario del faseado, el panel de KPIs y el ahorro medido:
+# una copia rezagada no falla, hace que los tres den cifras distintas.
+# La comprobacion la hace .github/scripts/check_plugin_assets.py.
 EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 
 MODOS = ("atomic", "waves", "multilane")

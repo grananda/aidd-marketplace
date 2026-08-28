@@ -240,7 +240,18 @@ PRIORITY = {
 }
 EFFORT = {"xs": "chip-eff-xs", "s": "chip-eff-s", "m": "chip-eff-m",
           "l": "chip-eff-l", "xl": "chip-eff-xl"}
-# Person-days per size (1 d = 8 h working day) -- the AIDD estimation scale.
+# Escala de tallas AIDD, 1 d = jornada de 8 h.
+#
+# SYNC: esta tabla vive replicada en tres scripts de tres plugins, porque no se
+# pueden importar entre si (Claude Code instala cada plugin por separado). Si
+# cambia en uno, cambia en los tres:
+#   plugins/aisdd/skills/aisdd-specs/scripts/optimize_phasing.py
+#   plugins/boosters/skills/booster-docs/scripts/render_docs_html.py
+#   plugins/aiba/skills/aiba-metrics/scripts/compute_kpis.py
+# Y en la prosa que la declara: aidd-user-story-details y aiba-hu-review-plan.
+# De ella salen el calendario del faseado, el panel de KPIs y el ahorro medido:
+# una copia rezagada no falla, hace que los tres den cifras distintas.
+# La comprobacion la hace .github/scripts/check_plugin_assets.py.
 EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 
 # Inline per-story metadata (e.g. "**Prioridad**: Alta   **Estimacion**: M"): turn
