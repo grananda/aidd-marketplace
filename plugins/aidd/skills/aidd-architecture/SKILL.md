@@ -3,7 +3,7 @@ name: aidd-architecture
 description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)
@@ -136,4 +136,6 @@ Al terminar, informa:
 - Conflictos entre documentos de entrada resueltos y decisiones que quedan pendientes.
 - Recordatorio del gate de Fase 2: prototipo validado por el cliente y guia de estilos, propuesta de arquitectura y arquitectura definitiva **aprobadas por el humano**.
 - Criterio de salida de Fase 2: indica si requisitos y arquitectura quedan en estado consumible para fasear el roadmap, o que falta.
-- Siguiente paso sugerido: Fase 3 — Inicializacion y Roadmap (AI Lead). En la metodologia completa se hace con `aisdd init` y `aisdd roadmap`; queda fuera del conjunto AIDD de planificacion.
+- Siguiente paso sugerido: **`aisdd init`** y despues **`aisdd roadmap`** (Fase 3 — Inicializacion y Roadmap, AI Lead). Aqui termina el diseno y empieza la ejecucion: es el punto donde AIDD entrega a AISDD.
+- **`aisdd roadmap` exige `docs/detalle-historias-usuario.md`** con sus tallas. Si vienes de la Fase 1 completa ya lo tienes; si no, el comando se detiene y remite a `aidd user-story-details`.
+- Si el proyecto va a planificar entrega y recursos, **`aiba project-plan`** puede ir antes o despues del roadmap: no depende de el, y `aiba sprint-planning` necesita los dos.

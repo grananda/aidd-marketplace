@@ -3,7 +3,7 @@ name: aidd-user-story-details
 description: Fase 1 (paso 1.3) del conjunto AIDD (AI Driven Development). Detalla cada historia de usuario del mapa con criterios de aceptacion verificables, mediante el comando `aidd user-story-details` (alias `aidd fase 1.3`). Actua como Product Owner experto y especialista en criterios de aceptacion que lee `docs/requisitos.md` y `docs/mapa-historias-usuario.md` y genera `docs/detalle-historias-usuario.md` con, por cada historia, descripcion completa, prioridad dentro de su fase, estimacion orientativa (XS/S/M/L/XL), criterios de aceptacion verificables en formato Dado/Cuando/Entonces, marca de criterios imprescindibles y notas tecnicas y dependencias. El detalle de cada historia se mantiene limpio y client-ready (sin marcas de cambio inline); las modificaciones se registran en una seccion Change log al final del `.md` (y por tanto del HTML). Ultimo paso de la Definicion (AI Architect) antes del diseno. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.1"
+  version: "1.3.0"
 ---
 
 # aidd-user-story-details (AIDD · Fase 1 · paso 1.3)
@@ -168,4 +168,5 @@ Al terminar, informa:
 - Confirma que el detalle de las HU quedo **limpio (client-ready)** y que los cambios se registraron en el **Change log** al final (no dentro de las historias).
 - Recordatorio del gate de Fase 1: los tres documentos (`requisitos.md`, `mapa-historias-usuario.md`, `detalle-historias-usuario.md`) requieren **aprobacion humana** antes de pasar a Fase 2.
 - Criterio de salida de Fase 1: cada requisito tiene al menos una historia, cada historia tiene criterios de aceptacion verificables y el alcance esta definido. Indica si se cumple o que falta.
-- Siguiente paso sugerido: Fase 2 — Diseno (AI Architect): prototipo, guia de estilos y arquitectura (aun sin skill propio en el conjunto AIDD).
+- Siguiente paso sugerido: **`aidd prototype-architecture`** (paso 2.1), que abre la Fase 2 — Diseno. Detras van `aidd prototype` (2.2), `aidd style-guide` y `aidd architecture-proposal` (2.3, en cualquier orden) y `aidd architecture` (2.4).
+- Antes de la Fase 2, si el proyecto valida las HU con negocio y TI, el paso **1.4** es opcional y lo cubre **`aiba hu-review-plan`**: planifica esa revision a partir de este documento y del mapa. No bloquea la Fase 2.
