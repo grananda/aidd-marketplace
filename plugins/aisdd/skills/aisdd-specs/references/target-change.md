@@ -23,7 +23,7 @@ Lo usan **`aisdd implement change`**, **`aisdd close change`**, **`aisdd uml`** 
 | `implement change` | Changes **abiertos** (`openspec list`) | No hay nada que implementar. Remite a `aisdd open change` |
 | `close change` | Changes **abiertos**. En `multilane`, **primero los del lane activo**: si ese lane tiene exactamente uno, usalo sin preguntar — que otros lanes tengan trabajo vivo no genera ambiguedad, porque no es tuyo | Nada que archivar. Dilo y para |
 | `uml` | Changes **abiertos**, igual que `implement` | Sin change no hay diagramas. Remite a `aisdd open change` |
-| `open change` | Fases **abribles ahora** del roadmap (`roadmap.phases` en `config.yaml`): las no archivadas cuyas `depends_on` estan todas cerradas y que el guard de apertura no rechaza | El roadmap esta agotado o todo esta bloqueado. Di **cual** es el bloqueo (barrera pendiente, dependencia sin cerrar, lane ocupado) |
+| `open change` | Fases **abribles ahora** del roadmap (`roadmap.phases` en `config.yaml`): no archivadas y con todas sus `depends_on` cerradas. En `multilane` ademas: las **fases de lane** solo si son del lane activo y ese lane esta libre; las **barreras** (`F0`, `FB-NN`, sin `lane`) solo si **ningun** lane tiene changes abiertos. En `waves` no se filtra por oleada: el ancho `N` no lo comprueba ningun comando | El roadmap esta agotado o todo esta bloqueado. Di **cual** es el bloqueo (barrera pendiente, dependencia sin cerrar, lane ocupado) |
 
 ### Por que esto importa mas con paralelismo
 

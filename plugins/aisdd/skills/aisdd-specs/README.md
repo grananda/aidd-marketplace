@@ -145,7 +145,7 @@ Implementa un cambio en dos fases:
 2. **Aplicacion de instrucciones**:
 
    ```bash
-   openspec instructions apply --change <what-you-want-to-build>
+   openspec instructions apply --change <change-slug>
    ```
 
 El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea implementar.
@@ -172,7 +172,7 @@ El puntero `openspec/.lane` es **estado local de cada dev** y va en `.gitignore`
 Archiva un cambio:
 
 ```bash
-openspec archive <what-you-want-to-build>
+openspec archive <change-slug>
 ```
 
 El argumento es opcional si solo hay un cambio OpenSpec abierto. Si hay varios, el agente debe preguntar cual desea archivar.

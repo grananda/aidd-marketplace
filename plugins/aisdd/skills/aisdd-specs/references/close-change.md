@@ -17,7 +17,7 @@ Archiva un cambio OpenSpec.
    - En modo `atomic` este paso no aplica.
 6. Ejecuta:
    ```bash
-   openspec archive <what-you-want-to-build>
+   openspec archive <change-slug>
    ```
 7. **Transicion en Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)" (`references/jira.md`)):
    - Localiza en `docs/jira-sync.md` las **HU del change** y resuelve el **modo** de cada una (Story directa vs sub-tarea).

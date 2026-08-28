@@ -12,7 +12,7 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 5. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
 6. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
    ```bash
-   openspec instructions apply --change <what-you-want-to-build>
+   openspec instructions apply --change <change-slug>
    ```
 7. **Transicion en Jira (opcional)**: si la integracion con Jira esta activa (ver "Integracion con Jira (opcional)" (`references/jira.md`)), al arrancar la implementacion:
    - Localiza en `docs/jira-sync.md` las **HU del change** y resuelve el **modo** de cada una (Story directa vs sub-tarea). Si una HU en modo sub-tarea no tiene aun la sub-tarea de este change (p. ej. se abrio sin Jira), creala ahora como en `open change`; si una HU no tiene Story, omitela con aviso.

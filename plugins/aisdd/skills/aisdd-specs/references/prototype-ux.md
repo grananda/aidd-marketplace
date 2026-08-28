@@ -8,7 +8,7 @@
 
 Genera prototipos UX.
 
-- Si llega `<what-you-want-to-build>`, identifica en el cambio las pantallas nuevas o modificadas revisando `design.md`, `proposal.md` y `spec.md`.
+- Si llega `<change-slug>`, identifica en ese change las pantallas nuevas o modificadas revisando `design.md`, `proposal.md` y `spec.md`.
 - Lanza el skill `booster-ux` una vez por cada pantalla nueva identificada.
 - Si no llega argumento, lanza directamente `booster-ux` y sigue su flujo de preguntas.
 - Si no existe `booster-ux`, avisa donde debe instalarse y no generes prototipos por otro camino salvo peticion expresa del usuario.
