@@ -50,6 +50,8 @@ Si el fichero no existe, **detente en el paso 2** y remite a `aidd user-story-de
 - `foundation: true` en la fase base. Implica `shared`.
 - `equipo.devs`: developers **de implementacion** disponibles (mismo criterio que el paso 0: no cuentes Lead, Architect ni Outcome Validator).
 - `eleccion_usuario`: lo que el usuario dijo en el paso 9.
+- `estado`: `pendiente` (default), `hecha` o `en_curso`. Solo aplica al **re-estrategiar** un proyecto en marcha (ver "Cambiar de estrategia a mitad de proyecto", `references/roadmap.md`). Lo `hecho` sale del calculo y sus dependencias quedan satisfechas; lo `en_curso` entra anclado, ocupando a su dev desde el minuto cero.
+- `restante_days`: en las fases `en_curso`, lo que falta. Sin el se asume la fase entera.
 
 **2. Lanza el script** (ver "Scripts del skill", `references/scripts.md`):
 
@@ -70,6 +72,15 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/optimize_phasing.py" \
 | **Coste de no ampliar** | Dias que se pierden por no anadir developers. Es el argumento de negocio |
 
 **Lo que el calendario no dice.** Un camino mas corto puede ser mas fragil. En el HTML, las barras con borde grueso y trama son fases de **superficie compartida corriendo sin barrera**: solo aparecen fuera de `multilane`, y son exactamente el riesgo que las oleadas no cubren. Dilo al presentar: *"`waves` sale 2 dias mas rapido, pero deja tres fases de contrato sin proteger"*.
+
+## Re-estrategiar un proyecto en marcha
+
+Mismo pre-flight, con dos diferencias que cambian como se lee:
+
+- **El calendario que se compara es el restante**, no el total. Lo entregado no vuelve, y meterlo en la cifra haria que cualquier cambio pareciera marginal.
+- **La comparativa lleva una banda de lo ya cerrado** antes de la marca de *hoy*. Se lista sin escala de tiempo a proposito: no consta cuando ocurrio cada fase, y pintarla a escala seria inventar historia.
+
+El campo `diagnostico` del JSON resume la situacion en una linea. **Presentalo tal cual**, sobre todo cuando dice que el calendario ya toca el camino critico: significa que el cuello es una cadena de dependencias y que el developer que acaban de incorporar **no va a acelerar nada**. Es la respuesta que menos gusta y la que mas falta hace.
 
 ## Reglas al recomendar
 

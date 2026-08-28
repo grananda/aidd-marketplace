@@ -16,6 +16,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-08 | Versión global + CI de release y validación | marketplace | **implementada** | 2026-08-26 |
 | F-09 | Plugin `aiba` y skill de Diseño Funcional (DF en Word) | aiba | **implementada** | 2026-08-27 |
 | F-10 | Mover la capa de entrega y medición de `aidd` a `aiba` | aiba, aidd | **implementada** | 2026-08-27 |
+| F-11 | Pre-flight de optimización del faseado: compara caminos, calcula el óptimo y re-estrategia sobre proyecto en marcha | aisdd | **implementada** | 2026-08-28 |
 
 ---
 

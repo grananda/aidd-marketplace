@@ -93,6 +93,16 @@ EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 
 MODOS = ("atomic", "waves", "multilane")
 
+# Estado de una fase en un proyecto ya en marcha. Cambiar de estrategia a mitad
+# no es re-fasear desde cero: hay trabajo cerrado que no se toca y trabajo en
+# vuelo que no se puede reasignar.
+#   hecha      change archivado. Fuera del calculo; sus dependencias ya estan
+#              satisfechas. Aparece en el diagrama, pero no compite por devs.
+#   en_curso   change abierto. Ocupa un dev **ahora** y no se puede mover a otro
+#              lane a mitad: entra al calculo anclado, con su esfuerzo restante.
+#   pendiente  sin empezar. Es lo unico que la re-estrategia puede reordenar.
+ESTADOS = ("hecha", "en_curso", "pendiente")
+
 
 # --------------------------------------------------------------------------- #
 # Entrada
@@ -124,10 +134,21 @@ def lee_fases(datos: dict) -> list[dict]:
         if fid in vistos:
             raise EntradaInvalida(f"id de fase duplicado: {fid}")
         vistos.add(fid)
+        estado = str(f.get("estado") or "pendiente").strip().lower()
+        if estado not in ESTADOS:
+            raise EntradaInvalida(
+                f"{fid}: estado '{estado}' no es {' | '.join(ESTADOS)}")
+        dias = esfuerzo(f.get("effort_days", f.get("talla", 0)))
+        # Una fase en curso ya lleva trabajo hecho. Sin dato de lo que queda se
+        # asume entera: pasarse por arriba retrasa el plan, pasarse por abajo lo
+        # promete antes de tiempo, y de los dos errores el segundo es peor.
+        restante = esfuerzo(f["restante_days"]) if f.get("restante_days") is not None else dias
         fases.append({
             "id": fid,
             "titulo": str(f.get("titulo") or fid),
-            "dias": esfuerzo(f.get("effort_days", f.get("talla", 0))),
+            "dias": 0.0 if estado == "hecha" else (restante if estado == "en_curso" else dias),
+            "esfuerzo_original": dias,
+            "estado": estado,
             "depends_on": [str(d) for d in (f.get("depends_on") or [])],
             # Una fase que toca superficie compartida no puede vivir en un lane.
             # La foundation lo es por definicion: hasta que la base no esta, no
@@ -189,6 +210,17 @@ def niveles(fases: list[dict]) -> dict[str, float]:
 # --------------------------------------------------------------------------- #
 # Calculo
 # --------------------------------------------------------------------------- #
+def pendientes_de(fases: list[dict]) -> list[dict]:
+    """El grafo que queda por delante. Lo `hecho` sale, y con el sus aristas.
+
+    Una fase pendiente que dependia de una ya cerrada tiene esa dependencia
+    satisfecha: arrastrarla al calculo la haria esperar por algo que ya paso.
+    """
+    hechas = {f["id"] for f in fases if f["estado"] == "hecha"}
+    return [{**f, "depends_on": [d for d in f["depends_on"] if d not in hechas]}
+            for f in fases if f["estado"] != "hecha"]
+
+
 def camino_critico(fases: list[dict]) -> tuple[float, list[str]]:
     """Cadena de dependencias mas larga en dias. Cota inferior de todo calendario."""
     por_id = {f["id"]: f for f in fases}
@@ -234,9 +266,16 @@ def planifica(fases: list[dict], devs: int, modo: str) -> dict:
         lambda k: (-len(sucs[k]), -nivel[k]),      # la que desbloquea mas
         lambda k: (-nivel[k], -por_id[k]["dias"]),
     ]
+    # Lo que ya esta en vuelo no se reordena: colocarlo primero es lo que hace
+    # que ocupe a su dev desde el minuto cero en todos los candidatos.
+    def con_ancla(orden: list[str]) -> list[str]:
+        vivas = [k for k in orden if por_id[k]["estado"] == "en_curso"]
+        return vivas + [k for k in orden if k not in set(vivas)]
+
     mejor: dict | None = None
     for prioridad in candidatas:
-        r = _reparte(fases, por_id, orden_topologico(fases, prioridad=prioridad), devs, modo)
+        orden = con_ancla(orden_topologico(fases, prioridad=prioridad))
+        r = _reparte(fases, por_id, orden, devs, modo)
         if mejor is None or r["makespan"] < mejor["makespan"]:
             mejor = r
     return mejor
@@ -311,6 +350,7 @@ def _reparte(fases: list[dict], por_id: dict, topo: list[str],
             "id": fid, "titulo": f["titulo"], "dias": f["dias"],
             "inicio": inicio, "fin": fin, "maquina": maquina,
             "barrera": solo, "compartida": f["shared"], "oleada": oleada.get(fid),
+            "estado": f["estado"],
         })
 
     if modo == "waves":
@@ -381,14 +421,18 @@ def pista(p: dict, escala: float) -> str:
         for f in sorted(filas[maquina], key=lambda x: x["inicio"]):
             izq = f["inicio"] * escala
             ancho = max(f["dias"] * escala, 1.2)
-            if f["barrera"]:
+            if f["estado"] == "en_curso":
+                clase = "barra encurso"
+            elif f["barrera"]:
                 clase = "barra barrera"
             elif f["compartida"]:
                 clase = "barra desprotegida"  # toca superficie compartida y nada lo impide
             else:
                 clase = "barra"
             aviso = ""
-            if f["compartida"] and not f["barrera"]:
+            if f["estado"] == "en_curso":
+                aviso = " · EN CURSO, no se reasigna"
+            elif f["compartida"] and not f["barrera"]:
                 aviso = " · SUPERFICIE COMPARTIDA, sin barrera que la proteja"
             titulo = html.escape(f"{f['id']} · {f['titulo']} · {f['dias']:g} d{aviso}")
             barras.append(
@@ -410,7 +454,34 @@ def bloque(titulo: str, subtitulo: str, p: dict, escala: float, tono: str) -> st
 </section>"""
 
 
-def render(datos: dict, res: dict, caminos: list[tuple[str, str, dict, str]]) -> str:
+def banda_hechas(hechas: list[dict]) -> str:
+    """Lo cerrado, en una tira sin escala temporal.
+
+    No hay fechas de cuando ocurrio cada fase, asi que pintarlas a escala seria
+    inventar historia. Constan como hechas, con su esfuerzo, y ahi acaba.
+    """
+    if not hechas:
+        return ""
+    total = sum(f["esfuerzo_original"] for f in hechas)
+    chips = "".join(
+        f'<span class="chip" title="{html.escape(f["titulo"])} · '
+        f'{f["esfuerzo_original"]:g} d">{html.escape(f["id"])}</span>'
+        for f in hechas)
+    return f"""<section class="hechas">
+  <header>
+    <h2>Ya completado</h2>
+    <p class="meta">{len(hechas)} fase{'s' if len(hechas) != 1 else ''} cerrada{'s' if len(hechas) != 1 else ''} ·
+      {total:g} días de esfuerzo. <b>Fuera del cálculo</b>: no compiten por developers y sus
+      dependencias ya están satisfechas. Se listan sin escala de tiempo porque no consta cuándo
+      ocurrió cada una, y no se inventa.</p>
+  </header>
+  <div class="chips">{chips}</div>
+</section>
+<div class="hoy"><span>hoy</span></div>"""
+
+
+def render(datos: dict, res: dict, caminos: list[tuple[str, str, dict, str]],
+           hechas: list[dict] | None = None) -> str:
     peor = max(p["makespan"] for _, _, p, _ in caminos) or 1.0
     escala = 100.0 / peor
     proyecto = html.escape(str(datos.get("proyecto") or "Comparativa de faseado"))
@@ -465,10 +536,21 @@ h1{{font-size:1.9rem;margin:0 0 .3rem;letter-spacing:-.01em}}
 .tu .barra{{background:var(--user-bg);border-color:var(--user)}}
 .max .barra{{background:var(--max-bg);border-color:var(--max)}}
 .barra.barrera{{background:var(--barrera-bg);border-color:var(--barrera);border-style:dashed}}
+.barra.encurso{{background:var(--surface);border-color:var(--ink-2);border-style:dotted;border-width:2px}}
 .barra.desprotegida{{border-color:var(--barrera);border-width:2px;
   background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,
   color-mix(in srgb,var(--barrera) 22%,transparent) 3px,
   color-mix(in srgb,var(--barrera) 22%,transparent) 6px)}}
+.hechas{{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--ink-2);
+  border-radius:4px;padding:1.1rem 1.25rem;margin-bottom:0;opacity:.8}}
+.hechas h2{{font-size:1.05rem;margin:0}}
+.chips{{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.7rem}}
+.chip{{font-family:var(--mono);font-size:.68rem;padding:.2rem .5rem;border-radius:2px;
+  border:1px solid var(--line);background:var(--ground);color:var(--ink-2)}}
+.chip::before{{content:"\2713\00a0";color:var(--opt)}}
+.hoy{{display:flex;align-items:center;gap:.6rem;margin:.9rem 0 1.1rem;
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}}
+.hoy::before,.hoy::after{{content:"";flex:1;height:1px;background:var(--line)}}
 table{{border-collapse:collapse;width:100%;margin:.6rem 0 0;font-size:.88rem}}
 th,td{{border-bottom:1px solid var(--line);padding:.4rem .6rem;text-align:left}}
 td.num,th.num{{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}}
@@ -488,6 +570,7 @@ compartida</b> —contrato, esquema, permisos, rollout— corriendo <b>sin barre
 Solo aparecen fuera de <code>multilane</code>: es la diferencia que el calendario no muestra.
 Un camino más corto con esas barras es más rápido <em>y</em> más frágil.</p>
 
+{banda_hechas(hechas or [])}
 {"".join(bloque(t, s, p, escala, tono) for t, s, p, tono in caminos)}
 
 <div class="nota">
@@ -513,6 +596,7 @@ Un camino más corto con esas barras es más rápido <em>y</em> más frágil.</p
   <span><i class="sw" style="background:var(--max-bg);border-color:var(--max)"></i> óptimo absoluto</span>
   <span><i class="sw" style="background:var(--barrera-bg);border-color:var(--barrera);border-style:dashed"></i> barrera</span>
   <span><i class="sw" style="border-color:var(--barrera);border-width:2px"></i> superficie compartida <b>sin proteger</b></span>
+  <span><i class="sw" style="border-color:var(--ink-2);border-style:dotted;border-width:2px"></i> en curso, no se reasigna</span>
 </p>
 </div></body></html>"""
 
@@ -542,10 +626,18 @@ def main() -> int:
 
     # Barrer mas alla del numero de fases no aporta: nunca hay tantas ejecutables
     # a la vez, asi que el makespan deja de moverse.
-    tope = max(len(fases), equipo, devs_usuario)
+    # Re-estrategia: lo cerrado sale del calculo, pero se conserva para el informe.
+    hechas = [f for f in fases if f["estado"] == "hecha"]
+    restantes = pendientes_de(fases)
+    if not restantes:
+        print(json.dumps({"error": "todas las fases estan hechas: no hay nada que planificar"},
+                         ensure_ascii=False))
+        return 2
+
+    tope = max(len(restantes), equipo, devs_usuario)
     try:
-        res = barrido(fases, tope)
-        plan_usuario = planifica(fases, devs_usuario, modo_usuario)
+        res = barrido(restantes, tope)
+        plan_usuario = planifica(restantes, devs_usuario, modo_usuario)
     except EntradaInvalida as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -566,11 +658,11 @@ def main() -> int:
 
     # Optimo con el equipo que hay: el mejor modo sin pasar de `equipo` devs.
     con_equipo = min(
-        (planifica(fases, min(res["optimo"][m]["devs"], equipo), m) for m in MODOS),
+        (planifica(restantes, min(res["optimo"][m]["devs"], equipo), m) for m in MODOS),
         key=preferencia)
     # Optimo absoluto: el mejor modo sin tope de equipo.
     absoluto = min(
-        (planifica(fases, res["optimo"][m]["devs"], m) for m in MODOS),
+        (planifica(restantes, res["optimo"][m]["devs"], m) for m in MODOS),
         key=preferencia)
 
     caminos = [
@@ -590,10 +682,33 @@ def main() -> int:
             absoluto, "max"))
 
     if args.out:
-        Path(args.out).write_text(render(datos, res, caminos), encoding="utf-8")
+        Path(args.out).write_text(render(datos, res, caminos, hechas), encoding="utf-8")
+
+    # El diagnostico en una linea. Sin el, "ahorro 0 / coste 0" obliga a deducir
+    # que pasa, y lo que pasa -- que el cuello es una cadena, no la plantilla --
+    # es justo lo que el usuario necesita oir cuando acaba de contratar a alguien.
+    if con_equipo["makespan"] <= res["critico"] + 1e-9:
+        diagnostico = (
+            f"El calendario ya toca el camino critico ({res['critico']:g} d): el cuello es una "
+            f"cadena de dependencias, no el numero de developers. Anadir gente no lo acorta; "
+            f"acortarlo exige romper esa cadena al re-fasear.")
+    elif plan_usuario["makespan"] > con_equipo["makespan"]:
+        diagnostico = (
+            f"Cambiar a {con_equipo['modo']} con {con_equipo['devs']} dev(s) ahorra "
+            f"{plan_usuario['makespan'] - con_equipo['makespan']:g} d sin tocar el equipo.")
+    elif absoluto["makespan"] < con_equipo["makespan"]:
+        diagnostico = (
+            f"Con el equipo actual no hay margen; {absoluto['devs'] - equipo} developer(s) mas "
+            f"ahorrarian {con_equipo['makespan'] - absoluto['makespan']:g} d.")
+    else:
+        diagnostico = "La configuracion actual ya es la mejor disponible."
 
     resumen = {
+        "diagnostico": diagnostico,
         "critico_dias": res["critico"],
+        "ya_hecho": {"fases": [f["id"] for f in hechas],
+                     "dias": round(sum(f["esfuerzo_original"] for f in hechas), 2)},
+        "en_curso": [f["id"] for f in restantes if f["estado"] == "en_curso"],
         "tu_eleccion": {k: plan_usuario[k] for k in ("modo", "devs", "makespan", "barreras")},
         "optimo_con_equipo": {k: con_equipo[k] for k in ("modo", "devs", "makespan", "barreras")},
         "optimo_absoluto": {k: absoluto[k] for k in ("modo", "devs", "makespan", "barreras")},

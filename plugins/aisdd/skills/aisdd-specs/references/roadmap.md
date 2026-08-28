@@ -121,7 +121,9 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 
 Este camino existe porque **una oleada es una anotacion, no una particion**: se puede calcular sobre un faseado ya hecho sin alterarlo. Es el caso tipico de un proyecto ya disenado y planificado al que se le quiere anadir paralelismo porque ahora hay mas devs.
 
-**Solo aplica al modo `waves`.** Los lanes **no se pueden anotar**: el corte en lineas de trabajo determina que entra en cada fase y como se llama, asi que retrofitarlos exige re-fasear. Si el usuario quiere `multilane` sobre un roadmap existente, dilo con claridad y ofrece el re-faseado completo, advirtiendo de que cambiaran los identificadores de fase y, con ellos, los `change_hint` que enlazan con `docs/sprint-plan.md` y con Jira.
+**Solo aplica al modo `waves`.** Los lanes **no se pueden anotar**: el corte en lineas de trabajo determina que entra en cada fase y como se llama, asi que retrofitarlos exige re-fasear.
+
+**Pero re-fasear no obliga a tocarlo todo.** En un proyecto en marcha, las fases ya cerradas conservan su identificador y su `change_hint`, y solo se re-fasean las **pendientes**. Eso hace viable pasar a `multilane` a mitad de proyecto sin romper el enlace con `docs/sprint-plan.md` ni con Jira de lo ya entregado. Es el camino de "Cambiar de estrategia a mitad de proyecto", mas abajo.
 
 Procedimiento:
 
@@ -137,6 +139,29 @@ Procedimiento:
 Lo que este camino **no** hace, y conviene decirlo en el resumen: no re-evalua el presupuesto de contexto, no repone fases mal dimensionadas y no cuestiona el corte. Anota lo que hay. Si el faseado original tenia problemas, siguen ahi.
 
 Ventaja practica: como no cambia ningun `change_hint`, **no rompe el enlace con el sprint-plan ni con Jira**. Anotar es seguro sobre un proyecto en marcha; re-fasear no.
+
+### Cambiar de estrategia a mitad de proyecto
+
+El caso: el roadmap lleva fases cerradas y algo cambia — entra un developer, o el ritmo no da y hay que replantear el modo. **No es re-fasear desde cero**, porque hay trabajo entregado que no se toca y trabajo en vuelo que no se puede reasignar.
+
+**Tres estados de fase**, y cada uno se trata distinto:
+
+| Estado | De donde sale | Que se hace con el |
+|---|---|---|
+| **Hecha** | Su change esta **archivado** | **Congelada**: conserva id y `change_hint`. Sale del calculo, pero aparece como hecha en la comparativa |
+| **En curso** | Su change esta **abierto** (`openspec list`) | **Anclada**: ocupa a su dev desde ahora y **no se puede mover de lane** a mitad. Entra al calculo con su esfuerzo **restante** |
+| **Pendiente** | Ni abierta ni archivada | **Lo unico reordenable.** Es sobre esto que se optimiza |
+
+Procedimiento:
+
+1. **Clasifica las fases.** Cruza `roadmap.phases` con `openspec list` y con `openspec/changes/archive/` usando el `change_hint`. Si una fase no tiene change asociado, es pendiente.
+2. **Pregunta que ha cambiado**: cuantos developers hay **ahora** y si el usuario quiere replantear el modo. Su respuesta es la `eleccion_usuario` del paso siguiente.
+3. **Estima lo que queda de las fases en curso.** Preguntalo; sin dato, el script asume la fase entera, que retrasa el plan en vez de prometerlo antes de tiempo.
+4. **Lanza el pre-flight de optimizacion** (`references/optimizer.md`) con los estados marcados. Compara **calendario restante**, no total: lo entregado no vuelve.
+5. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
+6. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
+
+**Lo que este camino no arregla.** Si el pre-flight dice que el calendario ya toca el camino critico, **el cuello es una cadena de dependencias y no la plantilla**: anadir gente no lo acorta. Dilo tal cual. Acortarlo exige romper esa cadena partiendo o reordenando fases pendientes, que es una decision de faseado, no de estrategia.
 
 ### Decision de modo de faseado
 

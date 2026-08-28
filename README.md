@@ -110,6 +110,10 @@ Dos cifras que el diagrama pone delante:
 - **El camino crítico** — la cadena de dependencias más larga. Ningún reparto baja de ahí. Cuando un camino la toca, añadir gente ya no compra calendario.
 - **Las fases sin proteger** — fuera de `multilane`, las que tocan contrato o esquema corren sin barrera. Un camino más corto con esas barras es más rápido *y* más frágil, y el calendario solo no lo cuenta.
 
+**Con el proyecto ya en marcha** funciona igual, pero comparando el calendario **restante**: entra un developer nuevo, o el ritmo no da y quieres replantear el modo. Las fases ya cerradas se congelan —conservan su identificador y su enlace con Jira— y solo se re-fasean las pendientes; las que están en vuelo quedan ancladas a su dev, porque un change abierto no se mueve de línea a mitad. En el diagrama aparecen las tres: lo hecho en una banda antes de *hoy*, lo en curso marcado como no reasignable, y lo pendiente ya repartido según la estrategia nueva.
+
+Ahí la respuesta más útil suele ser la que menos gusta: si el calendario restante ya toca el camino crítico, el cuello es una cadena de dependencias y **el developer que acabas de incorporar no va a acelerar nada**. El pre-flight lo dice en una línea en vez de dejarte deducirlo de dos cifras iguales.
+
 Requiere `docs/detalle-historias-usuario.md`: sin las tallas no hay esfuerzo por fase, y sin esfuerzo el calendario sería inventado.
 
 #### Qué pasa si omites el argumento
