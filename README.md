@@ -97,6 +97,10 @@ Sin esa línea base, el primer `open change` no puede saber qué existe ya y aca
 
 A partir de ahí el flujo es el normal: `aisdd roadmap` para fasear lo pendiente y el ciclo de changes aplicando **deltas sobre esas specs base**.
 
+#### Qué pasa si omites el argumento
+
+Todos los argumentos son **opcionales**, y con paralelismo tener varios changes abiertos es lo normal, no la excepción. Si lo omites, el comando no elige por su cuenta: reúne los candidatos y, si hay más de uno, **te los presenta con el contexto que permite reconocerlos** —fase y objetivo, más la oleada en `waves`, más el lane en `multilane`— para que no tengas que ir a buscar el slug. Con un solo candidato lo usa y te lo dice. Si no puede preguntar (modo no interactivo) y hay ambigüedad, **se detiene** en vez de escoger.
+
 #### Cuánto pregunta el pre-flight
 
 `open change` e `implement change` no actúan a ciegas: antes resuelven las ambigüedades reales con el humano y las persisten en `decisions.md`.
