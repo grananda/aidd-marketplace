@@ -190,12 +190,22 @@ DOC_TYPES = {
     "roadmap": {"label": "Roadmap", "phase": "Fase 3"},
     "planificacion-proyecto": {"label": "Plan de proyecto", "phase": "Fase 3.5 · 3.5.1"},
     "sprint-plan": {"label": "Plan de sprints", "phase": "Fase 3.5 · 3.5.2"},
+    "kpis-ia": {"label": "KPIs de uso de IA", "phase": "Medicion"},
 }
 
 
 def detect_doc_type(stem: str) -> str:
+    """Tipo de documento a partir del nombre de fichero, por subcadena.
+
+    De la clave mas larga a la mas corta, no en el orden del dict. Varias son
+    prefijo de otras -- `arquitectura-base` lo es de `arquitectura-base-prototipo`,
+    y `requisitos` de `cliente-requisitos` -- asi que recorrer el dict tal cual
+    solo acierta mientras nadie mueva una entrada. El orden actual es el correcto,
+    pero es una propiedad invisible al anadir un tipo nuevo y que nada comprueba:
+    un documento mal tipado no falla, sale con la etiqueta y la fase de otro.
+    """
     stem = stem.lower()
-    for key in DOC_TYPES:
+    for key in sorted(DOC_TYPES, key=len, reverse=True):
         if key in stem:
             return key
     return "generic"
