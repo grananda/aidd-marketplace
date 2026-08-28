@@ -92,13 +92,9 @@ else:
             filas.append((pj.parts[-3], antes or "nuevo", ahora))
             if es_major(antes, ahora):
                 majors.append(f"`{pj.parts[-3]}` ({antes} → {ahora})")
-    if majors or rotos:
-        out.append("## Atención al actualizar\n")
-        if majors:
-            out.append("Versión mayor — revisa antes de actualizar: "
-                       + ", ".join(majors) + ".\n")
-        out += [f"- {r}" for r in rotos]
-        out.append("")
+    # Hueco reservado: la seccion va la primera, pero no se puede componer hasta
+    # haber recorrido plugins Y skills.
+    hueco = len(out)
 
     nuevas = []
     antes_rm = roadmap_estados(git("show", f"{anterior}:ROADMAP.md"))
@@ -160,6 +156,15 @@ else:
         out.append("")
         out.append("> Si tenías alguno instalado, reinstala el plugin de destino: "
                    "sus comandos ya no responden con el prefijo antiguo.\n")
+
+    if majors or rotos:
+        seccion = ["## Atención al actualizar\n"]
+        if majors:
+            seccion.append("Versión mayor — revisa antes de actualizar: "
+                           + ", ".join(majors) + ".\n")
+        seccion += [f"- {r}" for r in rotos]
+        seccion.append("")
+        out[hueco:hueco] = seccion
 
     if not filas and not filas_s and not idas:
         out.append("_Sin cambios de versión en plugins ni skills; cambios de documentación o infraestructura._\n")
