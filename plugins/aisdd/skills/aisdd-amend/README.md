@@ -29,7 +29,7 @@ Es el brazo operativo de la "Regla de corte" de la metodologia (ver `aisdd-specs
 5. Escribe el delta: criterios en `spec.md`, decision en `design.md` si aplica, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`.
 6. Implementa **solo** las tareas nuevas. Nunca ejecuta `openspec instructions apply`.
 7. Verifica contra la baseline que no hay regresiones en el radio de impacto del cambio.
-8. Escribe la entrada de auditoria en `openspec/audit/`, usando el script `audit.py` de `aisdd-specs` (compone la entrada, calcula los hashes y purga por retencion de forma determinista). Si Python no esta disponible o el plugin `aisdd` no esta instalado junto a este skill, la compone a mano y lo dice en el resumen.
+8. Escribe la entrada de auditoria en `openspec/audit/`, usando el script `audit.py` de `aisdd-specs` (compone la entrada, calcula los hashes y purga por retencion de forma determinista). Si Python no esta disponible o el script falla, la compone a mano y lo dice en el resumen; nunca la omite.
 
 ## La baseline, y por que importa
 

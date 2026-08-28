@@ -164,6 +164,8 @@ Si el usuario elige `waves`, salta al paso "Construccion de las oleadas". Si eli
 4. Repite hasta colocar todas las fases. Si una fase nunca es colocable, hay un **ciclo** en `depends_on`: corrigelo antes de escribir nada.
 5. Comprueba el ancho real de cada oleada. Si la media queda muy por debajo de `parallel_developers`, dilo: el faseado no es paralelizable y quiza `parallel_developers` esta sobreestimado, o las fases estan mal cortadas.
 
+**Construccion de los lanes (solo modo `multilane`).** Los siete pasos que siguen reemplazan a la construccion de oleadas de arriba; no la continuan.
+
 **1. Calcula el numero de lanes viable. No lo adivines ni lo preguntes en frio.**
 
 - **Modulos disjuntos**: lee `docs/arquitectura-base.md`, seccion "Descomposicion por modulos / dominios", y cuenta los modulos cuyas **rutas de codigo no se solapan**. Descarta los que compartan esquema de datos o migraciones (tipicamente `data` con `back`): esos son un solo lane.
@@ -274,7 +276,7 @@ Ejemplo de aplicacion correcta: una fase queda grande para el gusto de la regla 
 
 ### Alineacion con la capa de entrega (sprint-plan)
 
-Si existe `docs/sprint-plan.md`, el roadmap **se pliega a los sprints ya planificados** por AIDD, sin dejar que la capacidad mande sobre el presupuesto de contexto. Regla de jerarquia: **el presupuesto de contexto decide el tamano del change; el sprint decide el orden, las fronteras y que HU estan comprometidas.**
+Si existe `docs/sprint-plan.md`, el roadmap **se pliega a los sprints ya planificados** por AIBA, sin dejar que la capacidad mande sobre el presupuesto de contexto. Regla de jerarquia: **el presupuesto de contexto decide el tamano del change; el sprint decide el orden, las fronteras y que HU estan comprometidas.**
 
 - **Orden**: fasea en el **mismo orden** que los sprints (que ya refleja prioridad de negocio, capacidad y dependencias).
 - **Fronteras**: haz coincidir los **cortes de fase con las fronteras de sprint** y con los gates de validacion (de `plan-revision-hu.md`) siempre que el contexto lo permita.

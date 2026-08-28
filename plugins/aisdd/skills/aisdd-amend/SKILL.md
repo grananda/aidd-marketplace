@@ -3,7 +3,7 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
@@ -94,7 +94,7 @@ Para cerrar ese agujero, sin re-fasear:
 1. Identifica las fases futuras afectadas en `roadmap.phases` (las de otros lanes que dependan del contrato o de las specs que el delta cambia).
 2. **Marcalas**: anade a cada una en `openspec/config.yaml` una clave `amended_by: <slug-del-change-enmendado>` y una linea en la seccion correspondiente de `docs/roadmap.md` indicando que la fase debe leer esa enmienda antes de abrirse.
 3. **No cambies nada mas del roadmap**: ni el orden, ni el alcance, ni los `change_hint`. La marca es una senal, no un re-faseado.
-   `aisdd open change` la recoge en su paso 5: al abrir esa fase lee el `decisions.md` del change indicado, incorpora el delta a sus specs y retira la marca. Si `aisdd roadmap` se re-ejecuta antes, conserva los `amended_by` de las fases que sobrevivan con el mismo `change_hint`.
+   `aisdd open change` la recoge en su paso "Enmiendas pendientes de esta fase": al abrir esa fase lee el `decisions.md` del change indicado, incorpora el delta a sus specs y retira la marca. Si `aisdd roadmap` se re-ejecuta antes, conserva los `amended_by` de las fases que sobrevivan con el mismo `change_hint`.
 4. Dilo en el resumen final: que fases quedaron marcadas y que lanes las ejecutaran.
 
 Es el mismo patron que ya usa `aisdd roadmap` cuando registra "Conflictos de alineacion roadmap<->sprint" en lugar de reescribir el `sprint-plan.md`: **quien detecta el desajuste lo senala; quien tiene la competencia lo resuelve.**
@@ -225,7 +225,7 @@ Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `
 echo '<json>' | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
 ```
 
-Si el plugin `aisdd` no esta instalado junto a este skill, compon la entrada a mano segun `references/audit.md` y dilo en el resumen.
+Si Python no esta disponible o el script falla, compon la entrada a mano segun `aisdd-specs`, `references/audit.md`, y dilo en el resumen. **No la omitas**: la auditoria es obligatoria tambien cuando el script no puede escribirla.
 
 Particularidades de este comando:
 
