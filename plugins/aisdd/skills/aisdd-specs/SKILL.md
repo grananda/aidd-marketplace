@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.3.0"
+  version: "2.3.1"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -93,4 +93,4 @@ Al terminar cualquier comando, informa:
 - errores o tareas manuales pendientes
 - documentación faltante (en caso de que aplique)
 - **en modo `multilane`**: lane activo, resultado de la verificacion de independencia si hubo cierre, y barreras pendientes que bloqueen al resto de lanes
-- resultado de `check_mojibake.py` sobre los artefactos escritos. **Es un paso obligatorio del comando**, no una opcion: di si no hubo incidencias, que ficheros se repararon, y **cuales quedan con mojibake sin reparar** (los que tengan `U+FFFD` hay que regenerarlos). Los comandos que solo delegan en un booster (`prototype-ux`, `uml`) no escriben artefactos propios: ahi lo comprueba el booster sobre su salida
+- resultado de `check_mojibake.py` sobre los artefactos escritos. **Es un paso obligatorio del comando**, no una opcion: di si no hubo incidencias, que ficheros se repararon, y **cuales quedan con mojibake sin reparar** (los que tengan `U+FFFD` hay que regenerarlos). Tres comandos quedan fuera y no es un olvido: `prototype-ux` y `uml` solo delegan en un booster, que ya verifica su propia salida, y `aisdd lane` no escribe mas que el puntero local `openspec/.lane`. **El codigo fuente tampoco se comprueba** — ver "Scripts del skill" (`references/scripts.md`)

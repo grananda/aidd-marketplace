@@ -231,7 +231,7 @@ Tres scripts en `scripts/`, solo con biblioteca estandar de Python 3:
 |---|---|
 | `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
 | `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
-| `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252 en los artefactos escritos |
+| `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252. **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, justo antes de la entrada de auditoria y solo sobre los artefactos documentales, nunca sobre codigo fuente |
 
 Cubren las tres mecanicas que antes eran prosa que el agente debia ejecutar bien **cada vez**. Son exactas o no son, y una equivocacion no deja rastro de cuando ocurrio.
 
