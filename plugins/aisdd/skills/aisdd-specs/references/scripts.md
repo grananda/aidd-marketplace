@@ -50,4 +50,6 @@ Detecta secuencias de UTF-8 mal interpretado como Latin-1/CP1252. Importa porque
 
 **Nunca sobre codigo fuente**, aunque este en los `output_files` de la auditoria. Hay ficheros que llevan esas secuencias **a proposito**: el propio `check_mojibake.py` y el `render_docs_html.py` de `booster-docs` las tienen en sus tablas de deteccion, y ambos dan positivo si te los pasas por encima. Con `--fix` no solo darias un falso positivo: reescribirias la herramienta. Por eso la CI del repo tambien se limita a `*.md`.
 
+**Sin el script.** Si `python3` no esta disponible, la degradacion no es saltarse el paso: busca a mano en esos mismos ficheros las secuencias `U+00C3`, `U+00C2`, `U+00E2 U+20AC` y `U+FFFD` —la misma lista que usa `booster-uml`—, corrige lo que puedas y di en el resumen que la comprobacion fue manual.
+
 Codigo de salida `1` si queda mojibake. Con `--fix` repara in situ, token a token y **solo cuando el resultado mejora**. El caracter de reemplazo `U+FFFD` se detecta pero **no se puede reparar**: ahi la informacion original ya se perdio, y hay que regenerar el fichero.
