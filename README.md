@@ -52,7 +52,7 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 
 #### Cómo paralelizar el trabajo (tres modos)
 
-Por defecto el ciclo es **mono-hilo**: un change abierto a la vez. Con varios developers eso deja a casi todos esperando, así que `aisdd roadmap` pregunta cuántos trabajan en paralelo y ofrece dos formas de repartir. **No compiten: son ejes perpendiculares.**
+Por defecto el ciclo **plantea** un solo hilo: un change abierto a la vez. Es una convención del faseado, no un guard — fuera de `multilane` nada comprueba cuántos changes hay abiertos. Con varios developers eso deja a casi todos esperando, así que `aisdd roadmap` pregunta cuántos trabajan en paralelo y ofrece dos formas de repartir. **No compiten: son ejes perpendiculares.**
 
 ```
                 Oleada 1    Oleada 2         Oleada 3    Oleada 4
@@ -70,7 +70,7 @@ lane import     │          │ F-import-01   │           │          │
 
 | Modo | Qué paraleliza | Garantía | Cuándo |
 |------|----------------|----------|--------|
-| `atomic` | Nada | Total, por construcción | Un dev, o sin base para separar. **Default** |
+| `atomic` | Nada | **Por convención**, no verificada | Un dev, o sin base para separar. **Default** |
 | `waves` (oleadas) | Hasta `N` fases a la vez, respetando dependencias | **Ninguna** — ordena, no protege | Varios devs sin superficies declarables |
 | `multilane` (lanes) | `N` líneas persistentes, un change **por lane** | Declarada y **verificada** al cerrar | Módulos con rutas de código disjuntas |
 

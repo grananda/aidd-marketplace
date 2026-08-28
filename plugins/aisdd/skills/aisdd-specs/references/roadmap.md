@@ -155,7 +155,7 @@ Con `parallel_developers: 1` no hay nada que decidir: el modo es `atomic` y el r
 
 Si el usuario elige `waves`, salta al paso "Construccion de las oleadas". Si elige `multilane`, sigue con los pasos 1-7.
 
-**Configuracion previa.** Si `openspec/config.yaml` ya trae `roadmap.mode`, proponlo como default en la pregunta (el proyecto ya eligio antes). Cambiar de modo entre ejecuciones esta permitido, pero **avisa de lo que implica**: pasar de `multilane` a `waves` o `atomic` deja sin efecto los `paths` y la verificacion de `close change`; pasar a `multilane` obliga a declarar rutas para todas las fases.
+**Configuracion previa.** Si `openspec/config.yaml` ya trae `roadmap.mode`, proponlo como default en la pregunta (el proyecto ya eligio antes). Cambiar de modo entre ejecuciones esta permitido, pero **avisa de lo que implica**: pasar de `multilane` a `waves` o `atomic` deja sin efecto los `paths` y la verificacion de `close change`; pasar a `multilane` obliga a declarar rutas para todas las fases. **Al salir de `multilane`, di al usuario que borre `openspec/.lane`**: es estado local suyo, no lo borres tu, pero sin aviso queda un puntero a un lane que ya no existe.
 
 **Construccion de las oleadas (solo modo `waves`).**
 
