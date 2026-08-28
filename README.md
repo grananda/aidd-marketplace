@@ -97,6 +97,21 @@ Sin esa línea base, el primer `open change` no puede saber qué existe ya y aca
 
 A partir de ahí el flujo es el normal: `aisdd roadmap` para fasear lo pendiente y el ciclo de changes aplicando **deltas sobre esas specs base**.
 
+#### El sistema calcula el óptimo y te lo enseña
+
+Elegir modo y número de developers a ciegas es elegir mal: la diferencia entre `waves` con 2 devs y `multilane` con 3 puede ser de semanas, y no se ve mirando una lista de fases.
+
+`aisdd roadmap` **te pregunta primero** qué modo elegirías tú. Después, ya con las fases diseñadas y sus dependencias, calcula el calendario de cada modo con cada número de devs y genera `docs/html/faseado-comparativa.html`: **tu camino y el óptimo, uno al lado del otro**, a la misma escala de tiempo, con las barreras marcadas. Si el óptimo necesita más gente de la que hay, lo dice con el coste en días — es el argumento de negocio para pedir equipo.
+
+El orden importa. Se pregunta antes de calcular, porque proponer el óptimo primero convertiría la comparativa en una recomendación con una alternativa de adorno.
+
+Dos cifras que el diagrama pone delante:
+
+- **El camino crítico** — la cadena de dependencias más larga. Ningún reparto baja de ahí. Cuando un camino la toca, añadir gente ya no compra calendario.
+- **Las fases sin proteger** — fuera de `multilane`, las que tocan contrato o esquema corren sin barrera. Un camino más corto con esas barras es más rápido *y* más frágil, y el calendario solo no lo cuenta.
+
+Requiere `docs/detalle-historias-usuario.md`: sin las tallas no hay esfuerzo por fase, y sin esfuerzo el calendario sería inventado.
+
 #### Qué pasa si omites el argumento
 
 Todos los argumentos son **opcionales**, y con paralelismo tener varios changes abiertos es lo normal, no la excepción. Si lo omites, el comando no elige por su cuenta: reúne los candidatos y, si hay más de uno, **te los presenta con el contexto que permite reconocerlos** —fase y objetivo, más la oleada en `waves`, más el lane en `multilane`— para que no tengas que ir a buscar el slug. Con un solo candidato lo usa y te lo dice. Si no puede preguntar (modo no interactivo) y hay ambigüedad, **se detiene** en vez de escoger.

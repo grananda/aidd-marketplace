@@ -15,7 +15,7 @@ references/
   open-change.md  implement-change.md  close-change.md  lane.md
   prototype-ux.md  uml.md  jira.md  audit.md  scripts.md
 scripts/
-  audit.py  agents_block.py  check_mojibake.py
+  audit.py  agents_block.py  check_mojibake.py  optimize_phasing.py
 ```
 
 Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 % no aplicara al comando en curso.
@@ -225,12 +225,13 @@ aisdd close change alta-clientes-portal
 
 ## Scripts del skill
 
-Tres scripts en `scripts/`, solo con biblioteca estandar de Python 3:
+Cuatro scripts en `scripts/`, solo con biblioteca estandar de Python 3:
 
 | Script | Que hace |
 |---|---|
 | `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
 | `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
+| `optimize_phasing.py` | Calcula el calendario de cada modo de faseado con cada numero de developers, encuentra el optimo y emite un HTML con los caminos enfrentados. **Obligatorio** en `aisdd roadmap` salvo con un solo dev |
 | `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252. **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, justo antes de la entrada de auditoria y solo sobre los artefactos documentales, nunca sobre codigo fuente |
 
 Cubren las tres mecanicas que antes eran prosa que el agente debia ejecutar bien **cada vez**. Son exactas o no son, y una equivocacion no deja rastro de cuando ocurrio.
