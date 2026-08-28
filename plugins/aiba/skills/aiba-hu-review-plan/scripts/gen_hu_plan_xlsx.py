@@ -88,6 +88,30 @@ def _ensure_openpyxl() -> None:
     sys.exit(2)
 
 
+def _parser() -> argparse.ArgumentParser:
+    """Solo argparse: no toca openpyxl, para poder imprimir la ayuda sin el."""
+    p = argparse.ArgumentParser(description="Genera el Excel de planificacion de revision de HU.")
+    p.add_argument("--input", required=True, help="Manifiesto JSON de entrada.")
+    p.add_argument("--output", required=True, help="Ruta del .xlsx de salida.")
+    p.add_argument("--open", action="store_true", help="Abrir el .xlsx al terminar (best-effort).")
+    p.add_argument("--no-install", action="store_true",
+                   help="No autoinstalar openpyxl si falta (por defecto se instala).")
+    return p
+
+
+# La ayuda se atiende antes de tocar la dependencia. Disparar una instalacion
+# para imprimir un texto es lo contrario de lo que espera quien ejecuta
+# `--help` para averiguar la interfaz, y en un entorno sin pip -- CI, sandbox,
+# maquina ajena -- el script no podia ni explicarse a si mismo.
+#
+# No basta con diferir los imports: el cuerpo de este modulo construye
+# constantes con openpyxl (los estilos de mas abajo), asi que hay que salir
+# antes de llegar a ellas. Se reutiliza el parser de `main` para que el texto
+# de ayuda no se duplique ni se desincronice.
+if any(a in ("-h", "--help") for a in sys.argv[1:]):
+    _parser().print_help()
+    raise SystemExit(0)
+
 _ensure_openpyxl()
 
 from openpyxl import Workbook  # noqa: E402
@@ -524,13 +548,7 @@ def load_manifest(path: Path) -> dict:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Genera el Excel de planificacion de revision de HU.")
-    p.add_argument("--input", required=True, help="Manifiesto JSON de entrada.")
-    p.add_argument("--output", required=True, help="Ruta del .xlsx de salida.")
-    p.add_argument("--open", action="store_true", help="Abrir el .xlsx al terminar (best-effort).")
-    p.add_argument("--no-install", action="store_true",
-                   help="No autoinstalar openpyxl si falta (por defecto se instala).")
-    args = p.parse_args(argv)
+    args = _parser().parse_args(argv)
 
     in_path = Path(args.input)
     out_path = Path(args.output)

@@ -1,7 +1,7 @@
 {
   "name": "aiba",
   "displayName": "AIBA — AI Business Analyst",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Conjunto AIBA (AI Business Analyst): la capa que da la cara ante el negocio. Cinco skills. `aiba-functional-design` (`aiba functional-design`) genera el Documento de Diseno Funcional en Word de cada historia de usuario, con diseno generico sin marca y estilos nativos para aplicar despues cualquier identidad visual. `aiba-hu-review-plan` (`aiba hu-review-plan`) planifica como revisar y cerrar las HU con negocio y TI, con Excel de cuatro pestanas. `aiba-project-plan` (`aiba project-plan`) produce el plan de recursos con doble estimacion humano vs IA. `aiba-sprint-planning` (`aiba sprint-planning`) reparte el trabajo en sprints, entiende los tres modos de paralelismo del roadmap y vuelca opcionalmente a Jira. `aiba-metrics` (`aiba metrics`) calcula KPIs MEDIDOS del uso de IA y se niega a publicar cifras de ahorro que no se sostienen. Autonomo de OpenSpec: consume lo que producen AIDD y AISDD sin modificarlo. Metodologia propia en `methodology/native-ai-aiba.md`. Los cuatro ultimos vivian en el plugin `aidd` hasta la v1.8.0 del marketplace; sus comandos `aidd ...` ya no existen.",
   "author": {
     "name": "NTT DATA Spain GDN-e"
