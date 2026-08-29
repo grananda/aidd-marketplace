@@ -34,7 +34,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-REF = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
+# Las dos formas de la variable. La de PowerShell (`$env:CLAUDE_PLUGIN_ROOT\...`)
+# no la cubria esta comprobacion, y por ahi sobrevivio una ruta del empaquetado
+# anterior: en booster-docs la invocacion bash ya estaba migrada y su hermana en
+# PowerShell seguia apuntando a `.agents\skills\...`, que en un plugin no existe.
+REF = re.compile(r"(?:\$\{CLAUDE_PLUGIN_ROOT\}|\$env:CLAUDE_PLUGIN_ROOT)"
+                 r"[/\\]([A-Za-z0-9_./\\-]+)")
 LEIBLES = {".md", ".py", ".sh", ".json", ".yaml", ".yml"}
 
 # Ficheros replicados a proposito. Cada entrada: ruta relativa al plugin y los
@@ -99,7 +104,8 @@ for plugin_dir in sorted(ROOT.glob("plugins/*/")):
         texto = f.read_text(encoding="utf-8", errors="replace")
         for m in REF.finditer(texto):
             comprobadas += 1
-            if not (plugin_dir / m.group(1)).exists():
+            # PowerShell escribe la ruta con barras invertidas; el fichero es el mismo.
+            if not (plugin_dir / m.group(1).replace("\\", "/")).exists():
                 errors.append(
                     f"{f.relative_to(ROOT)}: referencia ${{CLAUDE_PLUGIN_ROOT}}/{m.group(1)}, "
                     f"que no existe en plugins/{plugin}/ (los plugins se instalan sueltos: "

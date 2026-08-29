@@ -3,7 +3,7 @@ name: booster-uml
 description: Genera un HTML con diagramas UML en Mermaid para un change de OpenSpec. Usar cuando el usuario pida `aisdd uml`, diagramas UML, casos de uso, actividad, secuencia o estado a partir de `openspec/changes/{change-id}/`, o cuando haya que documentar visualmente un cambio OpenSpec sin modificar sus artefactos funcionales.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # booster-uml
@@ -146,7 +146,7 @@ $tmp = New-TemporaryFile
 
 ...
 '@ | Set-Content -LiteralPath $tmp -Encoding utf8
-python .agents\skills\booster-uml\scripts\render_uml_html.py --change-id auth-security --input $tmp --output openspec\changes\auth-security\uml-diagrams.html
+python "$env:CLAUDE_PLUGIN_ROOT\skills\booster-uml\scripts\render_uml_html.py" --change-id auth-security --input $tmp --output openspec\changes\auth-security\uml-diagrams.html
 ```
 
 El script lee desde stdin por defecto y decodifica bytes como UTF-8, pero en Windows `stdin` puede llegar degradado por la shell antes de Python. Para documentacion en espanol, usar `--input <markdown-file>`.
