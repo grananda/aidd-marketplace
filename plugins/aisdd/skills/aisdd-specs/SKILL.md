@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos: primero se recoge la preferencia del usuario y despues un **pre-flight de optimizacion** calcula el calendario de cada modo y cada numero de developers y presenta los caminos enfrentados en un HTML, con sus barreras y sus tiempos, para decidir con la cifra delante. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Todos los comandos cierran sugiriendo el **proximo paso** con el comando ya resuelto, encadenando con la capa de entrega de AIBA cuando toca. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "3.0.1"
+  version: "3.1.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -66,18 +66,16 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 
 ## Dependencias de skills
 
-Comprueba si existen estos directorios en alguna ubicacion de skills conocida:
+`booster-ux` y `booster-uml` viven en el plugin **`boosters`** de este mismo marketplace. **No los busques por directorio**: Claude Code resuelve los skills por nombre entre los plugins instalados, e invocarlos es toda la comprobacion que hace falta — si el plugin no esta, la invocacion no resuelve.
 
-- `.agents/skills/booster-ux`
-- `.agents/skills/booster-uml`
-- `$env:USERPROFILE\.agents\skills\booster-ux`
-- `$env:USERPROFILE\.agents\skills\booster-uml`
-- `$env:USERPROFILE\.codex\skills\booster-ux`
-- `$env:USERPROFILE\.codex\skills\booster-uml`
+Si falta alguno, avisa con el comando que lo arregla:
 
-Si falta `booster-ux`, avisa: `No encuentro el skill booster-ux. Debe instalarse o copiarse en .agents/skills/booster-ux o en una carpeta global de skills del usuario.`
+```
+No encuentro el skill booster-ux (plugin `boosters`). Instalalo con:
+  /plugin install boosters@aidd-sdd
+```
 
-Si falta `booster-uml`, avisa: `No encuentro el skill booster-uml. Debe instalarse o copiarse en .agents/skills/booster-uml o en una carpeta global de skills del usuario.`
+> Las rutas `.agents/skills/…` y las globales de `%USERPROFILE%` son del empaquetado anterior al marketplace. En una instalacion por plugin no existen, y mandar a alguien a crearlas no arregla nada.
 
 La ausencia de un skill no debe bloquear `init`, `implement` o `close`; si bloquea diagramas o prototipos, informa y deja los comandos OpenSpec completados.
 

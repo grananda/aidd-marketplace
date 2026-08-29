@@ -3,7 +3,7 @@ name: booster-ux
 description: Diseña pantallas o prototipos UX como paso previo a su validación. Activar cuando el usuario diga frases como "diseña una pantalla", "quiero crear un prototipo de pantalla", "quiero crear un prototipo ux", "haz un mockup", "esboza la vista de", "necesito un wireframe de", "maqueta el formulario de", "prototipa el dashboard de", o cualquier petición de diseñar, prototipar, esbozar, maquetar o mockupear una pantalla, vista, formulario, listado, dashboard, panel o flujo de UI. Genera dos variantes paralelas (v1 criterio editorial, v2 cumplimiento Web Interface Guidelines) como imagen y HTML navegable. Tras invocarse, pregunta al usuario 6 puntos (pantalla y tipo de aplicación, audiencia/contexto opcional, datos clave opcional, marca de agua NTT DATA, referencia de estilo opcional — URL, HTML local o guía de estilos, y formato de salida opcional), identifica los elementos principales de la pantalla y pide confirmar o corregir su posición antes de generar ambas variantes.
 metadata:
   author: NTT DATA — GDN-e Spain Booster
-  version: "1.2.1"
+  version: "1.3.0"
 ---
 
 # booster-ux
@@ -106,14 +106,17 @@ Si el usuario **no** dio referencia, salta este paso: el brief de estilo será l
 
 ## Paso 2 — Calcular numeración de archivos
 
-Antes de generar nada, calcula el menor entero `N ≥ 1` tal que **ninguno** de estos archivos exista ya en el directorio de salida:
+Antes de generar nada, calcula el menor entero `N ≥ 1` tal que en el directorio de salida **no exista ningún fichero** cuyo nombre contenga `-vN` ni `-v(N+1)` seguidos de un punto o de un guion:
 
-- `index-vN.html`
-- `preview-vN.png`
-- `index-v(N+1).html`
-- `preview-v(N+1).png`
+```
+*-vN.*   *-vN-*        y        *-v(N+1).*   *-v(N+1)-*        libres los cuatro
+```
 
-Es decir, el par `(N, N+1)` debe estar libre. Si `index-v1.html` ya existe, prueba `N=2`; si `index-v2.html` también, prueba `N=3`; etc.
+Las dos formas hacen falta: las capturas adicionales se llaman `preview-vN-mobile.png` y `preview-vN-dark.png`, con guion, y un patrón que solo mire el punto las deja fuera.
+
+Es decir, el par `(N, N+1)` debe estar libre. Si algo llamado `…-v1.…` ya existe, prueba `N=2`; si también hay `…-v2.…`, prueba `N=3`; etc.
+
+**Mira todos los ficheros, no solo el HTML y el PNG.** Este skill produce siete formatos y dos de ellos —`wireframe-vN.md` y `spec-vN.md`— no generan ni `index-vN.html` ni `preview-vN.png`. Comprobar solo esos dos deja pasar a `N=1` una ejecución posterior, que **sobrescribe en silencio** el trabajo anterior. La numeración existe justo para que eso no ocurra: si la comprobación no cubre todos los formatos, no cubre ninguno.
 
 - `vN` (el menor) → variante **impeccable** (v1 conceptual)
 - `v(N+1)` → variante **Web Interface Guidelines** (v2 conceptual)

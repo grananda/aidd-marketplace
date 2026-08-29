@@ -3,7 +3,7 @@ name: aiad-design
 description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Helps a human think before coding a user story, via the command `aiad design`. Two modes. In `explore` mode it diverges (a broad fan of options, including non-obvious ones, plus naming candidates) and then converges (contrasts them against explicit criteria) without choosing for you. In `plan` mode it lays out how to tackle a chosen approach: ordered steps, the dangerous parts, key decisions you must make, and what to reuse. It NEVER writes the production code. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "what options do I have for", "how should I model this", "what should I call this", "how do I approach this US", "where do I start", "give me alternatives for", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiad-design (AIAD · ia-in-the-loop)
@@ -37,7 +37,7 @@ Exit criterion: the human has real options with honest trade-offs (explore) or a
 - **Explicit criteria when converging:** say what you compare against (simplicity, performance, cost of change, fit with the existing code, time-to-market, testability, reversibility). A comparison without criteria is noise.
 - **Diverge before converging** (explore mode): options first, judgment second. Do not kill an idea the moment it appears.
 - **Low ceremony:** the human is mid-work. At most one or two clarifying questions.
-- Read context first: the US in `docs/detalle-historias-usuario.md`, `docs/arquitectura-base.md`, `docs/guia-estilos.md`, and the relevant existing code. Do not ask what is already there.
+- Read context first: the US in `docs/detalle-historias-usuario.md`, `docs/arquitectura-base.md`, `docs/guia-estilos.md`, and the relevant existing code. **Each of those is optional**: AIAD installs on its own and a project may never have run AIDD. Use the ones that exist, say which were missing, and take the constraints from the code and from the human instead — do not stop, and do not invent an architecture the project never agreed on. Do not ask what is already there.
 
 ## Engineering heuristics to apply
 

@@ -3,7 +3,7 @@ name: booster-docs
 description: Genera una vista HTML de un solo fichero, dinamica y visual a partir de un documento de planificacion AIDD/SDD en Markdown (por ejemplo `docs/cliente-requisitos.md`, `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/roadmap.md`, `docs/sprint-plan.md`). Usar cuando un skill AIDD/SDD necesite entregar la vista HTML complementaria al final de su comando, o cuando el usuario pida "genera el HTML de este documento", "vista HTML de los requisitos", "renderiza el roadmap a HTML" o equivalentes. El Markdown sigue siendo la unica fuente de verdad; este booster produce un HTML complementario para consumo humano y NO modifica el Markdown.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.10.1"
+  version: "1.11.0"
 ---
 
 # booster-docs
@@ -54,7 +54,7 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/booster-docs/scripts/render_docs_html.py" \
 
 ```powershell
 # Windows (PowerShell) — guardar el Markdown temporal como UTF-8 si se genera al vuelo
-python .agents\skills\booster-docs\scripts\render_docs_html.py --input docs\requisitos.md --output docs\html\requisitos.html
+python "$env:CLAUDE_PLUGIN_ROOT\skills\booster-docs\scripts\render_docs_html.py" --input docs\requisitos.md --output docs\html\requisitos.html
 ```
 
 Flags:

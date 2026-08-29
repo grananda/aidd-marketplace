@@ -3,7 +3,7 @@ name: aiad-tdd
 description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Human-first TDD support, via the command `aiad tdd`. The AI writes the failing tests for the target the human is about to build, and the human implements the production code until they go green. The target scope is the human's to set and can be narrow: a whole user story, or a single class, method, function, or endpoint/route. It detects the repo's test framework, turns the target's expected behavior (acceptance criteria or contract) into test cases (positive, negative, edge), generates red, runnable tests, and leaves the implementation to the human. The AI does NOT write the production code. Pull, not push. Complements AIDD/SDD without modifying them. For filling tests over code that already exists, use aiad-test instead. Use when the user says "write the red tests for this US/class/method/endpoint I'm about to build", "let's do TDD", "tests first", "give me the red tests so I can implement", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiad-tdd (AIAD · ia-in-the-loop)
@@ -47,7 +47,7 @@ Exit criterion: a battery of red tests covering the US acceptance criteria exist
 ### 1. Identify the target and its expected behavior
 
 - **Set the scope from what the human named.** It can be a whole user story, or something narrower they are about to build:
-  - **US** — locate it (by id or description) in `docs/detalle-historias-usuario.md` and extract its acceptance criteria (Given/When/Then) and the ones marked blocking.
+  - **US** — locate it (by id or description) in `docs/detalle-historias-usuario.md` and extract its acceptance criteria (Given/When/Then). **If that file does not exist** (a project using AIAD without AIDD), ask the human for the criteria in one question and record in the journal that they came from the conversation, not from a document and the ones marked blocking.
   - **Class / method / function** — derive the expected behavior from its intended contract: the cases it must handle, inputs/outputs, and error conditions. Scope the red battery to exactly that unit; do not widen unless asked.
   - **Endpoint / route** — write the failing **contract** tests: status codes, request/response payloads, auth, validation, and error responses for that endpoint.
 - If there is no formal US and no clear contract, ask the human for the expected behaviors (briefly) and work from those.

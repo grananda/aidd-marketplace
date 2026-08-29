@@ -43,17 +43,13 @@ Antes era un unico fichero de ~1.300 lineas que se cargaba entero aunque el 90 %
 npm install -g @fission-ai/openspec@latest
 ```
 
-- Skill `booster-ux` instalado en una de estas rutas:
-  - `.agents/skills/booster-ux`
-  - `%USERPROFILE%\.agents\skills\booster-ux`
-  - `%USERPROFILE%\.codex\skills\booster-ux`
+- Plugin `boosters` instalado (trae `booster-ux` y `booster-uml`):
 
-- Skill `booster-uml` instalado en una de estas rutas:
-  - `.agents/skills/booster-uml`
-  - `%USERPROFILE%\.agents\skills\booster-uml`
-  - `%USERPROFILE%\.codex\skills\booster-uml`
+  ```
+  /plugin install boosters@aidd-sdd
+  ```
 
-Si falta alguno, el agente debe avisar e indicar donde copiarlo o instalarlo.
+Si falta, el agente avisa y da ese comando. No hay rutas que comprobar: Claude Code resuelve los skills por nombre entre los plugins instalados.
 
 ## Comandos disponibles
 
