@@ -432,9 +432,9 @@ La numeración **arranca en `1.6.0` y continúa la de `native-ai-specs` v1.6.0**
 
 **Para publicar**: sube `VERSION` en la misma PR que cambia lo que sea. Al mergear a `main`, el workflow `release.yml` comprueba si existe la etiqueta `v<VERSION>` y, si no existe, crea la etiqueta y el release. La puerta es la etiqueta y no la rama, así que el workflow es idempotente: puedes mergear varias PRs sin tocar `VERSION` y no pasará nada, y re-ejecutarlo no duplica releases.
 
-Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, y empiezan por las tablas de **qué plugins y qué skills cambian de versión**, seguidas de los **skills que ya no están donde estaban** (movidos de plugin o eliminados). Es lo único que le importa a quien consume el marketplace: si tiene que reinstalar algo y qué. Un skill que desaparece es la ruptura más cara, y es justo la que no se ve recorriendo solo lo que existe hoy.
+Las notas del release las genera `release_notes.py` comparando contra la etiqueta anterior, en orden de lo que más urge leer: **Atención al actualizar** (versiones mayores y commits marcados con `!`), **Novedades** (entradas del `ROADMAP.md` que pasan a implementada), las tablas de **qué plugins y qué skills cambian de versión**, los **skills que ya no están donde estaban** (movidos de plugin o eliminados) y, plegados, los commits. Quien consume el marketplace quiere saber dos cosas —si algo se rompe y si tiene que reinstalar—, y ambas van antes que el detalle. Un skill que desaparece es la ruptura más cara, y es justo la que no se ve recorriendo solo lo que existe hoy.
 
-**Olvidarse de subir `VERSION`** es el fallo evidente de tener una versión manual, así que `validate.yml` lo comprueba en cada PR: si algún `plugin.json` cambia de versión y `VERSION` no, falla con el motivo.
+**Olvidarse de subir una versión** es el fallo evidente de tenerlas manuales, así que `validate.yml` lo comprueba en los dos sentidos en cada PR: si algún `plugin.json` cambia de versión y `VERSION` no, falla; y si un plugin tiene ficheros modificados y la misma versión, también. El segundo es el silencioso: Claude Code cree que la copia instalada está al día, así que el cambio nunca llega al usuario.
 
 Ese mismo workflow corre en cada PR y en `main`:
 
@@ -443,11 +443,15 @@ Ese mismo workflow corre en cada PR y en `main`:
 | `check_manifests.py` | Que `marketplace.json` apunte a un plugin inexistente, o que un plugin en disco no esté declarado. Rompe la instalación de todos y no falla hasta que alguien lo intenta |
 | `check_skills.py` | `SKILL.md` sin frontmatter válido, con `name` que no coincide con su directorio o sin `description`: el skill no se carga, o el modelo no sabe cuándo invocarlo |
 | `check_plugin_assets.py` | Que un skill invoque `${CLAUDE_PLUGIN_ROOT}/…` de un fichero que su plugin no lleva dentro, y que las copias replicadas entre plugins (el hook de actividad, `stamp_doc.py`) diverjan |
+| `check_skill_refs.py` | Que un skill nombre un `references/…` o un `scripts/…` que no está donde lo busca, que un comando de ejemplo use una ruta relativa al skill (se ejecuta desde el proyecto del usuario, donde no existe), que quede un `references/` que nadie enlaza, o que sobreviva una ruta del empaquetado anterior (`.agents/skills/`, `%USERPROFILE%`) |
+| `check_contracts.py` | Que una invocación documentada pase una flag que el script no acepta —o se deje una obligatoria—, y que un documento con vista HTML no tenga entrada en `DOC_TYPES` |
 | `check_generated_html.py` | Que un `.html` de metodología no coincida con su `.md`, y que las copias de `aidd/` y `aisdd/` se desincronicen |
 | `py_compile` | Un script Python que no compila |
 | `check_mojibake.py` | UTF-8 mal codificado en los markdown, usando el propio script del skill |
 
-Dos merecen comentario porque nacen de fallos reales. El de los HTML, porque el desfase se produce **sin que nadie edite el `.md`**: basta con cambiar `render_docs_html.py`, y así fue como el HTML de la metodología AIAD se quedó atrás durante dos PRs sin que se notara. Y el de los assets, porque **Claude Code instala cada plugin por separado**: al mover skills de `aidd` a `aiba` con `git mv`, `stamp_doc.py` desapareció de `aidd`, donde ocho skills lo siguen ejecutando. Nada falla al hacer el cambio; falla en casa del usuario.
+Todas nacen de fallos reales, y tres merecen comentario porque el fallo **no hace ruido**. El de los HTML, porque el desfase se produce **sin que nadie edite el `.md`**: basta con cambiar `render_docs_html.py`, y así fue como el HTML de la metodología AIAD se quedó atrás durante dos PRs sin que se notara. El de los assets, porque **Claude Code instala cada plugin por separado**: al mover skills de `aidd` a `aiba` con `git mv`, `stamp_doc.py` desapareció de `aidd`, donde ocho skills lo siguen ejecutando. Nada falla al hacer el cambio; falla en casa del usuario.
+
+Y el de las rutas, porque **la carga de los skills es en diferido**: `SKILL.md` es un índice y las reglas viven en `references/*.md`, que el agente lee solo cuando el índice se lo dice. Una ruta que no resuelve no da error —el agente no encuentra el fichero, sigue sin él, y la regla que contenía simplemente no se aplica—, que es la forma de fallo que más se parece a que todo funciona. La convención que impone: **mismo skill** → `references/x.md`; **otro skill del mismo plugin** → `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/references/x.md`; **otro plugin** → sin ruta, nombra solo el skill, porque el usuario puede no tenerlo instalado.
 
 ## Mantenimiento
 

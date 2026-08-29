@@ -58,7 +58,7 @@ Si el `.docx` ya existe no se regenera desde cero. Se muestra qué ha cambiado e
 Python 3 y `python-docx`, que el script instala solo si falta. Si no puede, lo dice y no bloquea el resto del trabajo.
 
 ```bash
-python3 scripts/gen_df_docx.py --schema     # esquema del manifiesto
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" --schema
 ```
 
 ## Relación con AIDD

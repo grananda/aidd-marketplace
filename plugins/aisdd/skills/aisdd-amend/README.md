@@ -18,7 +18,7 @@ Estas a mitad (o al final) de un change y aparece algo que sus specs no contempl
 
 Re-ejecutar `aisdd implement change` reinterpreta el change **entero** sobre un arbol ya implementado, con riesgo de rehacer trabajo y pisar ficheros. Este skill es la via alternativa: **especifica el delta y ejecuta solo el delta**.
 
-Es el brazo operativo de la "Regla de corte" de la metodologia (ver `aisdd-specs`, `references/implement-change.md`).
+Es el brazo operativo de la "Regla de corte" de la metodologia (ver `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/references/implement-change.md`).
 
 ## Que hace
 
