@@ -77,6 +77,17 @@ jobs:
       - name: Cada plugin trae lo que ejecuta
         run: python3 .github/scripts/check_plugin_assets.py
 
+      # La carga de los skills es en diferido: una ruta que no resuelve no da
+      # error, simplemente deja sin aplicar la regla que hubiera en ese fichero.
+      - name: Las rutas de los skills resuelven
+        run: python3 .github/scripts/check_skill_refs.py
+
+      # Un skill y su script son productor y consumidor del mismo formato, escrito
+      # en dos sitios. Cuando divergen no falla la CI: falla el usuario a mitad de
+      # un comando, que es donde peor se diagnostica.
+      - name: Lo documentado coincide con lo implementado
+        run: python3 .github/scripts/check_contracts.py
+
       # Los .html de metodologia son generados. Si el .md cambia y el .html no,
       # la documentacion publicada miente.
       - name: HTML de metodologia regenerado

@@ -18,6 +18,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-10 | Mover la capa de entrega y medición de `aidd` a `aiba` | aiba, aidd | **implementada** | 2026-08-27 |
 | F-11 | Pre-flight de optimización del faseado: compara caminos, calcula el óptimo y re-estrategia sobre proyecto en marcha | aisdd | **implementada** | 2026-08-28 |
 | F-12 | Encadenado de `aisdd`: cada comando sugiere el próximo paso resuelto, incluido el empalme con la capa de entrega de AIBA | aisdd | **implementada** | 2026-08-28 |
+| F-13 | CI de rutas de skills y de contratos documentación↔script | marketplace | **implementada** | 2026-08-29 |
 
 ---
 
@@ -133,6 +134,8 @@ Las notas empiezan por las tablas de qué plugins y skills cambian de versión, 
 
 `validate.yml` cubre el punto débil de una versión manual (olvidar subirla) y cuatro comprobaciones de coherencia que hasta ahora se hacían a mano en cada PR: manifiestos, frontmatter de skills, HTML de metodología regenerado y sincronizado entre copias, compilación de los scripts y ausencia de mojibake.
 
+> Ampliada después. La batería creció con la autosuficiencia de plugins, el sentido contenido→versión y las dos comprobaciones de **F-13**; el orden de las notas también cambió. El estado actual está en el README, no aquí: esta sección registra lo que entregó F-08.
+
 Al escribirlo encontró dos desfases reales que llevaban tiempo sin detectarse: `booster-uml` no tenía `metadata.version`, y el HTML de la metodología AIAD se había quedado atrás porque cambió el renderer y solo se regeneraban los de AIDD/AISDD.
 
 ## F-09 — Plugin `aiba` (AI Business Analyst) y el skill de Diseño Funcional
@@ -166,3 +169,15 @@ Cuatro skills se mueven: `hu-review-plan`, `project-plan`, `sprint-planning` y `
 **Lo que no puede romperse es el histórico.** El registro de actividad guarda el nombre del skill que se ejecutó, así que `aiba metrics` conserva los nombres `aidd-*` como alias de etapa: sin ellos, toda la planificación anterior al traslado caería en «Otros» y falsearía el reparto planificación-vs-ejecución, que es justo la cifra por la que se lee el informe.
 
 `aidd` sube a **2.0.0** porque pierde cuatro skills: es ruptura para quien los tuviera en uso, y las notas del release ahora lo dicen — `release_notes.py` enumera también los skills que **desaparecen** de donde estaban y a qué plugin han ido.
+
+## F-13 — CI de rutas de skills y de contratos documentación↔script
+
+**Estado:** implementada · **Versión:** marketplace 1.25.1 · **Añadida:** 2026-08-29 · **Origen:** auditoría de los 30 skills
+
+La auditoría cerró con 34 hallazgos, y el último apareció en `aisdd-specs` —el skill más revisado del repo— en la última pasada de la última fase: doce rutas `.agents/skills/…` del empaquetado anterior al marketplace. No sobrevivieron por falta de revisión, sino porque **la sonda que las encuentra no se había escrito todavía**. Un arreglo se olvida; una comprobación no. Estas dos convierten en permanentes las dos últimas sondas de la auditoría.
+
+**`check_skill_refs.py` — las rutas resuelven donde el skill las busca.** La carga es en diferido: `SKILL.md` es un índice y las reglas viven en `references/*.md`, que el agente lee solo cuando el índice se lo dice. Una ruta rota no da error —el agente no encuentra el fichero, sigue sin él, y la regla que contenía no se aplica—, que es la forma de fallo que más se parece a que todo funciona. Fija la convención: mismo skill → `references/x.md`; otro skill del mismo plugin → `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/references/x.md`; otro plugin → **sin ruta**, porque el usuario puede no tenerlo instalado. Comprueba también el reverso —un `references/` que nadie enlaza no lo lee nadie— y que no reaparezcan las rutas del empaquetado anterior.
+
+**`check_contracts.py` — lo documentado coincide con lo implementado.** Un skill y su script son productor y consumidor del mismo formato, escrito en dos sitios que nada ata. Contrasta cada invocación documentada contra el `argparse` real, en los tres sentidos —flag inventada, flag obligatoria omitida, posicional obligatorio omitido— y **por invocación, no sobre la unión**: que entre dos ejemplos estén todas las obligatorias no salva a ninguno de los dos. Cubre las dos fuentes: las invocaciones de los skills, que ejecuta el agente en casa del usuario, y las del README, que ejecuta quien mantiene esto —de una de ellas depende que los `.html` de metodología se regeneren, así que un flag renombrado ahí rompe otra comprobación de la CI. Y comprueba que cada documento con vista HTML tenga entrada en `DOC_TYPES` de `booster-docs`, porque el que no la tiene no falla: sale con la etiqueta y el dashboard genéricos, que es una vista peor sin que nadie lo note. Le pasó a `kpis-ia`.
+
+**Encontrado al ponerlas:** diez referencias colgando en `aisdd-amend` y `aiba-sprint-planning` (una de ellas cruzando a otro plugin, que puede no estar instalado) el sellado de `aiba-metrics`, que apuntaba a un `scripts/stamp_doc.py` inexistente y además se daba permiso para saltárselo —así que `docs/kpis-ia.md` no se sellaba nunca— y un comando de ejemplo de `aiba-functional-design` con ruta relativa, que falla en cuanto alguien lo copia.
