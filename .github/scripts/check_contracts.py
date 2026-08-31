@@ -62,6 +62,7 @@ HTML_DECLARADO = re.compile(r"docs/html/([A-Za-z0-9._-]+)\.html")
 # Vistas HTML que no las genera booster-docs, asi que no les toca DOC_TYPES.
 SIN_DOC_TYPE = {
     "faseado-comparativa": "la genera optimize_phasing.py, no booster-docs",
+    "estado-proyecto": "la genera render_status_html.py, no booster-docs",
 }
 
 
