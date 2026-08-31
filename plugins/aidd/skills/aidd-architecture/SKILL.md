@@ -3,7 +3,7 @@ name: aidd-architecture
 description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)
@@ -84,6 +84,7 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 ## 1. Objetivo y alcance
 ## 2. Principios y decisiones arquitectonicas
 ## 3. Estructura de la solucion (arbol de carpetas real)
+- **Si el producto vive en mas de un repositorio, declaralos aqui** con una tabla `id | ruta | remote | contiene`. Ver "Producto repartido en varios repositorios".
 ## 4. Descomposicion por modulos / dominios
 ## 5. Capas y responsabilidades
 ## 6. Componentes base y relaciones
@@ -97,6 +98,35 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 ## 14. Decisiones tomadas en el paso 2.4
 - Registro ligero: pregunta, opciones, decision, origen (usuario | default), una linea de justificacion.
 ```
+
+## Producto repartido en varios repositorios
+
+Un producto puede vivir en varios repos —frontal, servicios, datos— y **eso es una decision de arquitectura**, no de faseado: decide fronteras de despliegue, de equipo y de contrato. Por eso se declara aqui y no en el roadmap, que la consume.
+
+Si es el caso, la seccion 3 lleva la tabla de repositorios:
+
+```markdown
+### Repositorios
+
+El producto vive en <N> repositorios, gobernados desde el repo raiz del workspace,
+que es el que contiene `docs/` y `openspec/`.
+
+| id | Ruta | Remote | Contiene |
+|---|---|---|---|
+| `front` | `repo-front/` | `git@...:org/front.git` | SPA y BFF de presentacion |
+| `back` | `repo-back/` | `git@...:org/back.git` | Servicios de dominio |
+| `datos` | `repo-datos/` | `git@...:org/datos.git` | Esquema y migraciones |
+```
+
+Reglas:
+
+- **`id` en kebab-case y estable.** Es la clave con la que lo nombran el roadmap, los lanes y la verificacion de independencia. Cambiarlo rompe esos enlaces, igual que cambiar un `change_hint`.
+- **La ruta es relativa a la raiz del workspace**, y ahi es donde se espera encontrar el repo clonado. No pongas rutas absolutas: cambian de maquina a maquina.
+- **Di que contiene cada uno en una linea.** Es lo que permite decidir despues si un modulo cae en uno o en otro, y es la unica parte que un humano va a leer.
+- **La descomposicion por modulos (seccion 4) indica en que repo cae cada modulo.** Un modulo repartido entre dos repos es una senal de que la frontera esta mal puesta: dilo en la seccion 13 en vez de esconderlo.
+- **No inventes repos.** Si el usuario no ha dicho cuantos hay, es uno. Preguntalo en el paso de recopilacion, no lo deduzcas de que la arquitectura "pide" separacion.
+
+> **Por que importa aguas abajo.** `aisdd roadmap` deriva de aqui la seccion `repos` de `openspec/config.yaml` y, en modo `multilane`, el corte natural de lanes: **un lane por repo** es el corte mas limpio que existe, porque las rutas disjuntas dejan de ser un acuerdo y pasan a ser un hecho. Y `aisdd close change` verifica la independencia **repo a repo**. Sin esta tabla, nada de eso puede ocurrir y el proyecto se trata como si fuera un solo repo.
 
 Reglas de contenido:
 

@@ -11,6 +11,12 @@ Archiva un cambio OpenSpec.
 1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional. **En modo `multilane`** el filtro por lane activo (`openspec/.lane`) va primero: si ese lane tiene exactamente un change abierto, usalo sin preguntar. Si tras filtrar sigue habiendo varios, presentalos con su contexto y deja elegir.
 2. **Verificacion de independencia (solo si `roadmap.mode` es `multilane`).** Antes de archivar, comprueba que el change respeto las fronteras de su lane. Es el punto donde la independencia deja de ser una promesa del faseado y pasa a estar verificada:
    - **Rutas**: obten los ficheros que el change toco (`git diff --name-only` contra el punto de partida del change, o el equivalente disponible) y comprueba que **todos** caen bajo los `paths` de su lane (`roadmap.lanes[].paths` en `config.yaml`).
+
+     > **Con varios repositorios, el diff se saca de cada uno.** Si `roadmap.repos` esta declarado, los sub-repos **no son submodulos**: un `git diff` desde la raiz del workspace no ve nada de lo que pasa dentro de ellos, asi que la comprobacion pasaria siempre. Y una verificacion que dice que si sin haber mirado es peor que no tenerla.
+     >
+     > Recorre `roadmap.repos` y ejecuta `git -C <repo.path> diff --name-only` en cada uno. Un fichero es valido si cae bajo los `paths` del lane **y** esta en el repo que el lane declara en `repo`. Tocar otro repo es la misma violacion que tocar otra ruta, y mas grave: significa que el change cruzo una frontera de despliegue.
+     >
+     > Si algun repo declarado no esta clonado, **dilo y no des la verificacion por buena**: no has podido mirar ahi.
    - **Specs**: comprueba que ningun `spec.md` modificado pertenece a otro lane.
    - **Si algo cae fuera**, **no archives**. Reporta la lista exacta de ficheros o specs infractores y ofrece las tres salidas posibles: (a) mover ese trabajo al lane que le corresponde, (b) convertirlo en una barrera `FB-NN` si es genuinamente compartido — via `aisdd roadmap`, o (c) que el usuario declare explicitamente que acepta el solape, en cuyo caso registralo como `Nivel: 4` en `decisions.md` antes de archivar. Nunca archives en silencio un change que se salio de su lane: eso convierte el modelo de lanes en decorativo.
    - **Fases barrera** (`barrier: true`): no tienen restriccion de rutas — por definicion tocan superficie compartida. Sáltate esta verificacion para ellas.

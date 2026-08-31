@@ -25,6 +25,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
+| F-20 | Producto repartido en varios repositorios: declarados en la arquitectura, un lane por repo | aidd, aisdd | **implementada** | 2026-08-31 |
 
 ---
 
@@ -299,3 +300,19 @@ Ahora dicen lo que el número **es**: `Diferencia entre ambos`, `Desviación de 
 **Y se suma lo que la propuesta sí tenía bien**, que era un añadido y no un reemplazo: cuando existe `docs/aiad-journal.md`, el informe trae la **autoría real**. Es el único dato de autoría que no es una estimación — una línea por pieza de trabajo, anotada en el momento— y separa las dos calidades que lleva dentro: las entradas `ai-edit` las captura el hook al ver a la IA tocar un fichero, y el resto las declara el humano.
 
 Sin bitácora, **la sección no aparece**: no sale un cero ni un «no disponible». Un proyecto que no lleva bitácora no tiene un reparto de autoría del 0 %, simplemente no lo ha medido.
+
+## F-20 — Un producto en varios repositorios
+
+**Estado:** implementada · **Versión:** `aidd` 2.4.0, `aisdd` 3.5.0 · **Añadida:** 2026-08-31
+
+Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y `openspec/`. Un producto repartido en tres repos no tenía sitio: o se duplicaba `docs/` en los tres —tres copias que divergen, la película que ya vimos con `stamp_doc.py` y las metodologías— o el faseado trataba los tres como si fueran uno.
+
+**La forma:** un repo de gobierno en la raíz del workspace, con `docs/` y **un solo** `openspec/`, y los repos de código como directorios hermanos. Un roadmap, una auditoría, un informe de estado. Funciona porque **un change no es código: es la especificación del código**, y no tiene por qué vivir donde vive el código.
+
+**Los repos se declaran en `docs/arquitectura-base.md`, sección 3.** Es una decisión de arquitectura —fija fronteras de despliegue, de equipo y de contrato—, no de faseado. `aisdd roadmap` los copia a `roadmap.repos` en `openspec/config.yaml` con el mismo `id`, que es la clave con la que todo lo demás los nombra.
+
+**Un lane por repo es el corte más limpio que existe.** Las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros. Los `paths` de cada lane son **relativos a su repo**, y un cambio de contrato entre repos es una barrera `FB-NN`, no una dependencia cross-lane: detiene a todos porque el contrato es de todos.
+
+**Lo que había que arreglar de verdad:** `close change` verificaba la independencia con un `git diff` desde la raíz. Los sub-repos no son submódulos, así que ese diff **no ve nada** de lo que pasa dentro y la comprobación pasaría siempre — una verificación que dice que sí sin haber mirado es peor que no tenerla. Ahora recorre `roadmap.repos` y saca el diff de cada uno, y si un repo declarado no está clonado lo dice en vez de dar la verificación por buena.
+
+`aisdd init` comprueba que cada repo declarado existe y es un repositorio git, y avisa —sin bloquear— del que falta, del que no es un repo, y del que está ahí sin estar declarado. **No los clona**: elegir remote, rama y credenciales es del humano.

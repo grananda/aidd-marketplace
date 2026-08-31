@@ -1,7 +1,7 @@
 {
   "name": "aidd",
   "displayName": "AIDD — AI Driven Development",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Conjunto de skills de definicion y diseno asistidos por IA (AIDD): Fase 0 (client-requirements), Fase 1 (requirements, user-stories, user-story-details) y Fase 2 (prototype-architecture, prototype, style-guide, architecture-proposal, architecture). Nueve skills `aidd-*`. Incluye la metodologia AIDD-SDD como referencia. **Cambio en la v2.0.0**: la capa de entrega y medicion (`project-plan`, `sprint-planning`, `hu-review-plan`, `metrics`) se ha movido al plugin `aiba` y sus comandos son ahora `aiba ...`; no quedan alias `aidd ...` para ellos. El contrato de datos no cambia: los mismos ficheros de `docs/`.",
   "author": {
     "name": "NTT DATA Spain GDN-e"

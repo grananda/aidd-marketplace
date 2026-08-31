@@ -80,6 +80,10 @@ Lo que hace disjuntos dos lanes que por dominio no lo serian (tipicamente back y
 Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
+
+   > **Con varios repositorios, un lane por repo es el corte mas limpio que existe.** Las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros: dos repos no comparten rutas por construccion. Los repos salen de la tabla de la seccion 3 de `docs/arquitectura-base.md`, y cada lane declara el suyo en `repo`. Un lane que abarca dos repos es posible pero es una senal: casi siempre significa que la frontera entre repos esta puesta donde no toca, y eso se arregla en la arquitectura, no en el faseado.
+   >
+   > Y un cambio de contrato entre dos repos **es una barrera** `FB-NN`, no una dependencia cross-lane: detiene a todos porque el contrato es de todos.
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
 
