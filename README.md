@@ -184,6 +184,7 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 |------|---------|-------|---------------|
 | 1.4 (opc.) | `aiba hu-review-plan` | `aiba-hu-review-plan` | `docs/plan-revision-hu.md` + Excel de cuatro pestañas: cómo se revisan y cierran las HU con negocio y TI |
 | 1 (post) | `aiba functional-design [HU-XX]` | `aiba-functional-design` | Un **DF en Word por historia** en `docs/df/`: portada, control de versiones y aprobaciones, índice, introducción y alcance, la HU con filtros/campos, integraciones, validaciones (frontal/core), mensajes, pantallas, criterios de aceptación, especificaciones técnicas y puntos abiertos |
+| 1 (post) | `aiba test-plan [HU-XX]` | `aiba-test-plan` | Por historia, el **plan de pruebas** en `docs/pruebas/`: un `.xlsx` con el inventario de casos (`PS.FU.CU01.01`, criticidad, pasos, resultado esperado, traza al requisito y al change, marca manual/automatizable) y un `.docx` de evidencias con un bloque por caso. **Genera el plan; no ejecuta las pruebas** |
 | 3.5.1 | `aiba project-plan` | `aiba-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de la diferencia) |
 | 3.5.2 | `aiba sprint-planning` | `aiba-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
 | transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA) |
@@ -418,7 +419,7 @@ Si no hay MCP, `aidd style-guide` ofrece alternativas: API REST de Figma o un ex
 
 La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`, copias espejo). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
 
-Los plugins `aiba` y `aiad` llevan la suya propia, porque cubren capas que el documento AIDD-SDD ya no describe: `native-ai-aiba.md` (el conjunto que da la cara ante el negocio: los cinco skills, el rol de AI Delivery Manager, el Paso 1.4, la Fase 3.5 y la medición) y `native-ai-aiad.md` (el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría).
+Los plugins `aiba` y `aiad` llevan la suya propia, porque cubren capas que el documento AIDD-SDD ya no describe: `native-ai-aiba.md` (el conjunto que da la cara ante el negocio: los seis skills, el rol de AI Delivery Manager, el Paso 1.4, la Fase 3.5 y la medición) y `native-ai-aiad.md` (el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría).
 
 **FAQ.** [FAQ.md](FAQ.md) responde las preguntas frecuentes del ciclo AISDD: qué crea cada comando (`open`/`implement`/`close change`), qué ocurre en Jira en cada paso, quién crea Stories y sprints, y los casos límite (enlace perdido, re-faseado, sprints de horas).
 

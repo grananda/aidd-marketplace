@@ -19,6 +19,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-11 | Pre-flight de optimización del faseado: compara caminos, calcula el óptimo y re-estrategia sobre proyecto en marcha | aisdd | **implementada** | 2026-08-28 |
 | F-12 | Encadenado de `aisdd`: cada comando sugiere el próximo paso resuelto, incluido el empalme con la capa de entrega de AIBA | aisdd | **implementada** | 2026-08-28 |
 | F-13 | CI de rutas de skills y de contratos documentación↔script | marketplace | **implementada** | 2026-08-29 |
+| F-14 | `aiba test-plan`: plan de pruebas por historia (inventario + evidencias) | aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -181,3 +182,23 @@ La auditoría cerró con 34 hallazgos, y el último apareció en `aisdd-specs` �
 **`check_contracts.py` — lo documentado coincide con lo implementado.** Un skill y su script son productor y consumidor del mismo formato, escrito en dos sitios que nada ata. Contrasta cada invocación documentada contra el `argparse` real, en los tres sentidos —flag inventada, flag obligatoria omitida, posicional obligatorio omitido— y **por invocación, no sobre la unión**: que entre dos ejemplos estén todas las obligatorias no salva a ninguno de los dos. Cubre las dos fuentes: las invocaciones de los skills, que ejecuta el agente en casa del usuario, y las del README, que ejecuta quien mantiene esto —de una de ellas depende que los `.html` de metodología se regeneren, así que un flag renombrado ahí rompe otra comprobación de la CI. Y comprueba que cada documento con vista HTML tenga entrada en `DOC_TYPES` de `booster-docs`, porque el que no la tiene no falla: sale con la etiqueta y el dashboard genéricos, que es una vista peor sin que nadie lo note. Le pasó a `kpis-ia`.
 
 **Encontrado al ponerlas:** diez referencias colgando en `aisdd-amend` y `aiba-sprint-planning` (una de ellas cruzando a otro plugin, que puede no estar instalado) el sellado de `aiba-metrics`, que apuntaba a un `scripts/stamp_doc.py` inexistente y además se daba permiso para saltárselo —así que `docs/kpis-ia.md` no se sellaba nunca— y un comando de ejemplo de `aiba-functional-design` con ruta relativa, que falla en cuanto alguien lo copia.
+
+## F-14 — `aiba test-plan`: el plan de pruebas de cada historia
+
+**Estado:** implementada · **Versión:** `aiba` 1.3.0 · **Añadida:** 2026-08-31 · **Origen:** plantillas y ejemplos de un proyecto real
+
+Sexto skill de AIBA, en la línea del Diseño Funcional: entregables genéricos y sin marca, con la identidad visual como pregunta del pre-flight, sobre todas las HU o sobre una.
+
+**Dos ficheros por historia, generados del mismo manifiesto** para que no puedan describir cosas distintas. Un `.xlsx` con seis hojas —Hoja de Control, Especificaciones con las diecisiete columnas de la plantilla de referencia, Parámetros de nomenclatura, rejilla de Ejecución, exportación a Qmetry y Resumen con fórmulas vivas— y un `.docx` de evidencias con un bloque por caso y el hueco de la captura.
+
+**Genera el plan; no ejecuta las pruebas.** Corre en tiempo de diseño, cuando el código puede no existir. Quien ejecuta ya está en la metodología: el **Outcome Validator** al cerrar un change, el humano con `aiad test` sobre los casos automatizables, o un tester con estos dos ficheros. Lo que el skill deja preparado para el día que alguien recoja resultados de vuelta son dos datos por caso —su código estable y el change al que pertenece—, no una arquitectura.
+
+**Un solo nivel, `PS.FU`.** Los criterios de aceptación de una historia son pruebas funcionales de sistema. Derivar unitarias o de integración desde una historia sería inventar: las escribe quien conoce el código.
+
+**Sin macros.** La plantilla de referencia es un `.xlsm` cuyos dos botones generan los códigos concatenando columnas y montan la hoja de ejecución. Existen porque un humano teclea el inventario a mano; aquí sale hecho al construir el fichero, y el `.xlsx` limpio además no dispara el aviso de seguridad. Lo que sí se conserva son sus reglas: correlativo por prefijo, colapso de tramos vacíos y aviso de duplicado.
+
+**`scripts/branding.py` sube a nivel de plugin**, junto a `stamp_doc.py` y por la misma razón: la marca corporativa la aplican ahora dos skills en dos formatos, y una copia por skill se queda atrás sin que nada falle. `gen_df_docx.py` pasa a usarlo, con la salida verificada idéntica en los dos caminos —con marca y sin ella—.
+
+**Dos modos nuevos, porque el skill afirmaba cosas que no podía cumplir.** `--comprobar` responde si un plan o un documento de evidencias ya existentes se pueden regenerar sin perder resultados anotados ni capturas pegadas: la regla «nunca pises trabajo ejecutado» necesitaba un dato que solo está dentro del `.xlsx`, y sin leerlo era una regla escrita. Y `gen_df_docx.py --extraer` vuelca un DF a JSON con sus secciones y tablas: sin él, «el DF es la mejor fuente de casos» era decorativo, porque un `.docx` no se lee de un vistazo. Verificado sobre los DF reales del cliente.
+
+**Pendiente, como decisión aparte:** que `aisdd close change` lea el inventario y exija los casos ejecutados. Cerraría el círculo —la validación dejaría de ser «el Validator dice que sí» y pasaría a ser «estos 26 casos están en verde»— pero toca otro plugin, cambia la puerta de archivado y es una decisión de proceso.

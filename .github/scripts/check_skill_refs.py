@@ -17,6 +17,7 @@ Esta cubre las otras tres formas, que son las que se escriben a mano:
    |---|---|
    | El mismo skill | `references/x.md` |
    | Otro skill, mismo plugin | `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/references/x.md` |
+   | Asset del plugin | `${CLAUDE_PLUGIN_ROOT}/scripts/x.py` |
    | Otro plugin | sin ruta: nombra el skill y nada mas |
 
    La tercera fila no es estilo. Los plugins se instalan sueltos, asi que una
@@ -92,9 +93,9 @@ for skill_dir in sorted(ROOT.glob("plugins/*/skills/*/")):
             if not (skill_dir / m.group(1)).exists():
                 errores.append(
                     f"{f.relative_to(ROOT)}: nombra `{m.group(1)}`, que no existe en "
-                    f"{skill_dir.relative_to(ROOT)}. Si el destino es otro skill del mismo "
-                    f"plugin, escribe la ruta completa "
-                    f"(${{CLAUDE_PLUGIN_ROOT}}/skills/<skill>/{m.group(1)}); si es de otro "
+                    f"{skill_dir.relative_to(ROOT)}. Si esta en otro skill del mismo plugin, "
+                    f"escribe ${{CLAUDE_PLUGIN_ROOT}}/skills/<skill>/{m.group(1)}; si es un "
+                    f"asset del plugin, ${{CLAUDE_PLUGIN_ROOT}}/{m.group(1)}; si es de otro "
                     f"plugin, quita la ruta y nombra solo el skill"
                 )
         for b in BLOQUE.finditer(texto):

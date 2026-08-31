@@ -21,6 +21,7 @@
 | Skill | Comando | Produce |
 |---|---|---|
 | `aiba-functional-design` | `aiba functional-design [HU-XX]` | Un **DF en Word por historia** en `docs/df/` |
+| `aiba-test-plan` | `aiba test-plan [HU-XX]` | Por historia, el **inventario de casos** en `docs/pruebas/*.xlsx` y su **documento de evidencias** en `.docx` |
 | `aiba-hu-review-plan` | `aiba hu-review-plan` | Plan de revisión de HU + Excel `docs/xlsx/plan-revision-hu.xlsx` |
 | `aiba-project-plan` | `aiba project-plan` | Plan de recursos `docs/planificacion-proyecto.md` |
 | `aiba-sprint-planning` | `aiba sprint-planning` | Plan de sprints `docs/sprint-plan.md`, con volcado opcional a Jira |

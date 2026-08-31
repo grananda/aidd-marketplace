@@ -49,6 +49,17 @@ La razón es práctica: un DF acaba en manos de un cliente que tiene su propia i
 
 Cuando se aporta una marca, los colores se aplican **a los estilos** y el logo va a la cabecera, no incrustado suelto en la portada.
 
+## Leer un DF ya escrito
+
+El mismo script vuelca a JSON las secciones, párrafos y tablas de un `.docx` —propio o del cliente—, que de otro modo no se puede leer:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" \
+  --extraer "docs/df/<fichero>.docx"
+```
+
+Lo consume `aiba test-plan`: las tablas de validaciones y mensajes de un DF ya son casos de prueba casi literales.
+
 ## Reedición
 
 Si el `.docx` ya existe no se regenera desde cero. Se muestra qué ha cambiado en la documentación de origen, se regeneran **solo las secciones afectadas** y se **añade una fila** al control de versiones (`1.0` → `1.1`) sin sobrescribir el historial. Si el analista había escrito a mano en una sección que toca regenerar, se pregunta antes: ese texto es lo más valioso del documento.

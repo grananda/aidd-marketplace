@@ -32,6 +32,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
+# La marca vive a nivel de plugin: la comparten este skill y `aiba-test-plan`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+
+import branding as marca  # noqa: E402 - despues de fijar sys.path
+
 # --- Dependencia -------------------------------------------------------------
 
 def _ensure_docx(allow_install: bool) -> None:
@@ -163,24 +168,12 @@ def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | No
         run.bold = True
         celda.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         if accent:
-            _shade(celda, accent)
+            marca.sombrear_celda_word(celda, accent)
     for fila in filas or []:
         celdas = t.add_row().cells
         for i, v in enumerate(fila[: len(columnas)]):
             celdas[i].text = "" if v is None else str(v)
     doc.add_paragraph()
-
-
-def _shade(celda, hex_color: str) -> None:
-    """Sombreado de celda. python-docx no lo expone, hay que bajar a OOXML."""
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"), "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"), hex_color)
-    celda._tc.get_or_add_tcPr().append(shd)
 
 
 def add_toc(doc) -> None:
@@ -206,64 +199,12 @@ def add_toc(doc) -> None:
     run._r.append(fin)
 
 
-def apply_branding(doc, branding: dict) -> None:
-    """Aplica la paleta a los ESTILOS, no a cada parrafo.
-
-    Es lo que permite que aplicar otra identidad despues sea cambiar el estilo
-    en vez de repasar el documento entero.
-    """
-    from docx.shared import RGBColor
-
-    principal = branding.get("color_principal")
-    secundario = branding.get("color_secundario") or principal
-    for nombre, color in (("Heading 1", principal), ("Heading 2", secundario),
-                          ("Heading 3", secundario), ("Title", principal)):
-        if not color:
-            continue
-        try:
-            doc.styles[nombre].font.color.rgb = RGBColor.from_string(color.lstrip("#").upper())
-        except (KeyError, ValueError):
-            pass
-
-
-def build_header_footer(doc, proyecto: str, titulo: str, version: str, branding: dict) -> None:
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    from docx.shared import Cm
-
-    seccion = doc.sections[0]
-
-    cab = seccion.header.paragraphs[0]
-    cab.text = branding.get("texto_cabecera") or f"{proyecto} · {titulo}"
-    cab.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    logo = branding.get("logo")
-    if logo and Path(logo).is_file():
-        try:
-            seccion.header.paragraphs[0].insert_paragraph_before().add_run().add_picture(
-                logo, height=Cm(1.2))
-        except Exception:  # noqa: BLE001 - un logo ilegible no tumba el documento
-            sys.stderr.write(f"Aviso: no se pudo insertar el logo {logo}; se omite.\n")
-
-    pie = seccion.footer.paragraphs[0]
-    pie.text = (branding.get("texto_pie") or f"Versión {version}") + "  ·  Página "
-    pie.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = pie.add_run()
-    for tipo, texto in (("begin", None), (None, "PAGE"), ("end", None)):
-        el = OxmlElement("w:fldChar") if tipo else OxmlElement("w:instrText")
-        if tipo:
-            el.set(qn("w:fldCharType"), tipo)
-        else:
-            el.text = texto
-        run._r.append(el)
-
-
 # --- Documento ---------------------------------------------------------------
 
 def build(m: dict, salida: Path) -> dict:
     from docx import Document
 
-    branding = m.get("branding") or {}
+    branding = marca.normalizar(m.get("branding"))
     accent = (branding.get("color_secundario") or branding.get("color_principal") or "D9D9D9")
     accent = accent.lstrip("#").upper()
 
@@ -274,8 +215,10 @@ def build(m: dict, salida: Path) -> dict:
 
     doc = Document()
     if branding:
-        apply_branding(doc, branding)
-    build_header_footer(doc, proyecto, titulo, version, branding)
+        marca.aplicar_estilos_word(doc, branding)
+    marca.cabecera_pie_word(doc, branding,
+                            cabecera=f"{proyecto} · {titulo}".strip(" ·"),
+                            pie=f"Versión {version}")
 
     # Portada
     if proyecto:
@@ -389,16 +332,65 @@ def build(m: dict, salida: Path) -> dict:
             "secciones_adicionales": len(m.get("secciones_adicionales") or [])}
 
 
+def extraer(ruta: Path) -> dict:
+    """El texto y las tablas de un DF ya generado, para que otro skill los lea.
+
+    Un `.docx` es un zip de XML: nadie lo lee de un vistazo. `aiba-test-plan`
+    dice que el DF es su mejor fuente --sus validaciones y sus mensajes ya son
+    casos de prueba casi literales-- y sin esto esa frase seria decorativa.
+    """
+    import docx
+
+    d = docx.Document(ruta)
+    parrafos = {p._p: p for p in d.paragraphs}
+    tablas = {tb._tbl: tb for tb in d.tables}
+
+    secciones: list[dict] = []
+    actual = {"titulo": "(portada)", "nivel": 0, "parrafos": [], "tablas": []}
+    for bloque in d.element.body.iterchildren():
+        p = parrafos.get(bloque)
+        if p is not None:
+            if not p.text.strip():
+                continue
+            if p.style.name.startswith("Heading"):
+                secciones.append(actual)
+                sufijo = p.style.name.split()[-1]
+                actual = {"titulo": p.text.strip(),
+                          "nivel": int(sufijo) if sufijo.isdigit() else 1,
+                          "parrafos": [], "tablas": []}
+            else:
+                actual["parrafos"].append(p.text.strip())
+            continue
+        tb = tablas.get(bloque)
+        if tb is not None:
+            actual["tablas"].append([[c.text.strip() for c in fila.cells]
+                                     for fila in tb.rows])
+    secciones.append(actual)
+    return {"fichero": str(ruta),
+            "secciones": [s for s in secciones if s["parrafos"] or s["tablas"]]}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Genera el DF en Word de una historia de usuario.")
     ap.add_argument("--manifest", help="JSON con el contenido del DF; sin el, stdin")
     ap.add_argument("--output", help="ruta del .docx de salida")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema del manifiesto y sale")
+    ap.add_argument("--extraer", metavar="RUTA",
+                    help="vuelca a JSON el texto y las tablas de un DF ya generado, "
+                         "para que otro skill pueda leerlo, y sale")
     ap.add_argument("--no-install", action="store_true", help="no instalar python-docx al vuelo")
     args = ap.parse_args()
 
     if args.schema:
         print(SCHEMA)
+        return 0
+    if args.extraer:
+        _ensure_docx(not args.no_install)
+        ruta = Path(args.extraer)
+        if not ruta.is_file():
+            sys.stderr.write(f"No existe el DF '{ruta}'.\n")
+            return 2
+        print(json.dumps(extraer(ruta), ensure_ascii=False, indent=2))
         return 0
     if not args.output:
         ap.error("--output es obligatorio (o usa --schema)")
