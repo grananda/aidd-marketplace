@@ -271,12 +271,14 @@ def camino_critico(fases: list, pesos: dict) -> dict:
     """
     por_id = {str(f.get("id")): f for f in fases}
     memo: dict[str, tuple[float, list]] = {}
+    ciclos: set[str] = set()
 
     def largo(fid: str, visitando: frozenset) -> tuple[float, list]:
         if fid in memo:
             return memo[fid]
         if fid in visitando:
-            return 0.0, []  # ciclo: se corta y se reporta como aviso aparte
+            ciclos.add(fid)  # se corta aqui, pero no en silencio: sale como aviso
+            return 0.0, []
         f = por_id.get(fid)
         if f is None:
             return 0.0, []
@@ -294,7 +296,8 @@ def camino_critico(fases: list, pesos: dict) -> dict:
         r = largo(fid, frozenset())
         if r[0] > mejor[0]:
             mejor = r
-    return {"dias": round(mejor[0], 2), "cadena": mejor[1]}
+    return {"dias": round(mejor[0], 2), "cadena": mejor[1],
+            "ciclos": sorted(ciclos)}
 
 
 def dependencias(fases: list, cls: dict) -> dict:
@@ -378,6 +381,17 @@ def _fecha(txt: str, hoy: date) -> date | None:
         return None
 
 
+def clave_sprint(nombre: str) -> str:
+    """`Sprint 1 — Funnel de cotizacion` y `sprint 1` son el mismo sprint.
+
+    La cabecera del plan lleva el objetivo detras del numero y `config.yaml`
+    solo el numero. Comparando los textos enteros no casan nunca, y el avance
+    previsto sale vacio sin que nada lo explique.
+    """
+    m = re.search(r"sprint\s*0*(\d+)", str(nombre or ""), re.I)
+    return f"sprint {m.group(1)}" if m else str(nombre or "").strip().lower()
+
+
 def previsto(fases: list, pesos: dict, sprints: list, hoy: date,
              total: float) -> dict:
     """Cuanto esfuerzo deberia estar cerrado hoy, segun el plan de sprints.
@@ -403,12 +417,9 @@ def previsto(fases: list, pesos: dict, sprints: list, hoy: date,
         elif ini and ini <= hoy and (not fin or fin >= hoy):
             actual = s["nombre"]
 
-    def de_sprint(f):
-        return str(f.get("sprint") or "").strip().lower()
-
-    nombres = {c.strip().lower() for c in cerrados}
+    nombres = {clave_sprint(c) for c in cerrados}
     dias = sum(pesos.get(str(f.get("id")), 0.0) for f in fases
-               if de_sprint(f) and de_sprint(f) in nombres)
+               if f.get("sprint") and clave_sprint(f.get("sprint")) in nombres)
     if dias == 0 and cerrados:
         return {"pct": None, "dias": None, "base": "docs/sprint-plan.md",
                 "sprint_actual": actual,
@@ -462,6 +473,12 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         avisos.append(f"{len(sin_peso)} fases sin esfuerzo conocido ({', '.join(sin_peso[:6])}"
                       f"{'...' if len(sin_peso) > 6 else ''}): no pesan en el porcentaje, "
                       f"asi que el avance por esfuerzo se queda corto")
+
+    cc = camino_critico(fases, pesos)
+    if cc.get("ciclos"):
+        avisos.append(f"ciclo en `depends_on` que pasa por {', '.join(cc['ciclos'])}: "
+                      f"el camino critico sale corto y el faseado no es ejecutable "
+                      f"tal cual. Lo arregla `aisdd roadmap`")
 
     cls = clasificar(fases, activos, cerrados)
     if cls["sin_hint"]:
@@ -528,9 +545,40 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "sprints": sprints,
         "bloqueos": aud.get("bloqueos", []),
         "dependencias": dependencias(fases, cls),
-        "camino_critico": camino_critico(fases, pesos),
+        "camino_critico": cc,
         "ritmo": ritmo(aud.get("eventos", {}), cerrados),
         "avisos": avisos,
+    }
+
+
+def comparar(actual: dict, anterior: dict) -> dict:
+    """Que ha cambiado desde el informe anterior.
+
+    Comparar dos JSON a ojo es como se cuelan los errores en un comite. Y el
+    dato que menos se ve mirando solo el de hoy es el **bloqueo que repite**:
+    uno que aparece en dos informes seguidos ya no es un bloqueo, es un problema
+    de gobierno, y se resuelve escalando y no esperando.
+    """
+    def pct(d):
+        return ((d.get("avance") or {}).get("esfuerzo") or {}).get("pct_cerrado")
+
+    a, b = pct(actual), pct(anterior)
+    bl_a = {x.get("decision") for x in (actual.get("bloqueos") or [])}
+    bl_b = {x.get("decision") for x in (anterior.get("bloqueos") or [])}
+    cer_a = set((actual["avance"]["changes"].get("ids_cerrados") or []))
+    cer_b = set((anterior.get("avance", {}).get("changes", {}).get("ids_cerrados") or []))
+
+    dv_a = (actual.get("desviacion") or {}).get("puntos")
+    dv_b = (anterior.get("desviacion") or {}).get("puntos")
+    return {
+        "desde": anterior.get("generado"),
+        "avance_puntos": round(a - b, 1) if a is not None and b is not None else None,
+        "desviacion_puntos": round(dv_a - dv_b, 1)
+                             if dv_a is not None and dv_b is not None else None,
+        "changes_cerrados_desde": sorted(cer_a - cer_b),
+        "bloqueos_nuevos": sorted(x for x in bl_a - bl_b if x),
+        "bloqueos_resueltos": sorted(x for x in bl_b - bl_a if x),
+        "bloqueos_que_repiten": sorted(x for x in bl_a & bl_b if x),
     }
 
 
@@ -540,6 +588,9 @@ def main() -> int:
     ap.add_argument("--root", default=".", help="raiz del proyecto (por defecto, cwd)")
     ap.add_argument("--out", help="fichero JSON de salida; sin el, stdout")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema y sale")
+    ap.add_argument("--anterior", metavar="RUTA",
+                    help="JSON del informe anterior; anade el bloque `comparativa` "
+                         "con lo que ha cambiado desde entonces")
     ap.add_argument("--no-install", action="store_true", help="no instalar PyYAML al vuelo")
     args = ap.parse_args()
 
@@ -549,6 +600,16 @@ def main() -> int:
 
     estado = construir(Path(args.root), _ensure_yaml(not args.no_install),
                        datetime.now(timezone.utc).date())
+    if args.anterior:
+        p = Path(args.anterior)
+        if p.is_file():
+            try:
+                estado["comparativa"] = comparar(estado, json.loads(p.read_text(encoding="utf-8")))
+            except (json.JSONDecodeError, KeyError) as ex:
+                estado["avisos"].append(f"no se pudo comparar con {p}: {ex}")
+        else:
+            estado["avisos"].append(f"no existe el informe anterior {p}: "
+                                    f"este es el primero, o cambio de ruta")
     texto = json.dumps(estado, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)

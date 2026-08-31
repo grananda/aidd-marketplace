@@ -58,8 +58,11 @@ De ahi salen las tres reglas de trabajo:
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-status-report/scripts/compute_status.py" \
-  --root . --out docs/estado-proyecto.json
+  --root . --anterior docs/estado-proyecto.json --out docs/estado-proyecto.json
 ```
+
+**El mismo fichero como entrada y como salida es correcto**: el script lee el
+anterior antes de escribir el nuevo. Si es el primer informe, lo dice y sigue.
 
 **Lee los avisos que emite por stderr antes de seguir.** Dicen que no ha podido calcular y por que: fases sin `change_hint`, fases sin esfuerzo, changes abiertos que no estan en el roadmap. Cada uno de ellos cambia como hay que leer las cifras, y varios son hallazgos por si solos — un change fuera de plan es trabajo que nadie previo.
 
@@ -100,15 +103,19 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-status-report/scripts/render_status_h
 
 El HTML es **autocontenido**: sin CDN, sin fuentes externas, sin peticiones. Un informe de estado se reenvia por correo y se abre sin red.
 
-### 5. Comparar con el informe anterior
+### 5. Leer la comparativa
 
-`docs/estado-proyecto.json` se versiona en git **a proposito**: es el registro, y es lo que convierte el informe en una serie en vez de una foto.
+Si habia informe anterior, el JSON trae el bloque `comparativa`, y el HTML lo pinta arriba del todo: es lo primero que pregunta quien ya vio el de la semana pasada.
 
-Si hay una version anterior en git, **compara y dilo en el resumen**: cuanto avanzo el porcentaje real, si la desviacion crece o se cierra, si un bloqueo lleva dos informes abierto. Un bloqueo que aparece por segunda vez no es el mismo bloqueo: es un problema de gobierno.
+**Lo que hay que mirar ahi, y decir en el resumen:**
 
-```bash
-git show HEAD:docs/estado-proyecto.json 2>/dev/null | head -40
-```
+| Campo | Que significa |
+|---|---|
+| `avance_puntos` | Cuanto se ha movido el avance real. Cerca de cero con changes activos es una semana perdida |
+| `desviacion_puntos` | Si la brecha con el plan se cierra o se abre. Es mas importante que la desviacion absoluta |
+| `bloqueos_que_repiten` | **El dato que menos se ve mirando solo el de hoy.** Un bloqueo en dos informes seguidos ya no es un bloqueo: es un problema de gobierno, y se resuelve escalandolo, no esperando |
+
+`docs/estado-proyecto.json` se versiona en git **a proposito**: es el registro y es la fuente del HTML, asi que no pueden divergir, y es lo que convierte el informe en una serie en vez de una foto.
 
 ### 6. Resumen final
 
@@ -118,7 +125,7 @@ Informa de:
 - **Avance real, previsto y desviacion**, en una linea.
 - **Bloqueos activos** y si alguno esta en el camino critico. Es lo que hay que resolver esta semana.
 - **Los huecos del informe**: que secciones han salido vacias y que documento las llenaria. Es trabajo pendiente de documentacion, no un detalle de formato.
-- **Que ha cambiado desde el informe anterior**, si lo hay.
+- **Que ha cambiado desde el informe anterior**, si lo hay, y en especial **los bloqueos que repiten**.
 
 ## Lo que no hace
 

@@ -143,17 +143,31 @@ def sec_avance(d: dict) -> str:
 
     p.append('<div class="grid2">')
     total = ch.get("total") or 0
-    pc, pa = ch.get("pct_cerrado") or 0, ch.get("pct_activo") or 0
+    # La barra va **por esfuerzo**, igual que el titular. Pintarla por numero de
+    # fases daba dos cifras distintas del mismo avance en la misma pantalla --
+    # 35,2% arriba y 42,9% justo debajo--, que es como se pierde la confianza en
+    # un informe. El recuento sigue estando, en la etiqueta y en su propia linea.
+    td = es.get("total_dias") or 0
+    pc = es.get("pct_cerrado") or 0 if td else (ch.get("pct_cerrado") or 0)
+    pa = round((es.get("activo_dias") or 0) / td * 100, 1) if td else (ch.get("pct_activo") or 0)
+    unidad = "esfuerzo" if td else "numero de fases"
     p.append('<div class="card"><h3>Por changes · metrica principal</h3>')
-    p.append('<div class="barra"><div class="cab"><span>Cerrados / activos / pendientes</span>'
+    p.append(f'<div class="barra"><div class="cab"><span>Cerrados / activos / pendientes '
+             f'<b>por {unidad}</b></span>'
              f'<b>{ch.get("cerrados",0)} · {ch.get("activos",0)} · '
-             f'{ch.get("pendientes",0)} de {total}</b></div>')
+             f'{ch.get("pendientes",0)} de {total} fases</b></div>')
     p.append(barra([(pc, "verde"), (pa, "azul")]))
     p.append('<div class="leyenda">'
              f'<span><i style="background:var(--verde)"></i>Cerrados {pc:.4g}%</span>'
              f'<span><i style="background:var(--azul)"></i>Activos {pa:.4g}%</span>'
              f'<span><i style="background:var(--gris-b)"></i>Pendientes '
              f'{max(0, 100 - pc - pa):.4g}%</span></div></div>')
+    pn = ch.get("pct_cerrado") or 0
+    if td and abs(pn - pc) >= 3:
+        mas = "grandes" if pn < pc else "pequenas"
+        p.append(f'<p class="pie-dato">Por numero de fases seria {pn:.4g}%, '
+                 f'{abs(pn - pc):.4g} puntos de diferencia: las fases cerradas son '
+                 f'mas {mas} que la media. La cifra buena es la de esfuerzo.</p>')
     if ch.get("ids_cerrados"):
         p.append(f'<p class="pie-dato">Cerrados: {e(", ".join(ch["ids_cerrados"]))}</p>')
     if ch.get("ids_activos"):
@@ -208,6 +222,42 @@ def sec_avance(d: dict) -> str:
     else:
         p.append(f'<div class="nota ojo"><b>No hay avance previsto con el que comparar.</b> '
                  f'{e(desv.get("motivo") or prev.get("motivo_si_falta") or "")}</div>')
+    return "\n".join(p)
+
+
+def sec_comparativa(d: dict) -> str:
+    """Que ha cambiado desde el informe anterior. Va arriba porque es lo primero
+    que pregunta quien ya vio el de la semana pasada."""
+    c = d.get("comparativa")
+    if not c:
+        return ""
+    p = ['<h2>Desde el informe anterior</h2>', '<div class="card">']
+    p.append(f'<p class="pie-dato">Comparado con el informe del {e(c.get("desde"))}.</p>')
+    filas = []
+    av = c.get("avance_puntos")
+    if av is not None:
+        filas.append(["Avance real",
+                      pill(f'{"+" if av > 0 else ""}{av:.4g} puntos',
+                           "verde" if av > 0 else "gris" if av == 0 else "rojo")])
+    dv = c.get("desviacion_puntos")
+    if dv is not None:
+        filas.append(["Desviacion frente al plan",
+                      pill(f'{"+" if dv > 0 else ""}{dv:.4g} puntos',
+                           "verde" if dv > 0 else "rojo" if dv < 0 else "gris")])
+    for etiqueta, clave, tono in (
+            ("Changes cerrados desde entonces", "changes_cerrados_desde", "verde"),
+            ("Bloqueos resueltos", "bloqueos_resueltos", "verde"),
+            ("Bloqueos nuevos", "bloqueos_nuevos", "rojo")):
+        v = c.get(clave) or []
+        filas.append([etiqueta, ", ".join(e(x) for x in v) if v else pill("ninguno", "gris")])
+    p.append(tabla(["Concepto", "Cambio"], filas))
+    rep = c.get("bloqueos_que_repiten") or []
+    if rep:
+        p.append('<div class="nota mal"><b>Bloqueos que repiten: '
+                 + ", ".join(e(x) for x in rep) + '.</b> Un bloqueo que aparece en dos '
+                 'informes seguidos ya no es un bloqueo: es un problema de gobierno, y se '
+                 'resuelve escalandolo, no esperando.</div>')
+    p.append("</div>")
     return "\n".join(p)
 
 
@@ -439,6 +489,7 @@ def construir(d: dict) -> str:
   </div>
 </header>
 <div class="kpis">{tarjetas}</div>
+{sec_comparativa(d)}
 {sec_avance(d)}
 {sec_riesgos(d)}
 {sec_calendario(d)}

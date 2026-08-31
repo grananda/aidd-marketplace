@@ -223,3 +223,9 @@ Séptimo skill de AIBA. Responde a la pregunta que se hace en cada comité —*d
 **Encontrado al construirlo:** el extractor de tallas leía `XS` como `S` y `XL` como `L` —`\D` es codicioso y se comía la `X`—, así que el esfuerzo total salía corto en todas las fases a la vez y en silencio. Es la misma trampa que ya apareció en el renderizador de `booster-docs` durante la auditoría.
 
 `EFFORT_DAYS` pasa a estar replicada en cuatro scripts, y la cuarta copia entra en la vigilancia de `check_plugin_assets.py`.
+
+**Del repaso salieron tres cosas mas.** La primera es la que hunde un informe: la barra de avance se pintaba **por número de fases** mientras el titular daba **esfuerzo**, así que la misma pantalla mostraba 35,2 % arriba y 42,9 % justo debajo. Ahora las dos van por esfuerzo, y cuando difieren el informe lo explica en vez de esconderlo — que las fases cerradas sean más pequeñas que la media es información, no ruido.
+
+La segunda: los sprints se emparejaban comparando el texto completo, así que la cabecera habitual —`## Sprint 1 — Funnel de cotización`— no casaba con el `sprint: Sprint 1` de `config.yaml` y el avance previsto salía vacío sin explicar por qué. Se emparejan por su número.
+
+Y `--anterior`, que compara con el informe previo y saca el dato que no se ve mirando solo el de hoy: **los bloqueos que repiten**. Uno que aparece en dos informes seguidos ya no es un bloqueo, es un problema de gobierno, y se resuelve escalándolo.
