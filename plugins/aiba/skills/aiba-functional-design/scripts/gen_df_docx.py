@@ -332,16 +332,65 @@ def build(m: dict, salida: Path) -> dict:
             "secciones_adicionales": len(m.get("secciones_adicionales") or [])}
 
 
+def extraer(ruta: Path) -> dict:
+    """El texto y las tablas de un DF ya generado, para que otro skill los lea.
+
+    Un `.docx` es un zip de XML: nadie lo lee de un vistazo. `aiba-test-plan`
+    dice que el DF es su mejor fuente --sus validaciones y sus mensajes ya son
+    casos de prueba casi literales-- y sin esto esa frase seria decorativa.
+    """
+    import docx
+
+    d = docx.Document(ruta)
+    parrafos = {p._p: p for p in d.paragraphs}
+    tablas = {tb._tbl: tb for tb in d.tables}
+
+    secciones: list[dict] = []
+    actual = {"titulo": "(portada)", "nivel": 0, "parrafos": [], "tablas": []}
+    for bloque in d.element.body.iterchildren():
+        p = parrafos.get(bloque)
+        if p is not None:
+            if not p.text.strip():
+                continue
+            if p.style.name.startswith("Heading"):
+                secciones.append(actual)
+                sufijo = p.style.name.split()[-1]
+                actual = {"titulo": p.text.strip(),
+                          "nivel": int(sufijo) if sufijo.isdigit() else 1,
+                          "parrafos": [], "tablas": []}
+            else:
+                actual["parrafos"].append(p.text.strip())
+            continue
+        tb = tablas.get(bloque)
+        if tb is not None:
+            actual["tablas"].append([[c.text.strip() for c in fila.cells]
+                                     for fila in tb.rows])
+    secciones.append(actual)
+    return {"fichero": str(ruta),
+            "secciones": [s for s in secciones if s["parrafos"] or s["tablas"]]}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Genera el DF en Word de una historia de usuario.")
     ap.add_argument("--manifest", help="JSON con el contenido del DF; sin el, stdin")
     ap.add_argument("--output", help="ruta del .docx de salida")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema del manifiesto y sale")
+    ap.add_argument("--extraer", metavar="RUTA",
+                    help="vuelca a JSON el texto y las tablas de un DF ya generado, "
+                         "para que otro skill pueda leerlo, y sale")
     ap.add_argument("--no-install", action="store_true", help="no instalar python-docx al vuelo")
     args = ap.parse_args()
 
     if args.schema:
         print(SCHEMA)
+        return 0
+    if args.extraer:
+        _ensure_docx(not args.no_install)
+        ruta = Path(args.extraer)
+        if not ruta.is_file():
+            sys.stderr.write(f"No existe el DF '{ruta}'.\n")
+            return 2
+        print(json.dumps(extraer(ruta), ensure_ascii=False, indent=2))
         return 0
     if not args.output:
         ap.error("--output es obligatorio (o usa --schema)")

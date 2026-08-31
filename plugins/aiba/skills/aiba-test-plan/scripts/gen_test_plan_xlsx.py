@@ -187,13 +187,50 @@ def detectar_colisiones(casos: list[dict], codigos: list[str]) -> list[str]:
 
 # --- Utilidades de contenido -------------------------------------------------
 
+# Excel rechaza los caracteres de control (salvo tabulador y salto de linea) y
+# aborta la escritura con IllegalCharacterError. Llegan solos: los documentos de
+# origen se escriben copiando y pegando de Word o de un PDF, que arrastran
+# tabuladores verticales y saltos de pagina invisibles. Perder el fichero entero
+# por un caracter que nadie ve, y ademas con una traza de Python, no es opcion.
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+LIMITE_CELDA = 32767  # el maximo de una celda de Excel
+
+_TRUNCADOS: list[str] = []
+
+
+def sanear(obj):
+    """Quita los caracteres de control de **todo** el manifiesto, de una vez.
+
+    En la entrada y no en cada escritura: hay una docena de sitios que llevan un
+    valor del manifiesto a una celda, y basta que uno se olvide de limpiarlo para
+    que openpyxl aborte con una traza. Saneando aqui, olvidarse deja de ser
+    posible.
+    """
+    if isinstance(obj, str):
+        return CONTROL.sub("", obj)
+    if isinstance(obj, dict):
+        return {k: sanear(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [sanear(v) for v in obj]
+    return obj
+
+
 def texto(valor) -> str:
-    """Texto suelto o lista -> una cadena con saltos de linea."""
+    """Texto suelto o lista -> una cadena con saltos de linea, apta para Excel."""
     if valor is None:
         return ""
     if isinstance(valor, (list, tuple)):
-        return "\n".join(texto(v) for v in valor if v is not None and str(v).strip())
-    return str(valor).strip()
+        bruto = "\n".join(texto(v) for v in valor if v is not None and str(v).strip())
+    else:
+        bruto = str(valor).strip()
+    limpio = bruto
+    if len(limpio) > LIMITE_CELDA:
+        # openpyxl corta por su cuenta y en silencio. Cortar aqui es lo mismo,
+        # pero deja constancia: un caso al que le falta la mitad de los pasos
+        # parece completo hasta que alguien intenta ejecutarlo.
+        _TRUNCADOS.append(limpio[:60] + "...")
+        limpio = limpio[: LIMITE_CELDA - 20] + "\n[TEXTO TRUNCADO]"
+    return limpio
 
 
 def lista(valor) -> str:
@@ -201,8 +238,10 @@ def lista(valor) -> str:
     if valor is None:
         return ""
     if isinstance(valor, (list, tuple)):
-        return ", ".join(str(v).strip() for v in valor if str(v).strip())
-    return str(valor).strip()
+        bruto = ", ".join(str(v).strip() for v in valor if str(v).strip())
+    else:
+        bruto = str(valor).strip()
+    return CONTROL.sub("", bruto)
 
 
 # --- Hojas -------------------------------------------------------------------
@@ -216,7 +255,7 @@ def _validacion(ws, valores: list[str], rango: str) -> None:
     dv.add(rango)
 
 
-def hoja_control(wb, m: dict, est: dict, br: dict, hoy: str) -> None:
+def hoja_control(wb, m: dict, est: dict, br: dict, hoy: str, marca) -> None:
     """Portada y registro de modificaciones. Es lo que se ve al abrir."""
     ws = wb.active
     ws.title = "Hoja de Control"
@@ -225,24 +264,19 @@ def hoja_control(wb, m: dict, est: dict, br: dict, hoy: str) -> None:
                        ("F", 20), ("G", 20)):
         ws.column_dimensions[col].width = ancho
 
-    from openpyxl.utils import get_column_letter
-
-    logo = False
-    if br.get("logo"):
-        import branding as _b
-        logo = _b.logo_excel(ws, br, "B2")
+    logo = marca.logo_excel(ws, br, "B2") if br.get("logo") else False
     fila = 6 if logo else 2
 
     ws.cell(fila, 2, "PLAN DE PRUEBAS").font = est["titulo_fuente"]
     fila += 2
     datos = [
-        ("Proyecto", m.get("proyecto", "")),
+        ("Proyecto", texto(m.get("proyecto"))),
         ("Documento", f"Plan de Pruebas · {m.get('hu_id','')} · {m.get('titulo','')}".strip(" ·")),
-        ("Historia de usuario", m.get("hu_id", "")),
-        ("Referencia externa", m.get("referencia", "")),
-        ("Entorno previsto", m.get("entorno", "")),
+        ("Historia de usuario", texto(m.get("hu_id"))),
+        ("Referencia externa", texto(m.get("referencia"))),
+        ("Entorno previsto", texto(m.get("entorno"))),
         ("Versión", str(m.get("version", "1.0"))),
-        ("Autor", m.get("autor", "")),
+        ("Autor", texto(m.get("autor"))),
         ("Fecha", hoy),
         ("Resumen", texto(m.get("resumen"))),
     ]
@@ -306,20 +340,20 @@ def hoja_especificaciones(wb, m: dict, casos: list[dict], codigos: list[str],
         valores = [
             NIVEL,
             hu,
-            f"{cu} - {nombres_cu.get(cu, '')}".strip(" -"),
+            texto(f"{cu} - {nombres_cu.get(cu, '')}".strip(" -")),
             "",
             codigo,
-            caso.get("nombre", ""),
-            caso.get("criticidad", "Media"),
+            texto(caso.get("nombre")),
+            texto(caso.get("criticidad")) or "Media",
             "Pendiente",
             texto(caso.get("descripcion")),
             texto(caso.get("precondiciones")),
             texto(caso.get("pasos")),
             texto(caso.get("resultado_esperado")),
             lista(caso.get("requisitos")),
-            caso.get("ejecucion", "manual"),
-            caso.get("change", ""),
-            caso.get("duracion", ""),
+            texto(caso.get("ejecucion")) or "manual",
+            texto(caso.get("change")),
+            texto(caso.get("duracion")),
             "",
         ]
         for i, v in enumerate(valores):
@@ -433,6 +467,8 @@ def hoja_ejecucion(wb, m: dict, casos: list[dict], codigos: list[str], est: dict
                 celda.font = est["celda_fuente"]
 
     ultima = EJEC_INI + max(len(casos), 1) - 1
+    for fila in range(EJEC_INI, ultima + 51):
+        ws.cell(fila, COL_INI + 7).number_format = "DD/MM/YYYY"
     _validacion(ws, RESULTADOS, f"{L(COL_INI + 8)}{EJEC_INI}:{L(COL_INI + 8)}{ultima + 50}")
     ws.freeze_panes = f"B{EJEC_INI}"
     ws.auto_filter.ref = f"B{EJEC_CAB}:{L(COL_INI + len(EJEC_COLS) - 1)}{ultima}"
@@ -490,7 +526,9 @@ def hoja_resumen(wb, casos: list[dict], est: dict, hoja_ejec: str) -> None:
         ws.column_dimensions[col].width = ancho
 
     total = max(len(casos), 1)
-    col_res = f"'{hoja_ejec}'!${L(COL_INI + 8)}${EJEC_INI}:${L(COL_INI + 8)}${EJEC_INI + total - 1}"
+    fin = EJEC_INI + total - 1 + 50  # el mismo margen que los desplegables
+    col = L(COL_INI + 8)
+    col_res = f"'{hoja_ejec}'!${col}${EJEC_INI}:${col}${fin}"
 
     ws.cell(2, 2, "RESUMEN DE EJECUCIÓN").font = est["titulo_fuente"]
     for i, cab in enumerate(("Resultado", "Casos", "%")):
@@ -509,7 +547,7 @@ def hoja_resumen(wb, casos: list[dict], est: dict, hoja_ejec: str) -> None:
         ws.cell(fila, 4).alignment = est["centro"]
 
     ws.cell(9, 2, "Total").font = est["grupo_fuente"]
-    ws.cell(9, 3, f"=SUM(C5:C8)").font = est["grupo_fuente"]
+    ws.cell(9, 3, f'=COUNTA({col_res})').font = est["grupo_fuente"]
     for i in range(3):
         ws.cell(9, 2 + i).border = est["borde"]
     ws.cell(9, 3).alignment = est["centro"]
@@ -533,6 +571,7 @@ def build(m: dict, salida: Path) -> dict:
     import branding as marca
     from openpyxl import Workbook
 
+    m = sanear(m)
     br = marca.normalizar(m.get("branding"))
     est = marca.estilos_excel(br)
     hoy = m.get("fecha") or date.today().isoformat()
@@ -542,6 +581,7 @@ def build(m: dict, salida: Path) -> dict:
     huerfanos = sorted({c.get("caso_uso") for c in casos
                         if c.get("caso_uso") and c.get("caso_uso") not in declarados})
 
+    _TRUNCADOS.clear()
     codigos = generar_codigos(casos)
     avisos = detectar_colisiones(casos, codigos)
     if huerfanos:
@@ -549,12 +589,15 @@ def build(m: dict, salida: Path) -> dict:
                       + ", ".join(huerfanos) + " (saldran sin nombre en el inventario)")
 
     wb = Workbook()
-    hoja_control(wb, m, est, br, hoy)
+    hoja_control(wb, m, est, br, hoy, marca)
     hoja_especificaciones(wb, m, casos, codigos, est)
     hoja_parametros(wb, est)
     nombre_ejec = hoja_ejecucion(wb, m, casos, codigos, est)
     hoja_qmetry(wb, m, casos, codigos, est)
     hoja_resumen(wb, casos, est, nombre_ejec)
+
+    for recorte in _TRUNCADOS:
+        avisos.append(f"texto recortado al limite de una celda de Excel: '{recorte}'")
 
     salida.parent.mkdir(parents=True, exist_ok=True)
     wb.save(salida)
@@ -570,12 +613,60 @@ def build(m: dict, salida: Path) -> dict:
     }
 
 
+def comprobar(ruta: Path) -> dict:
+    """Que hay ya anotado en un plan existente, antes de plantearse regenerarlo.
+
+    La regla del skill --nunca pisar resultados ejecutados-- necesita un dato
+    que solo esta dentro del `.xlsx`. Sin este modo, la regla se queda escrita
+    y nadie puede cumplirla.
+    """
+    import openpyxl
+
+    if not ruta.is_file():
+        return {"fichero": str(ruta), "existe": False, "regenerable": True,
+                "motivo": "no existe todavia"}
+
+    wb = openpyxl.load_workbook(ruta, data_only=True)
+    if "Ejecución 1" not in wb.sheetnames:
+        return {"fichero": str(ruta), "existe": True, "regenerable": False,
+                "motivo": "no tiene hoja 'Ejecución 1': no lo ha generado este skill, "
+                          "asi que regenerarlo destruiria un fichero ajeno"}
+
+    ws = wb["Ejecución 1"]
+    col = COL_INI + 8
+    recuento: dict[str, int] = {}
+    total = 0
+    for fila in range(EJEC_INI, ws.max_row + 1):
+        if not ws.cell(fila, COL_INI).value:
+            continue
+        total += 1
+        r = str(ws.cell(fila, col).value or "").strip()
+        if r and r != "No ejecutado":
+            recuento[r] = recuento.get(r, 0) + 1
+
+    ejecutados = sum(recuento.values())
+    return {
+        "fichero": str(ruta),
+        "existe": True,
+        "casos": total,
+        "ejecutados": ejecutados,
+        "resultados": recuento,
+        "regenerable": ejecutados == 0,
+        "motivo": ("sin resultados anotados" if ejecutados == 0 else
+                   f"{ejecutados} de {total} casos tienen resultado anotado; "
+                   f"regenerar los borraria y no se recuperan"),
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Genera el Plan de Pruebas (.xlsx) de una HU.")
     ap.add_argument("--manifest", help="JSON con el contenido del plan; sin el, stdin")
     ap.add_argument("--output", help="ruta del .xlsx de salida")
     ap.add_argument("--schema", action="store_true",
                     help="imprime el esquema del manifiesto y sale")
+    ap.add_argument("--comprobar", metavar="RUTA",
+                    help="dice si un plan ya existente se puede regenerar sin "
+                         "perder resultados anotados, y sale")
     ap.add_argument("--no-install", action="store_true",
                     help="no instalar openpyxl al vuelo")
     args = ap.parse_args()
@@ -583,6 +674,11 @@ def main() -> None:
     if args.schema:
         print(SCHEMA)
         return
+    if args.comprobar:
+        _ensure_openpyxl(not args.no_install)
+        res = comprobar(Path(args.comprobar))
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        sys.exit(0 if res["regenerable"] else 1)
     if not args.output:
         ap.error("--output es obligatorio (o usa --schema)")
 

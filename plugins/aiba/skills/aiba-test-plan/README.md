@@ -30,7 +30,7 @@ Dos ficheros por HU en `docs/pruebas/`, generados del **mismo manifiesto** para 
 
 La fuente de verdad es **`docs/detalle-historias-usuario.md`**: cada criterio de aceptación Dado/Cuando/Entonces se convierte en uno o varios casos. Sin él el comando se detiene y remite a `aidd user-story-details`.
 
-**Si existe el DF de la HU en `docs/df/`, es mejor fuente que los criterios.** Sus tablas de validaciones, mensajes y campos ya son casos de prueba casi literales, y sus puntos abiertos dicen qué *no* se puede probar todavía.
+**Si existe el DF de la HU en `docs/df/`, es mejor fuente que los criterios.** Sus tablas de validaciones, mensajes y campos ya son casos de prueba casi literales, y sus puntos abiertos dicen qué *no* se puede probar todavía. Como un `.docx` no se lee de un vistazo, `gen_df_docx.py --extraer` lo vuelca a JSON.
 
 Completa con `requisitos.md` (traza RF/NFR), `mapa-historias-usuario.md` (agrupación), `arquitectura-base.md` (de su estrategia de testing sale la marca de automatizable) y `roadmap.md` (el `change_hint` de cada caso).
 
@@ -64,7 +64,14 @@ En Excel eso significa cabeceras con estilo, desplegables de validación, panel 
 
 ## Reedición
 
-**Nunca se pisan resultados ejecutados.** Si la hoja `Ejecución 1` tiene algo anotado o el `.docx` tiene capturas pegadas, el comando se detiene y pregunta: regenerar borraría trabajo que no se recupera.
+**Nunca se pisan resultados ejecutados.** Antes de regenerar, los dos scripts responden con `--comprobar`:
+
+```bash
+gen_test_plan_xlsx.py --comprobar "docs/pruebas/PP - HU-06 - Tomador.xlsx"
+gen_evidence_docx.py  --comprobar "docs/pruebas/Evidencias - HU-06 - Tomador.docx"
+```
+
+Salen con código 1 si hay resultados anotados, capturas pegadas, o el fichero no lo generó este skill. El `.xlsx` guarda el resultado y el `.docx` guarda la prueba de haberlo obtenido: se pierden por separado, así que se comprueban los dos.
 
 Si no hay nada ejecutado, se regenera y se **añade una fila** al registro de modificaciones sin tocar el historial. Los códigos de los casos que siguen existiendo no cambian, aunque desaparezca uno del medio: alguien puede tener ya ese código en una incidencia.
 

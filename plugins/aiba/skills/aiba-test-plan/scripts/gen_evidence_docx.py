@@ -152,8 +152,11 @@ def build(m: dict, salida: Path) -> dict:
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.shared import Pt
 
-    from gen_test_plan_xlsx import generar_codigos
+    from gen_test_plan_xlsx import generar_codigos, sanear
 
+    # Mismo saneado que el plan: los dos documentos salen del mismo manifiesto y
+    # no pueden diferir en el texto por el camino que haya seguido cada uno.
+    m = sanear(m)
     br = marca.normalizar(m.get("branding"))
     hoy = m.get("fecha") or date.today().isoformat()
     proyecto = m.get("proyecto", "")
@@ -260,6 +263,32 @@ def build(m: dict, salida: Path) -> dict:
     }
 
 
+def comprobar(ruta: Path) -> dict:
+    """Si un documento de evidencias ya tiene capturas pegadas.
+
+    Es la otra mitad de la regla de reedicion: el `.xlsx` guarda el resultado y
+    el `.docx` guarda la prueba de haberlo obtenido. Regenerar sin mirar aqui
+    tira las capturas, que es el trabajo mas caro de rehacer.
+    """
+    if not ruta.is_file():
+        return {"fichero": str(ruta), "existe": False, "regenerable": True,
+                "motivo": "no existe todavia"}
+
+    import docx
+
+    d = docx.Document(ruta)
+    # Las imagenes viajan como relaciones del paquete, no como parrafos.
+    imagenes = sum(1 for r in d.part.rels.values() if "image" in r.reltype)
+    return {
+        "fichero": str(ruta),
+        "existe": True,
+        "capturas": imagenes,
+        "regenerable": imagenes == 0,
+        "motivo": ("sin capturas pegadas" if imagenes == 0 else
+                   f"{imagenes} imagenes incrustadas; regenerar las tiraria"),
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="Genera el Documento de Evidencias (.docx) de una HU.")
@@ -267,6 +296,9 @@ def main() -> None:
     ap.add_argument("--output", help="ruta del .docx de salida")
     ap.add_argument("--schema", action="store_true",
                     help="recuerda donde esta el esquema y sale")
+    ap.add_argument("--comprobar", metavar="RUTA",
+                    help="dice si un documento existente se puede regenerar sin "
+                         "perder capturas, y sale")
     ap.add_argument("--no-install", action="store_true",
                     help="no instalar python-docx al vuelo")
     args = ap.parse_args()
@@ -275,6 +307,11 @@ def main() -> None:
         print("El manifiesto es el mismo que el del plan. Consultalo con:\n"
               "  python3 gen_test_plan_xlsx.py --schema")
         return
+    if args.comprobar:
+        _ensure_docx(not args.no_install)
+        res = comprobar(Path(args.comprobar))
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        sys.exit(0 if res["regenerable"] else 1)
     if not args.output:
         ap.error("--output es obligatorio (o usa --schema)")
 

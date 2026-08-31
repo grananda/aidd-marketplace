@@ -199,4 +199,6 @@ Sexto skill de AIBA, en la línea del Diseño Funcional: entregables genéricos 
 
 **`scripts/branding.py` sube a nivel de plugin**, junto a `stamp_doc.py` y por la misma razón: la marca corporativa la aplican ahora dos skills en dos formatos, y una copia por skill se queda atrás sin que nada falle. `gen_df_docx.py` pasa a usarlo, con la salida verificada idéntica en los dos caminos —con marca y sin ella—.
 
+**Dos modos nuevos, porque el skill afirmaba cosas que no podía cumplir.** `--comprobar` responde si un plan o un documento de evidencias ya existentes se pueden regenerar sin perder resultados anotados ni capturas pegadas: la regla «nunca pises trabajo ejecutado» necesitaba un dato que solo está dentro del `.xlsx`, y sin leerlo era una regla escrita. Y `gen_df_docx.py --extraer` vuelca un DF a JSON con sus secciones y tablas: sin él, «el DF es la mejor fuente de casos» era decorativo, porque un `.docx` no se lee de un vistazo. Verificado sobre los DF reales del cliente.
+
 **Pendiente, como decisión aparte:** que `aisdd close change` lea el inventario y exija los casos ejecutados. Cerraría el círculo —la validación dejaría de ser «el Validator dice que sí» y pasaría a ser «estos 26 casos están en verde»— pero toca otro plugin, cambia la puerta de archivado y es una decisión de proceso.

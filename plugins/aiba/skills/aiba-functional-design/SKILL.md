@@ -3,7 +3,7 @@ name: aiba-functional-design
 description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.3.2"
+  version: "0.4.0"
 ---
 
 # aiba-functional-design (AIBA · Diseno Funcional)
@@ -133,6 +133,15 @@ El script se encarga de los estilos, la cabecera y el pie, el indice y las tabla
 
 Si `python3` no esta disponible, dilo y ofrece dejar el contenido en Markdown para convertirlo despues; no intentes fabricar OOXML a mano.
 
+**Para leer un DF ya generado** —propio o del cliente— el mismo script lo vuelca a JSON con sus secciones, parrafos y tablas:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" \
+  --extraer "docs/df/<fichero>.docx"
+```
+
+Lo usa `aiba test-plan`, para el que este DF es su mejor fuente de casos de prueba.
+
 ### 7. Reedicion de un DF existente
 
 Si el `.docx` ya existe, **no lo regeneres desde cero**: perderias el trabajo del analista.
@@ -185,5 +194,6 @@ Al terminar, informa:
 
 - Revisar el `.docx` con negocio y resolver los **Puntos abiertos** que haya dejado.
 - Si la revision cambia la HU, el cambio va a `docs/detalle-historias-usuario.md` (`aidd user-story-details`) y despues se regenera el DF: **no edites el `.docx` a mano**, porque la proxima generacion lo sobrescribe.
+- **`aiba test-plan HU-XX`** para derivar el plan de pruebas de la historia. Este DF es su mejor fuente: sus validaciones y sus mensajes son casos de prueba casi literales, y sus puntos abiertos dicen que **no** se puede probar todavia.
 - Si el proyecto ya tiene roadmap, el DF no lo altera: sigue con `aisdd open change` para la fase que corresponda.
 

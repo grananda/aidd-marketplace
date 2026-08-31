@@ -81,7 +81,14 @@ En modo no interactivo, toma **sin marca** y registralo como supuesto.
 Lee y consolida, en este orden:
 
 1. `docs/detalle-historias-usuario.md` — la HU, su prioridad, sus criterios de aceptacion Dado/Cuando/Entonces, los marcados como imprescindibles, y sus notas tecnicas.
-2. **`docs/df/*.docx` de esa HU, si existe** — es mejor fuente que los criterios: sus tablas de validaciones, mensajes y campos son casos de prueba casi literales, y sus puntos abiertos dicen que **no** se puede probar todavia.
+2. **`docs/df/*.docx` de esa HU, si existe** — es mejor fuente que los criterios: sus tablas de validaciones, mensajes y campos son casos de prueba casi literales, y sus puntos abiertos dicen que **no** se puede probar todavia. Un `.docx` no se lee de un vistazo, asi que **volcalo a JSON primero**:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" \
+     --extraer "docs/df/<fichero>.docx"
+   ```
+
+   Devuelve las secciones con sus parrafos y sus tablas. Las que mas dan: *Filtros/Campos*, *Validaciones* (frontal y core), *Mensajes y avisos*, y *Puntos abiertos*. Si el volcado falla, sigue con los criterios de aceptacion y **dilo** en el resumen: el plan sale con menos base.
 3. `docs/requisitos.md` — los RF/NFR que la HU realiza, para rellenar `Requisitos relacionados`.
 4. `docs/mapa-historias-usuario.md` — persona y fase.
 5. `docs/arquitectura-base.md` — su estrategia de testing y su stack, de donde sale la marca de automatizable.
@@ -116,7 +123,7 @@ Si falta el detalle de HU, **detente**. Si faltan los demas, avisa de que se gen
 
 ### 5. Generacion de los dos ficheros
 
-Compon **un solo manifiesto JSON** y pasalo a los dos scripts. El esquema completo:
+Compon **un solo manifiesto JSON** y pasalo a los dos scripts. Escribelo en un fichero temporal **fuera de `docs/`** (por ejemplo `.aiba-test-plan-HU-06.json` en la raiz, y borralo al terminar): no es un entregable y no debe acabar versionado. El esquema completo:
 
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-test-plan/scripts/gen_test_plan_xlsx.py" --schema
@@ -139,9 +146,18 @@ Si un script falla, dilo y no entregues el otro a medias: los dos describen el m
 
 ### 6. Reedicion
 
-Si los ficheros ya existen:
+Si los ficheros ya existen, **pregunta antes a los propios scripts**. La regla es no pisar trabajo ejecutado, y ese dato esta dentro de los ficheros:
 
-- **Nunca pises resultados ejecutados.** Si la hoja `Ejecución 1` tiene algo distinto de `No ejecutado` en la columna `Resultado`, o el `.docx` tiene capturas pegadas, **detente y preguntale al usuario**. Regenerar borraria trabajo que no se puede recuperar.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-test-plan/scripts/gen_test_plan_xlsx.py" \
+  --comprobar "docs/pruebas/PP - HU-06 - Tomador.xlsx"
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-test-plan/scripts/gen_evidence_docx.py" \
+  --comprobar "docs/pruebas/Evidencias - HU-06 - Tomador.docx"
+```
+
+Devuelven `regenerable` y el motivo, y **salen con codigo 1 cuando no se puede regenerar**: hay resultados anotados, hay capturas pegadas, o el fichero no lo genero este skill. En cualquiera de los tres casos **detente y preguntale al usuario**: regenerar borraria trabajo que no se recupera.
+
+- **Corre las dos comprobaciones, no una.** El `.xlsx` guarda el resultado y el `.docx` guarda la prueba de haberlo obtenido; se pierden por separado.
 - Si no hay nada ejecutado, muestra que ha cambiado en la documentacion de origen, regenera, y **anade una fila** al `Registro de Modificaciones` de la `Hoja de Control` (`1.0` -> `1.1`) sin tocar el historial.
 - **Los codigos de los casos que siguen existiendo no deben cambiar.** Si un caso desaparece del medio, no renumeres los siguientes: alguien puede tener ya ese codigo en una incidencia o en el board.
 
@@ -174,7 +190,8 @@ Antes de dar el comando por terminado:
 - Todo caso tiene codigo, nombre, criticidad, pasos y resultado esperado. Ninguno dice "funciona correctamente".
 - El script no ha emitido avisos de codigo duplicado sin resolver.
 - Ningun caso de uso usado en `casos` falta en `casos_uso`.
-- Si el plan es una reedicion, no se ha perdido ningun resultado ya anotado.
+- Si el plan es una reedicion, has corrido `--comprobar` sobre **los dos** ficheros antes de regenerar.
+- El fichero temporal del manifiesto no ha quedado en `docs/` ni sin borrar.
 
 ## Siguiente paso sugerido
 
