@@ -30,7 +30,12 @@ Uso:
 
 Campos admitidos en el JSON de entrada: command, change_id, skill_version,
 prompt_version, model, platform, user, input_files[], output_files[],
-decisions[], status, errors[], correction_of, id, timestamp.
+decisions[], status, errors[], correction_of, id, timestamp, **started_at**,
+**preflight_rounds**, **turns**, **interventions**.
+
+``attempt`` y el bloque ``preflight`` **no se pasan**: los deriva el script del
+propio registro y de ``decisions[]``. Un recuento que el agente teclea aparte
+puede contradecir a la lista de la que sale, y entonces no se sabe a cual creer.
 
 ``input_files`` y ``output_files`` son listas de **rutas relativas** a la raíz
 del proyecto; el script las convierte en ``[{path, sha256}]``. Un fichero que no
@@ -172,6 +177,83 @@ def ficheros_de_auditoria(audit_dir: Path) -> list[Path]:
     return sorted(list(audit_dir.glob("*.jsonl")) + list(audit_dir.glob("*/*.jsonl")))
 
 
+def contar_intento(audit_dir: Path, command: str, change_id) -> int:
+    """Cuantas veces se ha ejecutado ya este comando sobre este change, +1.
+
+    Lo cuenta el script y no lo declara el agente: un reintento es justo la
+    situacion en la que el agente ha perdido el hilo, y pedirle que se acuerde
+    de que va por la tercera es pedirle el dato precisamente cuando menos
+    fiable es. Aqui sale de contar lineas.
+    """
+    if not change_id or not audit_dir.is_dir():
+        return 1
+    n = 0
+    for f in ficheros_de_auditoria(audit_dir):
+        try:
+            texto = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for linea in texto.splitlines():
+            linea = linea.strip()
+            if not linea:
+                continue
+            try:
+                e = json.loads(linea)
+            except json.JSONDecodeError:
+                continue
+            if (isinstance(e, dict) and e.get("command") == command
+                    and e.get("change_id") == change_id):
+                n += 1
+    return n + 1
+
+
+def resumen_preflight(decisions: list, rounds) -> dict:
+    """El pre-flight, contado desde `decisions[]`.
+
+    Cuatro de los cinco numeros ya estan en las decisiones --cuantas hubo, quien
+    las resolvio y cuantas eran bloqueantes--, asi que se derivan en vez de
+    pedirse: un recuento que el agente teclea aparte puede contradecir a la lista
+    de la que sale, y entonces no se sabe cual de los dos creer.
+
+    Las de `type: correccion` no entran: son de la implementacion, no del
+    pre-flight, y contarlas inflaria la intensidad de las preguntas iniciales.
+
+    `rounds` es lo unico que el agente aporta, porque no deja rastro en la lista.
+    Y es el numero que mas dice: cinco preguntas de golpe son un pre-flight; tres
+    rondas de dos son que no se capto el problema a la primera.
+    """
+    utiles = [d for d in decisions if isinstance(d, dict) and d.get("type") != "correccion"]
+    r = None
+    if isinstance(rounds, (int, float)) and rounds >= 0:
+        r = int(rounds)
+    return {
+        "rounds": r,
+        "questions": len(utiles),
+        "by_user": sum(1 for d in utiles if d.get("origen") == "usuario"),
+        "auto": sum(1 for d in utiles if d.get("origen") == "auto-default"),
+        "blocking": sum(1 for d in utiles if d.get("type") == "bloqueante"),
+    }
+
+
+def entero_no_negativo(valor, nombre: str, warnings: list[str]):
+    """Los contadores que declara el agente. Un valor imposible se descarta.
+
+    Es preferible el hueco al numero raro: un KPI construido sobre un `turns`
+    negativo no avisa de nada, simplemente sale mal.
+    """
+    if valor is None:
+        return None
+    try:
+        n = int(valor)
+    except (TypeError, ValueError):
+        warnings.append(f"{nombre}: '{valor}' no es un entero; se omite")
+        return None
+    if n < 0:
+        warnings.append(f"{nombre}: {n} es negativo; se omite")
+        return None
+    return n
+
+
 def purge(audit_dir: Path, retention_days: int, now: datetime, warnings: list[str]) -> list[str]:
     """Borra los .jsonl cuyo mes terminó antes del corte. Purga por meses completos."""
     removed: list[str] = []
@@ -224,8 +306,21 @@ def main() -> int:
         warnings.append(f"status '{status}' no valido; se registra como 'partial'")
         status = "partial"
 
+    audit_dir_pre = root / "openspec" / "audit"
+    decisions = entry.get("decisions", [])
+    started_at = entry.get("started_at")
+    if not started_at:
+        warnings.append(
+            "sin `started_at`: no se puede medir cuanto duro el comando. "
+            "Anota la hora UTC al empezar y pasala en la entrada")
+
     record = {
         "id": entry.get("id") or str(uuid.uuid4()),
+        # Dos marcas y no una. Con solo el final, la duracion de un comando no
+        # existe: el hueco hasta la entrada anterior mide la comida de por medio,
+        # no el trabajo. Un comando que empieza a las 18:50 y acaba a las 09:10
+        # duro minutos, no catorce horas.
+        "started_at": started_at,
         "timestamp": entry.get("timestamp") or now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "command": entry["command"],
         "change_id": entry.get("change_id"),
@@ -238,7 +333,21 @@ def main() -> int:
         "input_files": in_files,
         "output_hash": f"sha256:{out_hash}",
         "output_files": out_files,
-        "decisions": entry.get("decisions", []),
+        "decisions": decisions,
+        # Ejecucion n-esima de este comando sobre este change. La cuenta el
+        # script leyendo el propio registro (ver `contar_intento`).
+        "attempt": contar_intento(audit_dir_pre, entry["command"], entry.get("change_id")),
+        # Intensidad del pre-flight. Cuatro de los cinco numeros salen de
+        # `decisions[]`; solo `rounds` lo aporta el agente.
+        "preflight": resumen_preflight(decisions, entry.get("preflight_rounds")),
+        # Autoinformados por el agente: no dejan rastro en ningun artefacto, asi
+        # que no se pueden contrastar. Van por eso en su propio bloque, y ningun
+        # KPI debe depender solo de ellos.
+        "self_reported": {
+            "turns": entero_no_negativo(entry.get("turns"), "turns", warnings),
+            "interventions": entero_no_negativo(
+                entry.get("interventions"), "interventions", warnings),
+        },
         "status": status,
         "errors": entry.get("errors", []),
         # Acciones con efecto externo que no son ficheros (hoy, Jira). Sin este campo

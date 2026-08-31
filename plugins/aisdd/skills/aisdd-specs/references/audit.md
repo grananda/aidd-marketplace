@@ -27,7 +27,8 @@ Cada linea es un objeto JSON con estos campos:
 ```json
 {
   "id": "<uuid v4 o ulid>",
-  "timestamp": "<ISO 8601 UTC, p.ej. 2026-05-25T14:30:00Z>",
+  "started_at": "<ISO 8601 UTC del inicio del comando, o null>",
+  "timestamp": "<ISO 8601 UTC del final, p.ej. 2026-05-25T14:30:00Z>",
   "command": "aisdd <subcomando>",
   "change_id": "<id-del-cambio-o-null>",
   "skill_version": "<version del skill, p.ej. 1.2.0>",
@@ -51,6 +52,12 @@ Cada linea es un objeto JSON con estos campos:
       "decision": "<resumen corto de la opcion elegida o 'pendiente'>"
     }
   ],
+  "attempt": "<entero >= 1; lo cuenta el script>",
+  "preflight": {
+    "rounds": "<rondas de preguntas, o null>",
+    "questions": 0, "by_user": 0, "auto": 0, "blocking": 0
+  },
+  "self_reported": { "turns": "<o null>", "interventions": "<o null>" },
   "status": "ok | partial | aborted",
   "errors": [ "<mensaje corto>" ],
   "notes": [ "<nota corta y factual, opcional>" ],
@@ -61,11 +68,20 @@ Cada linea es un objeto JSON con estos campos:
 Reglas para los campos:
 
 - `id`: generador propio del agente (UUID v4 o ULID). Debe ser unico.
-- `timestamp`: hora UTC en formato ISO 8601 con sufijo `Z`.
+- `started_at`: hora UTC del **inicio** del comando, en ISO 8601 con sufijo `Z`. **Anotala antes de leer nada** y pasala en la entrada; el script no puede deducirla, porque corre al final.
+
+  > **Por que dos marcas y no una.** Con solo el final, la duracion de un comando no existe: lo unico calculable es el hueco hasta la entrada anterior, que mide la reunion de por medio y no el trabajo. Un comando que empieza a las 18:50 y acaba a las 09:10 duro minutos, no catorce horas. De `started_at` salen el tiempo atendido, el ratio atencion/calendario y el coste de la duda, y ninguno depende de que haya hook: funcionan igual en Codex.
+
+- `timestamp`: hora UTC del **final**, en formato ISO 8601 con sufijo `Z`.
 - `input_hash`: SHA-256 hex del concatenado, en orden alfabetico ascendente por `path`, de las parejas `<path>\n<sha256>\n` de cada fichero en `input_files`. Si la lista esta vacia, usa `sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (hash del string vacio).
 - `output_hash`: misma formula sobre `output_files`. Si el comando no produce ficheros nuevos ni modificados, usa el hash del string vacio y deja `output_files` vacio.
 - `input_files`: ficheros leidos como entrada relevante del comando (artefactos del cambio, configuracion, documentos del usuario). No incluyas codigo fuente del repositorio salvo que el comando lo procese explicitamente.
 - `output_files`: ficheros creados o modificados por el comando (proposal.md, design.md, spec.md, decisions.md, roadmap.md, HTML de UML, etc.).
+- `attempt`: ejecucion n-esima de **este** comando sobre **este** change. **No lo pases**: lo cuenta el script leyendo el registro. Un reintento es justo la situacion en la que el agente ha perdido el hilo, asi que pedirle que se acuerde de que va por la tercera seria pedir el dato cuando menos fiable es.
+- `preflight`: intensidad del pre-flight. **Solo pasas `preflight_rounds`**; los otros cuatro numeros los deriva el script de `decisions[]` — cuantas hubo, quien las resolvio y cuantas eran bloqueantes ya estan ahi, y un recuento tecleado aparte puede contradecir a la lista de la que sale. Las de `type: correccion` no cuentan: son de la implementacion, no del pre-flight.
+
+  Las **rondas** son lo que mas dice, y lo unico que el agente aporta porque no deja rastro: cinco preguntas de golpe son un pre-flight; tres rondas de dos son que no se capto el problema a la primera.
+- `self_reported`: `turns` (mensajes del comando) e `interventions` (veces que el humano redirigio a mitad). Van en su propio bloque **porque no dejan rastro en ningun artefacto y no se pueden contrastar**, a diferencia de `decisions[]`, que esta anclado a `decisions.md`. Utiles como contexto; **ningun KPI debe depender solo de ellos**. Si no los sabes, omitelos: un hueco es mejor que un numero inventado.
 - `decisions`: solo para los comandos que recogen decisiones humanas, que son **`open change` e `implement change`** (los dos ejecutan el pre-flight). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `notes`: lista opcional de notas cortas y factuales sobre acciones con efecto externo que no son ficheros y por tanto no caben en `output_files`. Hoy su unico uso son las **acciones de Jira** (claves de issue afectadas y transicion aplicada, p. ej. `"ABC-45 -> In Progress"`). Sin datos personales ni texto libre del usuario. Lista vacia u omitida si no hubo ninguna.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.

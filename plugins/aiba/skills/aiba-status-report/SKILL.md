@@ -3,7 +3,7 @@ name: aiba-status-report
 description: AIBA (AI Business Analyst) — genera el informe de situacion del proyecto en HTML, ejecutivo y visual, mediante el comando `aiba status-report` (alias `aiba estado`, `aiba informe estado`). Actua como jefe de proyecto que mide el avance **por trabajo ejecutado y no por fechas**: cruza las fases de `openspec/config.yaml` con `openspec/changes/archive/` por `change_hint`, pesa cada fase con su esfuerzo (`effort_ai` o las tallas XS/S/M/L/XL de sus HU) y da dos metricas jerarquizadas — changes como principal, con tres estados (cerrado, activo, pendiente), e historias de usuario como secundaria. Lo contrasta con el avance previsto que se deriva de los sprints ya cerrados de `docs/sprint-plan.md` y expresa la desviacion en puntos y en dias. Anade bloqueos **medidos** (decisiones bloqueantes sin resolver en `openspec/audit/`), dependencias listas y bloqueadas del grafo `depends_on`, conflictos de faseado cross-lane, camino critico, ritmo real de entrega (lead time `open change` -> `close change` y su tendencia), riesgos y GAPs consolidados, analisis de desviaciones con responsable y plazo, y un resumen cualitativo con acciones de corto plazo. Los numeros los calcula un script y la narrativa la escribe el skill: cada cifra declara el documento del que sale, y lo que no se puede derivar aparece como hueco declarado, nunca como cifra plausible. Produce `docs/estado-proyecto.json` (el registro, versionable y comparable semana a semana) y `docs/html/estado-proyecto.html` (autocontenido, sin recursos externos). Degrada sin detenerse: con menos documentos da menos informe y lo dice. Usar cuando el usuario pida "informe de estado", "como va el proyecto", "reporte de situacion", "status del proyecto", "avance real vs previsto", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.1.1"
+  version: "0.2.0"
 ---
 
 # aiba-status-report (AIBA · Informe de situacion)
@@ -25,7 +25,7 @@ Responde y documenta en espanol. Conserva en ingles nombres de comandos, fichero
 |---|---|
 | `openspec/config.yaml` | Fases, `change_hint`, `hus`, `depends_on`, `sprint` y esfuerzo por fase |
 | `openspec/changes/` y `.../archive/` | Que changes estan activos y cuales cerrados |
-| `openspec/audit/*.jsonl` | **Cuando** se abrio y cerro cada uno, y que bloqueos siguen pendientes |
+| `openspec/audit/**/*.jsonl` | **Cuando** se abrio y cerro cada uno, **cuanto duro cada comando** (`started_at`), y que bloqueos siguen pendientes |
 | `docs/detalle-historias-usuario.md` | Tallas XS/S/M/L/XL para pesar cada fase |
 | `docs/sprint-plan.md` | Sprints y fechas, de donde sale el avance previsto |
 | `docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/arquitectura-base.md` | Riesgos declarados, que tu consolidas |
@@ -71,6 +71,7 @@ anterior antes de escribir el nuevo. Si es el primer informe, lo dice y sigue.
 Abre el JSON y **entiende el numero antes de narrarlo**. Preguntas que responder:
 
 - ¿La desviacion viene del ritmo o de los bloqueos? Compara `ritmo.tendencia` con `bloqueos`.
+- **¿El ratio de atencion es bajo?** `ritmo.ratio_atencion_medio` dice cuanto del tiempo que un change estuvo abierto se estuvo trabajando en el. Por debajo del 15% el problema **no es de capacidad**: los changes estan esperando, no avanzando, y meter mas gente no arregla una espera. Cruza con `bloqueos` para nombrar a que esperan. Solo sale con auditoria de `aisdd-specs` 3.2.0 en adelante, que es la que registra `started_at`.
 - ¿El camino critico pasa por algo bloqueado? Cruza `camino_critico.cadena` con `bloqueos[].change`. Si coincide, **es el hallazgo principal del informe** y va primero: cada dia de bloqueo es un dia de calendario, no de holgura.
 - ¿Divergen changes y HU? Un avance de changes alto con HU bajo significa fases grandes a medias.
 - ¿Hay fases listas para abrir y nadie las ha abierto? Es capacidad ociosa.

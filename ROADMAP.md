@@ -22,6 +22,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-14 | `aiba test-plan`: plan de pruebas por historia (inventario + evidencias) | aiba | **implementada** | 2026-08-31 |
 | F-15 | `aiba status-report`: informe de situación con avance medido por trabajo ejecutado | aiba | **implementada** | 2026-08-31 |
 | F-16 | Auditoría por escritor: un fichero por dev, para que el registro no conflicte en cada merge | aisdd, aiba | **implementada** | 2026-08-31 |
+| F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -244,3 +245,23 @@ El registro de auditoría es append-only y cada comando añade una línea **al f
 **No hay migración.** La disposición anterior sigue siendo válida y los lectores miran las dos; las entradas nuevas van a la nueva y conviven. La purga también: el mes lo lleva el directorio en una y el nombre del fichero en la otra, y un directorio de mes se borra con su último fichero.
 
 Es prerrequisito del cambio de esquema de la auditoría —`started_at`, `attempt`, `preflight{}`— que viene después: añadir campos a un fichero que conflicta en cada merge no es progreso.
+
+## F-17 — La auditoría empieza a medir el tiempo
+
+**Estado:** implementada · **Versión:** `aisdd` 3.3.0, `aiba` 1.5.0 · **Añadida:** 2026-08-31
+
+Hasta ahora la entrada solo tenía una marca —el final—, así que **la duración de un comando no existía**. Lo único calculable era el hueco hasta la entrada anterior, que mide la reunión de por medio y no el trabajo: un comando que empieza a las 18:50 y acaba a las 09:10 duró minutos, no catorce horas.
+
+**`started_at`** lo arregla, y lo hace sin depender de ningún hook: funciona igual en Codex. De ahí salen el tiempo atendido, el ratio atención/calendario y el coste de la duda.
+
+**Lo que el script puede calcular no se le pide al modelo.** Es la decisión de diseño que separa esto de la propuesta original:
+
+- **`attempt`** lo cuenta el script leyendo el propio registro. Un reintento es justo la situación en la que el agente ha perdido el hilo, así que pedirle que recuerde que va por la tercera sería pedir el dato cuando menos fiable es.
+- **`preflight`** deriva cuatro de sus cinco números de `decisions[]` —cuántas hubo, quién las resolvió y cuántas eran bloqueantes ya están ahí—. Un recuento tecleado aparte puede contradecir a la lista de la que sale, y entonces no se sabe a cuál creer. Solo `rounds` lo aporta el agente, porque no deja rastro: y es el número que más dice, porque cinco preguntas de golpe son un pre-flight y tres rondas de dos son que no se captó el problema a la primera.
+- **`turns` e `interventions`** van en un bloque `self_reported` aparte, precisamente porque no se pueden contrastar contra ningún artefacto. Útiles como contexto; ningún KPI debe depender solo de ellos.
+
+**Y el dato ya sirve para algo.** `aiba status-report` gana el **ratio atención/calendario**: de todo el tiempo que un change estuvo abierto, cuánto se trabajó en él. Por debajo del 15 % el problema no es de capacidad —los changes están esperando, no avanzando— y meter más gente no arregla una espera. El informe lo cruza con la lista de bloqueos para nombrar a qué esperan.
+
+Los campos son aditivos: las entradas anteriores siguen siendo válidas y los KPIs que dependen de los nuevos declaran desde qué versión miden.
+
+**Pendiente de esta línea:** `verification` —quién registra build y tests, que es el cambio de comportamiento real—, el calendario laborable para el lead time, y retirar de `aiba metrics` la comparación humano-vs-máquina, que era medido contra estimado disfrazado de comparación: `human_share` solo cuando existe `docs/aiad-journal.md`, y si no, la sección desaparece.

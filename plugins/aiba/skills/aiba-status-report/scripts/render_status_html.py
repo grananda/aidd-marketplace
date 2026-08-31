@@ -370,10 +370,34 @@ def sec_calendario(d: dict) -> str:
         p.append(f'<p><b style="font-size:22px">{r["lead_time_medio_dias"]:.4g} dias</b> '
                  f'de media entre abrir y cerrar un change '
                  f'({r["changes_medidos"]} medidos) {pill(r.get("tendencia",""), tono)}</p>')
-        p.append(tabla(["Change", "Abierto", "Cerrado", "Dias"],
-                       [[e(x["change"]), e(x["abierto"][:10]), e(x["cerrado"][:10]),
-                         f'{x["dias"]:.4g}'] for x in (r.get("por_change") or [])],
-                       numericas={3}))
+        if r.get("ratio_atencion_medio") is not None:
+            ra = r["ratio_atencion_medio"]
+            tono_r = "rojo" if ra < 15 else "ambar" if ra < 35 else "verde"
+            p.append(f'<p><b style="font-size:22px">{ra:.4g}%</b> de atencion sobre '
+                     f'calendario {pill("atencion / calendario", tono_r)}</p>')
+            p.append(f'<div class="nota {"mal" if ra < 15 else ""}">De todo el tiempo que '
+                     f'un change estuvo abierto, se trabajo en el un {ra:.4g}% '
+                     f'({r.get("atendido_horas",0):.4g} h atendidas en '
+                     f'{r.get("changes_con_atencion",0)} changes). Un ratio bajo significa '
+                     f'que el change estuvo <b>esperando</b>, no avanzando — y casi siempre '
+                     f'esperando a algo que esta en la lista de bloqueos.</div>')
+        elif r.get("ratio_atencion_motivo"):
+            p.append(f'<p class="hueco">{e(r["ratio_atencion_motivo"])}</p>')
+        cabs = ["Change", "Abierto", "Cerrado", "Dias"]
+        num = {3}
+        con_at = any("atendido_h" in x for x in (r.get("por_change") or []))
+        if con_at:
+            cabs += ["Atendido (h)", "Atencion"]
+            num |= {4, 5}
+        filas = []
+        for x in (r.get("por_change") or []):
+            fila = [e(x["change"]), e(x["abierto"][:10]), e(x["cerrado"][:10]),
+                    f'{x["dias"]:.4g}']
+            if con_at:
+                fila += [f'{x["atendido_h"]:.4g}' if "atendido_h" in x else "—",
+                         f'{x["ratio_atencion"]:.4g}%' if "ratio_atencion" in x else "—"]
+            filas.append(fila)
+        p.append(tabla(cabs, filas, numericas=num))
     else:
         p.append(f'<p class="hueco">{e(r.get("motivo") or "Sin auditoria no hay fechas de "
                  "apertura y cierre, asi que no hay ritmo que medir.")}</p>')
