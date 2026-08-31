@@ -32,6 +32,11 @@ import sys
 from datetime import date
 from pathlib import Path
 
+# La marca vive a nivel de plugin: la comparten este skill y `aiba-test-plan`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+
+import branding as marca  # noqa: E402 - despues de fijar sys.path
+
 # --- Dependencia -------------------------------------------------------------
 
 def _ensure_docx(allow_install: bool) -> None:
@@ -163,24 +168,12 @@ def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | No
         run.bold = True
         celda.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         if accent:
-            _shade(celda, accent)
+            marca.sombrear_celda_word(celda, accent)
     for fila in filas or []:
         celdas = t.add_row().cells
         for i, v in enumerate(fila[: len(columnas)]):
             celdas[i].text = "" if v is None else str(v)
     doc.add_paragraph()
-
-
-def _shade(celda, hex_color: str) -> None:
-    """Sombreado de celda. python-docx no lo expone, hay que bajar a OOXML."""
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"), "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"), hex_color)
-    celda._tc.get_or_add_tcPr().append(shd)
 
 
 def add_toc(doc) -> None:
@@ -206,64 +199,12 @@ def add_toc(doc) -> None:
     run._r.append(fin)
 
 
-def apply_branding(doc, branding: dict) -> None:
-    """Aplica la paleta a los ESTILOS, no a cada parrafo.
-
-    Es lo que permite que aplicar otra identidad despues sea cambiar el estilo
-    en vez de repasar el documento entero.
-    """
-    from docx.shared import RGBColor
-
-    principal = branding.get("color_principal")
-    secundario = branding.get("color_secundario") or principal
-    for nombre, color in (("Heading 1", principal), ("Heading 2", secundario),
-                          ("Heading 3", secundario), ("Title", principal)):
-        if not color:
-            continue
-        try:
-            doc.styles[nombre].font.color.rgb = RGBColor.from_string(color.lstrip("#").upper())
-        except (KeyError, ValueError):
-            pass
-
-
-def build_header_footer(doc, proyecto: str, titulo: str, version: str, branding: dict) -> None:
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    from docx.shared import Cm
-
-    seccion = doc.sections[0]
-
-    cab = seccion.header.paragraphs[0]
-    cab.text = branding.get("texto_cabecera") or f"{proyecto} · {titulo}"
-    cab.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    logo = branding.get("logo")
-    if logo and Path(logo).is_file():
-        try:
-            seccion.header.paragraphs[0].insert_paragraph_before().add_run().add_picture(
-                logo, height=Cm(1.2))
-        except Exception:  # noqa: BLE001 - un logo ilegible no tumba el documento
-            sys.stderr.write(f"Aviso: no se pudo insertar el logo {logo}; se omite.\n")
-
-    pie = seccion.footer.paragraphs[0]
-    pie.text = (branding.get("texto_pie") or f"Versión {version}") + "  ·  Página "
-    pie.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = pie.add_run()
-    for tipo, texto in (("begin", None), (None, "PAGE"), ("end", None)):
-        el = OxmlElement("w:fldChar") if tipo else OxmlElement("w:instrText")
-        if tipo:
-            el.set(qn("w:fldCharType"), tipo)
-        else:
-            el.text = texto
-        run._r.append(el)
-
-
 # --- Documento ---------------------------------------------------------------
 
 def build(m: dict, salida: Path) -> dict:
     from docx import Document
 
-    branding = m.get("branding") or {}
+    branding = marca.normalizar(m.get("branding"))
     accent = (branding.get("color_secundario") or branding.get("color_principal") or "D9D9D9")
     accent = accent.lstrip("#").upper()
 
@@ -274,8 +215,10 @@ def build(m: dict, salida: Path) -> dict:
 
     doc = Document()
     if branding:
-        apply_branding(doc, branding)
-    build_header_footer(doc, proyecto, titulo, version, branding)
+        marca.aplicar_estilos_word(doc, branding)
+    marca.cabecera_pie_word(doc, branding,
+                            cabecera=f"{proyecto} · {titulo}".strip(" ·"),
+                            pie=f"Versión {version}")
 
     # Portada
     if proyecto:
