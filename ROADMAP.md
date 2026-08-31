@@ -20,6 +20,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-12 | Encadenado de `aisdd`: cada comando sugiere el próximo paso resuelto, incluido el empalme con la capa de entrega de AIBA | aisdd | **implementada** | 2026-08-28 |
 | F-13 | CI de rutas de skills y de contratos documentación↔script | marketplace | **implementada** | 2026-08-29 |
 | F-14 | `aiba test-plan`: plan de pruebas por historia (inventario + evidencias) | aiba | **implementada** | 2026-08-31 |
+| F-15 | `aiba status-report`: informe de situación con avance medido por trabajo ejecutado | aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -202,3 +203,29 @@ Sexto skill de AIBA, en la línea del Diseño Funcional: entregables genéricos 
 **Dos modos nuevos, porque el skill afirmaba cosas que no podía cumplir.** `--comprobar` responde si un plan o un documento de evidencias ya existentes se pueden regenerar sin perder resultados anotados ni capturas pegadas: la regla «nunca pises trabajo ejecutado» necesitaba un dato que solo está dentro del `.xlsx`, y sin leerlo era una regla escrita. Y `gen_df_docx.py --extraer` vuelca un DF a JSON con sus secciones y tablas: sin él, «el DF es la mejor fuente de casos» era decorativo, porque un `.docx` no se lee de un vistazo. Verificado sobre los DF reales del cliente.
 
 **Pendiente, como decisión aparte:** que `aisdd close change` lea el inventario y exija los casos ejecutados. Cerraría el círculo —la validación dejaría de ser «el Validator dice que sí» y pasaría a ser «estos 26 casos están en verde»— pero toca otro plugin, cambia la puerta de archivado y es una decisión de proceso.
+
+## F-15 — `aiba status-report`: el informe de situación del proyecto
+
+**Estado:** implementada · **Versión:** `aiba` 1.4.0 · **Añadida:** 2026-08-31 · **Origen:** un informe real del equipo, tomado como referencia de contenido y layout
+
+Séptimo skill de AIBA. Responde a la pregunta que se hace en cada comité —*dónde estamos, vamos bien, y qué hacemos ahora*— con cifras que se pueden defender.
+
+**El avance se mide por trabajo ejecutado, no por fechas.** Es lo que separa este informe de un Gantt coloreado a mano. Una fase cuenta como entregada cuando su change está archivado —el mismo criterio que usa `aisdd roadmap` al re-fasear— y **cada fase pesa sus días de esfuerzo**: `effort_ai` si el plan de recursos lo calculó, si no la suma de las tallas de sus HU. Cerrar una fase L vale más que cerrar una XS, y un porcentaje por número de fases lo escondería.
+
+**Tres estados y dos métricas.** Cerrado, activo y pendiente: un change abierto no está ni entregado ni sin empezar, y meterlo en cualquiera de los dos lados miente en la dirección que le convenga a quien presenta. Y *changes* como métrica principal —la unidad que se abre y se cierra— con *HU* como secundaria —lo que el negocio reconoce—; si divergen mucho, eso ya es un hallazgo.
+
+**Los bloqueos son medidos, no declarados**: decisiones marcadas como bloqueantes en el pre-flight de un change y todavía sin resolver en `openspec/audit/`. Y el informe cruza esa lista con el camino crítico, porque un bloqueo que está en la cadena más larga es un día de calendario, no de holgura.
+
+**Los números los calcula un script y la narrativa la escribe el skill.** Esa separación es la que impide que el resumen cualitativo diga una cosa y la barra de progreso otra. Encima de ella, una regla dura: **nada se inventa**. Cada cifra declara el documento del que sale, y lo que no se puede derivar sale como hueco en ámbar con el documento que lo llenaría — una cifra plausible sin fuente es peor que un hueco, porque el hueco se ve.
+
+**`docs/estado-proyecto.json` se versiona a propósito.** Es el registro y es la fuente del HTML, así que no pueden divergir; y convierte el informe en una serie en vez de una foto. Un bloqueo que aparece en dos informes seguidos no es el mismo bloqueo: es un problema de gobierno.
+
+**Encontrado al construirlo:** el extractor de tallas leía `XS` como `S` y `XL` como `L` —`\D` es codicioso y se comía la `X`—, así que el esfuerzo total salía corto en todas las fases a la vez y en silencio. Es la misma trampa que ya apareció en el renderizador de `booster-docs` durante la auditoría.
+
+`EFFORT_DAYS` pasa a estar replicada en cuatro scripts, y la cuarta copia entra en la vigilancia de `check_plugin_assets.py`.
+
+**Del repaso salieron tres cosas mas.** La primera es la que hunde un informe: la barra de avance se pintaba **por número de fases** mientras el titular daba **esfuerzo**, así que la misma pantalla mostraba 35,2 % arriba y 42,9 % justo debajo. Ahora las dos van por esfuerzo, y cuando difieren el informe lo explica en vez de esconderlo — que las fases cerradas sean más pequeñas que la media es información, no ruido.
+
+La segunda: los sprints se emparejaban comparando el texto completo, así que la cabecera habitual —`## Sprint 1 — Funnel de cotización`— no casaba con el `sprint: Sprint 1` de `config.yaml` y el avance previsto salía vacío sin explicar por qué. Se emparejan por su número.
+
+Y `--anterior`, que compara con el informe previo y saca el dato que no se ve mirando solo el de hoy: **los bloqueos que repiten**. Uno que aparece en dos informes seguidos ya no es un bloqueo, es un problema de gobierno, y se resuelve escalándolo.

@@ -26,6 +26,7 @@
 | `aiba-project-plan` | `aiba project-plan` | Plan de recursos `docs/planificacion-proyecto.md` |
 | `aiba-sprint-planning` | `aiba sprint-planning` | Plan de sprints `docs/sprint-plan.md`, con volcado opcional a Jira |
 | `aiba-metrics` | `aiba metrics` | KPIs medidos del uso de IA en `docs/kpis-ia.md` |
+| `aiba-status-report` | `aiba status-report` | Informe de situación en `docs/html/estado-proyecto.html`, con el avance medido por **trabajo ejecutado** |
 
 ## 2. El rol
 

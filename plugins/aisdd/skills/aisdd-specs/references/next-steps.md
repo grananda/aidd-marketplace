@@ -58,6 +58,7 @@ Es el que mas depende del estado. Resuelve **la siguiente fase abrible** con el 
 | `multilane`, la siguiente es una **barrera** y ya no queda ningun change abierto | `aisdd open change` sobre la barrera — **di que se ha desbloqueado**, porque es el momento que el resto del equipo esperaba |
 | `multilane`, la siguiente es una **barrera** pero quedan changes abiertos | **No sugieras abrirla.** Lista que lanes faltan por cerrar: eso es lo accionable |
 | Roadmap agotado | Ya no hay fases. Sugiere `aiba metrics` para medir el ciclo completo, y cerrar |
+| Toca comite, o el usuario pregunta como va | `aiba status-report` — el avance real sale de los changes que acabas de cerrar, asi que el informe esta al dia justo despues de un `close change` |
 
 Si existe `docs/sprint-plan.md` y este change completaba las HU comprometidas de un sprint, **dilo**: es el dato que la capa de entrega necesita.
 

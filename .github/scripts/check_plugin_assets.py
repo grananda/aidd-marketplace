@@ -18,10 +18,11 @@ Dos invariantes:
    Se replican porque cada plugin debe ser autosuficiente; nada garantiza que
    se editen los N a la vez, y una copia rezagada no falla, solo miente.
 
-3. **Constantes replicadas** — la escala de tallas AIDD vive duplicada en tres
+3. **Constantes replicadas** — la escala de tallas AIDD vive duplicada en cuatro
    scripts de tres plugins distintos, por la misma razon: no se pueden importar
    entre si. De ella salen el calendario de `aisdd roadmap`, el panel de KPIs de
-   `booster-docs` y el ahorro que calcula `aiba metrics`. Si una copia se queda
+   `booster-docs`, el ahorro que calcula `aiba metrics` y el avance real que mide
+   `aiba status-report`. Si una copia se queda
    atras, los tres siguen dando numeros y ninguno coincide, sin que nada avise.
 """
 from __future__ import annotations
@@ -73,6 +74,7 @@ CONSTANTES = [
         "plugins/aisdd/skills/aisdd-specs/scripts/optimize_phasing.py",
         "plugins/boosters/skills/booster-docs/scripts/render_docs_html.py",
         "plugins/aiba/skills/aiba-metrics/scripts/compute_kpis.py",
+        "plugins/aiba/skills/aiba-status-report/scripts/compute_status.py",
     ]),
 ]
 
