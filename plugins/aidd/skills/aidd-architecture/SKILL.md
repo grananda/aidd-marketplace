@@ -124,9 +124,12 @@ Reglas:
 - **La ruta es relativa a la raiz del workspace**, y ahi es donde se espera encontrar el repo clonado. No pongas rutas absolutas: cambian de maquina a maquina.
 - **Di que contiene cada uno en una linea.** Es lo que permite decidir despues si un modulo cae en uno o en otro, y es la unica parte que un humano va a leer.
 - **La descomposicion por modulos (seccion 4) indica en que repo cae cada modulo.** Un modulo repartido entre dos repos es una senal de que la frontera esta mal puesta: dilo en la seccion 13 en vez de esconderlo.
-- **No inventes repos.** Si el usuario no ha dicho cuantos hay, es uno. Preguntalo en el paso de recopilacion, no lo deduzcas de que la arquitectura "pide" separacion.
+- **Declara el orden entre repos si lo hay.** Si uno publica un contrato que otro consume, sus despliegues llevan orden, y ese orden manda al integrar: un merge en el orden equivocado rompe el entorno aunque los PR existan todos. Ponlo en una linea bajo la tabla (`back` antes que `front`), o di explicitamente que son independientes. **No lo dejes implicito**: quien integra no lo va a deducir del diagrama.
+- **No inventes repos.** Si el usuario no ha dicho cuantos hay, es uno. Preguntalo en el paso de recopilacion, no lo deduzcas de que la arquitectura "pide" separacion. Y **no partas en repos para paralelizar**: el paralelismo lo dan los lanes, que no cuestan un despliegue.
 
-> **Por que importa aguas abajo.** `aisdd roadmap` deriva de aqui la seccion `repos` de `openspec/config.yaml` y, en modo `multilane`, el corte natural de lanes: **un lane por repo** es el corte mas limpio que existe, porque las rutas disjuntas dejan de ser un acuerdo y pasan a ser un hecho. Y `aisdd close change` verifica la independencia **repo a repo**. Sin esta tabla, nada de eso puede ocurrir y el proyecto se trata como si fuera un solo repo.
+> **Por que importa aguas abajo.** `aisdd roadmap` deriva de aqui la seccion `repos` de `openspec/config.yaml`, `aisdd init` comprueba que cada uno esta clonado, y `aisdd close change` sabe que un change que toca tres repos se cierra con **tres PR** y no archiva la fase hasta que los tres estan integrados. Sin esta tabla nada de eso ocurre: el proyecto se trata como si fuera un solo repo, y una fase se da por hecha con dos tercios del codigo sin integrar.
+>
+> **Cuantos repos hay no dice cuantos lanes hay.** El repo es una frontera de despliegue; el lane, una linea de trabajo en paralelo. Un roadmap `atomic` con tres repos es normal: un dev, un change vivo, y ese change toca los tres. Los repos existen en los tres modos de faseado; los lanes solo en `multilane`.
 
 Reglas de contenido:
 

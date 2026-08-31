@@ -81,7 +81,11 @@ Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
 
-   > **Con varios repositorios, un lane por repo es el corte mas limpio que existe.** Las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros: dos repos no comparten rutas por construccion. Los repos salen de la tabla de la seccion 3 de `docs/arquitectura-base.md`, y cada lane declara el suyo en `repo`. Un lane que abarca dos repos es posible pero es una senal: casi siempre significa que la frontera entre repos esta puesta donde no toca, y eso se arregla en la arquitectura, no en el faseado.
+   > **Con varios repositorios, las rutas van relativas al workspace** (`repo-front/src/`): el repo es un prefijo mas, y la regla de "ningun prefijo puede serlo de otro lane" funciona igual.
+   >
+   > **Un repo no es un lane.** Son cosas distintas --el repo es una frontera de despliegue; el lane, una linea de trabajo en paralelo-- y la relacion es de muchos a muchos: un lane puede abarcar varios repos, un repo puede tener varios lanes, y un roadmap `atomic` con tres repos no tiene ningun lane. **Los repos existen en los tres modos**; los lanes solo en `multilane`.
+   >
+   > Cuando la frontera de repos **coincide** con el corte de trabajo, el lane sale barato: dos repos no comparten rutas por construccion. Cuando no coincide, forzarlo crea coordinacion donde no hacia falta.
    >
    > Y un cambio de contrato entre dos repos **es una barrera** `FB-NN`, no una dependencia cross-lane: detiene a todos porque el contrato es de todos.
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.

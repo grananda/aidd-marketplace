@@ -49,7 +49,7 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight" (`references/preflight.md`)). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
 11. **Comprueba los repositorios del producto.** Si `docs/arquitectura-base.md` declara varios repositorios en su seccion 3, verifica **cada uno**: que la ruta existe bajo la raiz del workspace y que es un repositorio git (`git -C <ruta> rev-parse --git-dir`).
 
-    Avisa, sin bloquear, de lo que no cuadre: un repo declarado que no esta clonado —el trabajo de ese lane no se puede ni empezar—, una ruta que existe pero no es un repo, o un directorio que parece un repo y **no** esta declarado, que casi siempre significa que la arquitectura se ha quedado atras.
+    Avisa, sin bloquear, de lo que no cuadre: un repo declarado que no esta clonado —ninguna fase que lo toque se puede ni empezar—, una ruta que existe pero no es un repo, o un directorio que parece un repo y **no** esta declarado, que casi siempre significa que la arquitectura se ha quedado atras.
 
     **No los clones tu.** Elegir remote, rama y credenciales es del humano, y clonar en su nombre es la clase de accion que no se deshace sola.
 

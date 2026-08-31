@@ -311,7 +311,11 @@ Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y 
 
 **Los repos se declaran en `docs/arquitectura-base.md`, sección 3.** Es una decisión de arquitectura —fija fronteras de despliegue, de equipo y de contrato—, no de faseado. `aisdd roadmap` los copia a `roadmap.repos` en `openspec/config.yaml` con el mismo `id`, que es la clave con la que todo lo demás los nombra.
 
-**Un lane por repo es el corte más limpio que existe.** Las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros. Los `paths` de cada lane son **relativos a su repo**, y un cambio de contrato entre repos es una barrera `FB-NN`, no una dependencia cross-lane: detiene a todos porque el contrato es de todos.
+**Un repo no es un lane.** El repo es una frontera de despliegue; el lane, una línea de trabajo en paralelo. La relación es de muchos a muchos: un lane puede abarcar varios repos, un repo puede tener varios lanes, y **un roadmap `atomic` con tres repos no tiene ningún lane** —un dev, un change vivo, y ese change toca los tres—. Los repos existen en los tres modos de faseado; los lanes solo en `multilane`.
+
+Cuando la frontera de repos **coincide** con el corte de trabajo, el lane sale barato: dos repos no comparten rutas por construcción. Cuando no coincide, forzarlo crea coordinación donde no hacía falta. Los `paths` van relativos al workspace (`repo-front/src/`): el repo es un prefijo más, y la regla de «ningún prefijo puede serlo de otro lane» funciona sin tocarla.
+
+**Un change que toca tres repos se cierra con tres PR.** Archivarlo con dos abiertos deja el roadmap diciendo que la fase está hecha cuando dos tercios del código no están en ninguna rama principal — y el informe de estado lo cuenta como avance real. `close change` verifica la integración repo a repo y no archiva hasta que están todos, y respeta el orden entre repos cuando la arquitectura lo declara: un merge en el orden equivocado rompe el entorno aunque los tres PR existan.
 
 **Lo que había que arreglar de verdad:** `close change` verificaba la independencia con un `git diff` desde la raíz. Los sub-repos no son submódulos, así que ese diff **no ve nada** de lo que pasa dentro y la comprobación pasaría siempre — una verificación que dice que sí sin haber mirado es peor que no tenerla. Ahora recorre `roadmap.repos` y saca el diff de cada uno, y si un repo declarado no está clonado lo dice en vez de dar la verificación por buena.
 

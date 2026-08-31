@@ -199,9 +199,11 @@ Estas orientaciones valen para la **preferencia** del paso 9. La eleccion defini
 
 **1. Calcula el numero de lanes viable. No lo adivines ni lo preguntes en frio.**
 
-- **Repositorios, primero.** Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara **varios repositorios**, copialos tal cual a `roadmap.repos` en `openspec/config.yaml` --mismo `id`, misma ruta-- y **empieza el corte por ahi**: un lane por repo es el corte mas limpio que existe, porque dos repos no comparten rutas por construccion. Solo despues, si un repo da para mas de un lane, mira sus modulos.
+- **Repositorios.** Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara **varios repositorios**, copialos tal cual a `roadmap.repos` en `openspec/config.yaml` --mismo `id`, misma ruta--. Los `id` salen de la arquitectura y **no los inventes ni los renombres**: son la clave con la que se sabe donde ejecutar git.
 
-  Los `id` salen de la arquitectura y **no los inventes ni los renombres**: son la clave con la que `close change` verifica la independencia repo a repo.
+  > **Cuantos repos hay no dice cuantos lanes hay.** Son dos cosas distintas: el repo es una frontera de despliegue y el lane es una linea de trabajo en paralelo. Un roadmap `atomic` con tres repos es perfectamente normal --un dev, un change vivo, y ese change toca los tres--. La frontera entre repos **no obliga** a partir el trabajo, y partirlo por ella cuando el trabajo no se parte solo crea coordinacion donde no hacia falta.
+  >
+  > Cuando **si** coinciden, el corte sale barato: las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros. Pero es una coincidencia afortunada, no la regla.
 
 - **Modulos disjuntos**: lee `docs/arquitectura-base.md`, seccion "Descomposicion por modulos / dominios", y cuenta los modulos cuyas **rutas de codigo no se solapan**. Descarta los que compartan esquema de datos o migraciones (tipicamente `data` con `back`): esos son un solo lane.
 - **Devs disponibles**: lee la seccion de perfiles/equipo de `docs/planificacion-proyecto.md` y cuenta los perfiles **de implementacion** con dedicacion real (no cuentes Lead, Architect ni Outcome Validator: no conducen changes).
@@ -343,17 +345,18 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      context_budget: bajo | medio | alto
      complexity: baja | media | alta
      mode: atomic | waves | multilane  # ausente o `atomic` = comportamiento clasico
-     repos:                            # solo si el producto vive en varios repositorios
-       - id: <repo-id>                 # kebab-case, estable; sale de arquitectura-base.md seccion 3
-         path: <ruta/relativa/al/workspace/>
-         remote: <url, opcional>
+     repos:                            # solo si el producto vive en varios repositorios.
+       - id: <repo-id>                 # Independiente del modo: los hay en atomic,
+         path: <ruta/relativa/al/workspace/>   # en waves y en multilane por igual.
+         remote: <url, opcional>       # `id` kebab-case y estable; sale de arquitectura-base.md seccion 3
      parallel_developers: <entero >= 1>   # devs que trabajan a la vez; 1 => secuencial
      contract_owner: <rol/persona>     # solo si mode: multilane
      lanes:                            # solo si mode: multilane
        - id: <lane-id>                 # kebab-case, estable; clave de union con sprint-plan y openspec/.lane
          label: <nombre legible>
-         repo: <repo-id>                 # solo con varios repos; el repo al que pertenece el lane
-         paths: [<prefijo/de/ruta/>, ...]   # rutas propias, **relativas a su repo**; ningun prefijo puede serlo de otro lane del mismo repo
+         paths: [<prefijo/de/ruta/>, ...]   # rutas propias; ningun prefijo puede serlo de otro lane.
+                                            # Con varios repos van **relativas al workspace**
+                                            # (`repo-front/src/`): el repo es un prefijo mas
          profile: <perfil de planificacion-proyecto.md>
      docs:
        roadmap: docs/roadmap.md
