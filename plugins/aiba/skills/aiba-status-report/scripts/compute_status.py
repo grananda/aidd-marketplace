@@ -133,7 +133,10 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
     eventos: dict[str, dict] = {}
     bloqueos: list[dict] = []
     entradas = 0
-    for f in sorted(d.glob("*.jsonl")):
+    vistos: set[str] = set()
+    # Dos disposiciones: `YYYY-MM/<quien>.jsonl` (un fichero por escritor, para
+    # que dos devs no conflicten en cada merge) y `YYYY-MM.jsonl`, la anterior.
+    for f in sorted(list(d.glob("*.jsonl")) + list(d.glob("*/*.jsonl"))):
         for linea in f.read_text(encoding="utf-8", errors="replace").splitlines():
             linea = linea.strip()
             if not linea:
@@ -142,6 +145,14 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
                 e = json.loads(linea)
             except json.JSONDecodeError:
                 continue  # una linea corrupta no invalida el resto del registro
+            # `merge=union` puede repetir una linea al concatenar dos lados. El
+            # `id` es unico por diseno: la repetida se descarta y no duplica ni
+            # un bloqueo ni un evento de apertura o cierre.
+            eid = str(e.get("id") or "")
+            if eid and eid in vistos:
+                continue
+            if eid:
+                vistos.add(eid)
             entradas += 1
             cid, cmd, ts = e.get("change_id"), e.get("command", ""), e.get("timestamp")
             if cid and ts:

@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
 """aisdd-specs · audit.py — entrada de auditoría estructurada en JSON Lines.
 
-Escribe una entrada en ``openspec/audit/YYYY-MM.jsonl`` calculando los hashes
-SHA-256 de los ficheros de entrada y salida, y aplicando la purga por retención.
+Escribe una entrada en ``openspec/audit/YYYY-MM/<quien>.jsonl`` calculando los
+hashes SHA-256 de los ficheros de entrada y salida, y aplicando la purga por
+retención.
+
+**Un fichero por escritor, y no uno por mes.** El registro es append-only y cada
+comando añade una línea al final: con un fichero compartido, dos developers que
+parten de la misma base tocan la misma región y el merge conflicta. No es un
+caso raro —pasa en cada merge— y es justo el escenario que ``multilane`` fabrica
+a propósito. Separando por escritor el conflicto deja de ser posible en vez de
+tener que resolverse.
+
+``<quien>`` sale de la identidad de git, porque lo que se evita es un conflicto
+*de git* y esa identidad es justo lo que distingue a los escritores ahí.
 
 Sustituye a la mecánica que vivía como prosa en ``SKILL.md``. La fórmula del
 hash agregado, la retención y el formato son exactamente los que ese documento
@@ -37,6 +48,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -102,24 +115,82 @@ def clamp_retention(days: int, warnings: list[str]) -> int:
     return days
 
 
+SLUG_RE = re.compile(r"[^a-z0-9._-]+")
+EMAIL_RE = re.compile(r"[^\s<>@]+@[^\s<>@]+")
+
+
+def quien_escribe(root: Path, entry: dict) -> str:
+    """Identificador del escritor, estable y valido como nombre de fichero.
+
+    Por orden: el ``user`` que declara la entrada, la identidad de git del
+    repositorio, y ``desconocido``. Las tres son deterministas: el nombre no
+    puede depender de nada que cambie entre dos invocaciones del mismo dev, o
+    proliferarian ficheros sin separar a nadie.
+    """
+    for candidato in (entry.get("user"), _git_email(root)):
+        if not candidato or not str(candidato).strip():
+            continue
+        crudo = str(candidato).strip()
+        # `Nombre Apellido <correo@dominio>` es la forma en que git escribe una
+        # identidad. El correo ya es unico y sobrevive a las tildes, que en un
+        # nombre de fichero se convierten en guiones y lo dejan ilegible.
+        m = EMAIL_RE.search(crudo)
+        slug = SLUG_RE.sub("-", (m.group(0) if m else crudo).lower()).strip("-._")
+        if slug:
+            return slug[:60]
+    return "desconocido"
+
+
+def _git_email(root: Path) -> str | None:
+    try:
+        r = subprocess.run(["git", "-C", str(root), "config", "user.email"],
+                           capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout.strip() or None
+
+
+def mes_de(f: Path) -> tuple[int, int] | None:
+    """El mes al que pertenece un fichero de auditoria, en las dos disposiciones.
+
+    La nueva lo lleva en el directorio (``2026-08/ana.jsonl``) y la anterior en
+    el propio nombre (``2026-08.jsonl``). Los proyectos que ya existen siguen
+    purgandose igual.
+    """
+    for texto in (f.parent.name, f.stem):
+        try:
+            year, month = (int(p) for p in texto.split("-"))
+        except ValueError:
+            continue
+        if 1 <= month <= 12:
+            return year, month
+    return None
+
+
+def ficheros_de_auditoria(audit_dir: Path) -> list[Path]:
+    """Las dos disposiciones a la vez: `YYYY-MM/*.jsonl` y `YYYY-MM.jsonl`."""
+    return sorted(list(audit_dir.glob("*.jsonl")) + list(audit_dir.glob("*/*.jsonl")))
+
+
 def purge(audit_dir: Path, retention_days: int, now: datetime, warnings: list[str]) -> list[str]:
     """Borra los .jsonl cuyo mes terminó antes del corte. Purga por meses completos."""
     removed: list[str] = []
     if not audit_dir.is_dir():
         return removed
     cutoff = now.timestamp() - retention_days * 86400
-    for f in sorted(audit_dir.glob("*.jsonl")):
-        try:
-            year, month = (int(p) for p in f.stem.split("-"))
-        except ValueError:
-            continue  # nombre ajeno al esquema YYYY-MM: no es nuestro, no se toca
-        if not 1 <= month <= 12:
-            continue  # '2026-13.jsonl' no lo generamos nosotros
+    for f in ficheros_de_auditoria(audit_dir):
+        mes = mes_de(f)
+        if mes is None:
+            continue  # nombre ajeno al esquema: no es nuestro, no se toca
+        year, month = mes
         end = datetime(year + month // 12, month % 12 + 1, 1, tzinfo=timezone.utc)
         if end.timestamp() < cutoff:
             try:
                 f.unlink()
-                removed.append(f.name)
+                removed.append(str(f.relative_to(audit_dir)))
+                # El directorio del mes se va con su ultimo fichero.
+                if f.parent != audit_dir and not any(f.parent.iterdir()):
+                    f.parent.rmdir()
             except OSError as exc:
                 warnings.append(f"no se pudo purgar {f.name}: {exc}")
     return removed
@@ -182,7 +253,9 @@ def main() -> int:
     audit_dir.mkdir(parents=True, exist_ok=True)
     removed = purge(audit_dir, resolve_retention_days(root, warnings), now, warnings)
 
-    audit_file = audit_dir / f"{now.strftime('%Y-%m')}.jsonl"
+    mes_dir = audit_dir / now.strftime("%Y-%m")
+    mes_dir.mkdir(parents=True, exist_ok=True)
+    audit_file = mes_dir / f"{quien_escribe(root, entry)}.jsonl"
     with audit_file.open("a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
