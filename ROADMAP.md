@@ -23,6 +23,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-15 | `aiba status-report`: informe de situación con avance medido por trabajo ejecutado | aiba | **implementada** | 2026-08-31 |
 | F-16 | Auditoría por escritor: un fichero por dev, para que el registro no conflicte en cada merge | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
+| F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -265,3 +266,21 @@ Hasta ahora la entrada solo tenía una marca —el final—, así que **la durac
 Los campos son aditivos: las entradas anteriores siguen siendo válidas y los KPIs que dependen de los nuevos declaran desde qué versión miden.
 
 **Pendiente de esta línea:** `verification` —quién registra build y tests, que es el cambio de comportamiento real—, el calendario laborable para el lead time, y retirar de `aiba metrics` la comparación humano-vs-máquina, que era medido contra estimado disfrazado de comparación: `human_share` solo cuando existe `docs/aiad-journal.md`, y si no, la sección desaparece.
+
+## F-18 — La verificación deja rastro, y el lead time cuenta días laborables
+
+**Estado:** implementada · **Versión:** `aisdd` 3.4.0, `aiba` 1.6.0 · **Añadida:** 2026-08-31
+
+Cierra la parte aditiva de la línea de medición que abrió F-17.
+
+**`verification`.** `aisdd implement change` y `aisdd amend change` ya ejecutaban build y tests, y **no registraban el resultado en ningún sitio**. Ahora lo dejan en la entrada: `{build, tests_run, passed, failed, added, modified, gates[]}`, donde `gates[]` es el enganche natural de Spotless, ArchUnit, Kiuwan o los linters del proyecto. Era el cambio de comportamiento más grande de la propuesta y resultó ser el más barato: el dato ya existía, solo se perdía.
+
+**`first_run_green` lo deriva el script**, de que sea el primer `attempt`, de que algo se haya ejecutado de verdad y de que no falle nada. Es el mejor indicador de si las specs iban bien —mejor que contar correcciones, que llegan después y ya con el problema encima— y por eso no puede depender de que el agente se acuerde de marcarlo. Como `attempt` también lo cuenta el script, tampoco se puede maquillar reintentando y volviendo a declarar verde.
+
+Un bloque ausente es `null`, no un bloque a ceros: un cero se leería como cero fallos.
+
+**El calendario laborable** va en `calendar: {workweek, holidays[], timezone}` dentro de la sección `roadmap` de `openspec/config.yaml`, y lo escribe **`aiba project-plan`** — el calendario del equipo es un recurso, como los perfiles y la capacidad, y ese es el skill que los declara. `aiba status-report` da ahora el lead time en días naturales **y** laborables.
+
+No se adivina: cambia por país, por cliente y por convenio. Sin la sección, el informe asume lunes a viernes sin festivos **y lo declara** — un lead time laborable sobre un calendario supuesto que nadie ha visto es peor que el natural, porque parece más preciso.
+
+**Queda de la línea:** retirar de `aiba metrics` la comparación humano-vs-máquina. Es una resta sobre una capacidad publicada, así que va en su propia PR.

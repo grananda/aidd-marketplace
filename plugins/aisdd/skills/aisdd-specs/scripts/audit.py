@@ -31,10 +31,11 @@ Uso:
 Campos admitidos en el JSON de entrada: command, change_id, skill_version,
 prompt_version, model, platform, user, input_files[], output_files[],
 decisions[], status, errors[], correction_of, id, timestamp, **started_at**,
-**preflight_rounds**, **turns**, **interventions**.
+**preflight_rounds**, **turns**, **interventions**, **verification{}**.
 
-``attempt`` y el bloque ``preflight`` **no se pasan**: los deriva el script del
-propio registro y de ``decisions[]``. Un recuento que el agente teclea aparte
+``attempt``, el bloque ``preflight`` y ``verification.first_run_green`` **no se
+pasan**: los deriva el script del propio registro, de ``decisions[]`` y del
+resultado de la verificacion. Un recuento que el agente teclea aparte
 puede contradecir a la lista de la que sale, y entonces no se sabe a cual creer.
 
 ``input_files`` y ``output_files`` son listas de **rutas relativas** a la raíz
@@ -235,6 +236,42 @@ def resumen_preflight(decisions: list, rounds) -> dict:
     }
 
 
+ESTADOS_BUILD = ("ok", "failed", "skipped", "n/a")
+
+
+def resumen_verificacion(verification, attempt: int, warnings: list[str]) -> dict | None:
+    """Lo que dieron el build y los tests, y si salio verde a la primera.
+
+    ``first_run_green`` no se declara: se deriva de que sea el primer intento y
+    de que no falle nada. Es el mejor indicador de si las specs iban bien --mejor
+    que contar correcciones, que llegan despues y ya con el problema encima-- y
+    justo por eso no puede depender de que el agente se acuerde de marcarlo.
+
+    Sin bloque, ``None``: el comando no verifico o no supo decirlo. Un cero seria
+    peor, porque se leeria como cero fallos.
+    """
+    if not isinstance(verification, dict) or not verification:
+        return None
+    build = str(verification.get("build", "n/a")).lower()
+    if build not in ESTADOS_BUILD:
+        warnings.append(f"verification.build '{build}' no valido; se registra como 'n/a'")
+        build = "n/a"
+    nums = {}
+    for k in ("tests_run", "passed", "failed", "added", "modified"):
+        nums[k] = entero_no_negativo(verification.get(k), f"verification.{k}", warnings)
+    gates = [g for g in (verification.get("gates") or []) if isinstance(g, dict)]
+
+    fallos = (nums["failed"] or 0) + sum(
+        1 for g in gates if str(g.get("status", "")).lower() not in ("ok", "skipped"))
+    corrio = build == "ok" or (nums["tests_run"] or 0) > 0
+    return {**nums, "build": build, "gates": gates,
+            # Verde a la primera solo si de verdad fue la primera y de verdad
+            # corrio algo: `attempt` lo cuenta el script, asi que no se puede
+            # maquillar reintentando y volviendo a declarar.
+            "first_run_green": bool(corrio and attempt == 1 and fallos == 0
+                                    and build != "failed")}
+
+
 def entero_no_negativo(valor, nombre: str, warnings: list[str]):
     """Los contadores que declara el agente. Un valor imposible se descarta.
 
@@ -314,6 +351,8 @@ def main() -> int:
             "sin `started_at`: no se puede medir cuanto duro el comando. "
             "Anota la hora UTC al empezar y pasala en la entrada")
 
+    intento = contar_intento(audit_dir_pre, entry["command"], entry.get("change_id"))
+
     record = {
         "id": entry.get("id") or str(uuid.uuid4()),
         # Dos marcas y no una. Con solo el final, la duracion de un comando no
@@ -336,7 +375,7 @@ def main() -> int:
         "decisions": decisions,
         # Ejecucion n-esima de este comando sobre este change. La cuenta el
         # script leyendo el propio registro (ver `contar_intento`).
-        "attempt": contar_intento(audit_dir_pre, entry["command"], entry.get("change_id")),
+        "attempt": intento,
         # Intensidad del pre-flight. Cuatro de los cinco numeros salen de
         # `decisions[]`; solo `rounds` lo aporta el agente.
         "preflight": resumen_preflight(decisions, entry.get("preflight_rounds")),
@@ -348,6 +387,9 @@ def main() -> int:
             "interventions": entero_no_negativo(
                 entry.get("interventions"), "interventions", warnings),
         },
+        # Resultado del build, los tests y las puertas de calidad. `None` cuando
+        # el comando no verifica: un bloque a cero se leeria como cero fallos.
+        "verification": resumen_verificacion(entry.get("verification"), intento, warnings),
         "status": status,
         "errors": entry.get("errors", []),
         # Acciones con efecto externo que no son ficheros (hoy, Jira). Sin este campo

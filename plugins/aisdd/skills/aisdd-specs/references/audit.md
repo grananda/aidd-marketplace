@@ -58,6 +58,12 @@ Cada linea es un objeto JSON con estos campos:
     "questions": 0, "by_user": 0, "auto": 0, "blocking": 0
   },
   "self_reported": { "turns": "<o null>", "interventions": "<o null>" },
+  "verification": {
+    "build": "ok | failed | skipped | n/a",
+    "tests_run": 0, "passed": 0, "failed": 0, "added": 0, "modified": 0,
+    "gates": [{ "name": "spotless", "status": "ok" }],
+    "first_run_green": "<lo deriva el script>"
+  },
   "status": "ok | partial | aborted",
   "errors": [ "<mensaje corto>" ],
   "notes": [ "<nota corta y factual, opcional>" ],
@@ -82,6 +88,9 @@ Reglas para los campos:
 
   Las **rondas** son lo que mas dice, y lo unico que el agente aporta porque no deja rastro: cinco preguntas de golpe son un pre-flight; tres rondas de dos son que no se capto el problema a la primera.
 - `self_reported`: `turns` (mensajes del comando) e `interventions` (veces que el humano redirigio a mitad). Van en su propio bloque **porque no dejan rastro en ningun artefacto y no se pueden contrastar**, a diferencia de `decisions[]`, que esta anclado a `decisions.md`. Utiles como contexto; **ningun KPI debe depender solo de ellos**. Si no los sabes, omitelos: un hueco es mejor que un numero inventado.
+- `verification`: resultado del build, los tests y las puertas de calidad. **Solo lo rellenan los comandos que verifican** — `aisdd implement change` y `aisdd amend change`, que ya ejecutan build y tests y hasta ahora no registraban el resultado en ningun sitio. En el resto, omitelo: el bloque queda a `null`, que es distinto de un bloque a cero — ese se leeria como cero fallos.
+  - `gates[]` es donde entran las puertas del proyecto (Spotless, ArchUnit, Kiuwan, linters). Cada una `{name, status}`; `status` distinto de `ok` o `skipped` cuenta como fallo.
+  - **`first_run_green` no se pasa**: lo deriva el script de que sea el **primer** `attempt`, de que algo se haya ejecutado de verdad y de que no falle nada. Es el mejor indicador de si las specs iban bien —mejor que contar correcciones, que llegan despues y ya con el problema encima— y justo por eso no puede depender de que el agente se acuerde de marcarlo, ni maquillarse reintentando.
 - `decisions`: solo para los comandos que recogen decisiones humanas, que son **`open change` e `implement change`** (los dos ejecutan el pre-flight). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `notes`: lista opcional de notas cortas y factuales sobre acciones con efecto externo que no son ficheros y por tanto no caben en `output_files`. Hoy su unico uso son las **acciones de Jira** (claves de issue afectadas y transicion aplicada, p. ej. `"ABC-45 -> In Progress"`). Sin datos personales ni texto libre del usuario. Lista vacia u omitida si no hubo ninguna.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.

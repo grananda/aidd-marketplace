@@ -367,9 +367,16 @@ def sec_calendario(d: dict) -> str:
     p.append('<div class="card"><h3>Ritmo de entrega</h3>')
     if r.get("changes_medidos"):
         tono = {"acelerando": "verde", "frenando": "rojo"}.get(r.get("tendencia"), "gris")
+        lab = r.get("lead_time_laborable_medio")
         p.append(f'<p><b style="font-size:22px">{r["lead_time_medio_dias"]:.4g} dias</b> '
-                 f'de media entre abrir y cerrar un change '
-                 f'({r["changes_medidos"]} medidos) {pill(r.get("tendencia",""), tono)}</p>')
+                 f'de media entre abrir y cerrar un change'
+                 + (f' · <b>{lab:.4g} laborables</b>' if lab is not None else '')
+                 + f' ({r["changes_medidos"]} medidos) {pill(r.get("tendencia",""), tono)}</p>')
+        cal = r.get("calendario") or {}
+        if cal.get("por_defecto"):
+            p.append('<p class="hueco">El lead time laborable asume lunes a viernes y '
+                     'ningun festivo: no hay seccion <code>calendar</code> en '
+                     '<code>openspec/config.yaml</code>. La escribe <code>aiba project-plan</code>.</p>')
         if r.get("ratio_atencion_medio") is not None:
             ra = r["ratio_atencion_medio"]
             tono_r = "rojo" if ra < 15 else "ambar" if ra < 35 else "verde"
@@ -383,16 +390,17 @@ def sec_calendario(d: dict) -> str:
                      f'esperando a algo que esta en la lista de bloqueos.</div>')
         elif r.get("ratio_atencion_motivo"):
             p.append(f'<p class="hueco">{e(r["ratio_atencion_motivo"])}</p>')
-        cabs = ["Change", "Abierto", "Cerrado", "Dias"]
-        num = {3}
+        cabs = ["Change", "Abierto", "Cerrado", "Dias", "Laborables"]
+        num = {3, 4}
         con_at = any("atendido_h" in x for x in (r.get("por_change") or []))
         if con_at:
             cabs += ["Atendido (h)", "Atencion"]
-            num |= {4, 5}
+            num |= {5, 6}
         filas = []
         for x in (r.get("por_change") or []):
             fila = [e(x["change"]), e(x["abierto"][:10]), e(x["cerrado"][:10]),
-                    f'{x["dias"]:.4g}']
+                    f'{x["dias"]:.4g}',
+                    f'{x["dias_laborables"]:.4g}' if "dias_laborables" in x else "—"]
             if con_at:
                 fila += [f'{x["atendido_h"]:.4g}' if "atendido_h" in x else "—",
                          f'{x["ratio_atencion"]:.4g}%' if "ratio_atencion" in x else "—"]
