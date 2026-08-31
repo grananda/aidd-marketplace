@@ -1,9 +1,9 @@
 ---
 name: aiba-metrics
-description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
+description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Si existe `docs/aiad-journal.md` anade la seccion de **autoria real** --el unico dato de autoria que no es una estimacion--, separando lo que capturo el hook de lo que declaro el humano; sin bitacora esa seccion no aparece. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.4.4"
+  version: "0.5.0"
 ---
 
 # aiba-metrics (AIBA · medicion · KPIs de uso de IA)
@@ -42,16 +42,18 @@ Criterio de salida del paso: existe `docs/kpis-ia.md` con la actividad medida, l
 - **Nunca calcules ahorro sin esfuerzo real declarado.** Ver la seccion siguiente; es la regla mas importante de este skill.
 - Los numeros los calcula el script, no tu. No hagas aritmetica a ojo sobre el registro ni redondees a mano: pega las tablas que produce y escribe alrededor la interpretacion.
 
-## La regla del ahorro (leela antes de prometer nada)
+## La regla de la calibracion (leela antes de prometer nada)
 
 El registro mide **tiempo atendido**: la suma de la duracion de los turnos, es decir, el rato en que el humano lanzo una peticion y espero. Eso **no es** el esfuerzo humano total del proyecto: fuera de los turnos quedan leer, revisar, probar, teclear codigo a mano, discutir con negocio y reunirse. Ademas, lo que el humano escribe en su editor no pasa por las tools de la IA y el registro no lo ve, por diseno.
+
+**Y no la llames ahorro.** El baseline es lo que se penso que costaria sin IA, y ese escenario **no se ejecuto**: no hay nada con que compararlo de verdad. La tabla contrasta una estimacion con lo declarado, y eso sirve --y mucho-- para afinar la proxima estimacion y para orientar el proceso. Lo que no es, es una cifra de resultado. El informe lo dice en la propia tabla; no lo contradigas al presentarlo.
 
 Por tanto:
 
 - **Tiempo atendido es una cota inferior** del trabajo asistido, nunca el coste real del proyecto.
 - Restar el tiempo atendido al baseline da aceleraciones absurdas (x50, x100). Si te sale algo asi, no lo publiques: es un error de metodo, no un exito.
-- El ahorro **solo** se calcula contra el **esfuerzo real declarado** por el equipo en la misma ventana: partes de horas, worklogs de Jira o, en su defecto, una estimacion honesta de los implicados. Se pasa al script con `--real-days N`.
-- Si el equipo no puede o no quiere declararlo, el informe sale igual, pero **sin** ahorro: con actividad medida, tiempo de ciclo y retrabajo, que ya valen para gestionar. Dilo con naturalidad; no es un fallo del informe.
+- La calibracion **solo** se calcula contra el **esfuerzo real declarado** por el equipo en la misma ventana: partes de horas, worklogs de Jira o, en su defecto, una estimacion honesta de los implicados. Se pasa al script con `--real-days N`.
+- Si el equipo no puede o no quiere declararlo, el informe sale igual, pero **sin** calibracion: con actividad medida, tiempo de ciclo y retrabajo, que ya valen para gestionar. Dilo con naturalidad; no es un fallo del informe.
 
 ## Flujo del comando `aiba metrics`
 
@@ -108,6 +110,14 @@ Escribe el documento con esta estructura, pegando **literalmente** las tablas qu
 ## 5. Retrabajo y codigo entregado <- tablas del script (churn, correcciones, git)
 ## 6. Contraste con el baseline humano  <- tabla del script
 ## 7. Calibracion de la estimacion previa
+## 8b. Autoria real (solo si hay bitacora AIAD)
+
+Si existe `docs/aiad-journal.md`, el script anade la seccion de autoria: cuantas piezas de trabajo escribio el humano y cuantas la IA, con el reparto por tipo.
+
+**Es el unico dato real de autoria del informe.** Todo lo demas contrasta una estimacion con lo declarado; aqui hay una linea por pieza, anotada en el momento. Y dentro hay dos calidades que no se mezclan: las entradas `ai-edit` las captura el hook al ver a la IA tocar un fichero --son factuales-- y el resto las declara el humano. La seccion lo separa; consérvalo.
+
+**Si no hay bitacora, la seccion no aparece.** No sale un cero ni un "no disponible": un proyecto que no lleva bitacora no tiene un reparto de autoria del 0 %, simplemente no lo ha medido. No lo supongas ni lo estimes.
+
 ## 8. Lectura, riesgos y sesgos
 ```
 

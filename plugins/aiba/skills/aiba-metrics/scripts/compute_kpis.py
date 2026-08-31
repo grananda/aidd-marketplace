@@ -226,6 +226,47 @@ def git_stats(repo: Path, since: datetime | None, until: datetime | None) -> dic
     return out
 
 
+JOURNAL_RE = re.compile(r"authored:\s*([a-z-]+)")
+
+
+def read_journal(path: Path) -> dict:
+    """La bitacora de autoria de AIAD: quien escribio de verdad cada cosa.
+
+    Es la unica fuente del informe con **dato real de autoria**. Todo lo demas
+    contrasta lo estimado con lo declarado; aqui hay una linea por pieza de
+    trabajo diciendo quien la escribio, anotada en el momento.
+
+    Y dentro hay dos calidades distintas que no se pueden mezclar: `ai-edit` lo
+    captura el hook al ver a la IA tocar un fichero --es factual-- y el resto lo
+    declara el humano. Se reportan por separado a proposito.
+
+    Sin el fichero, este bloque no existe. No sale un cero ni un "no disponible":
+    la seccion desaparece, porque un proyecto que no lleva bitacora no tiene un
+    reparto de autoria del 0%, simplemente no lo ha medido.
+    """
+    if not path.is_file():
+        return {"available": False}
+    conteo: dict[str, int] = {}
+    for linea in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        m = JOURNAL_RE.search(linea)
+        if m:
+            conteo[m.group(1)] = conteo.get(m.group(1), 0) + 1
+    total = sum(conteo.values())
+    if not total:
+        return {"available": False, "path": str(path), "empty": True}
+    # El codigo de produccion es del humano en las tres primeras: en `ai-tests`
+    # la IA escribio las pruebas, no el producto, y en `advice-only` no escribio
+    # nada. Meterlas del lado de la IA subestimaria la autoria humana.
+    humano = sum(conteo.get(k, 0) for k in ("human", "advice-only", "ai-tests"))
+    return {
+        "available": True, "path": str(path), "entries": total,
+        "by_kind": conteo,
+        "human_share_pct": humano / total * 100,
+        "hook_captured": conteo.get("ai-edit", 0),
+        "self_reported": total - conteo.get("ai-edit", 0),
+    }
+
+
 def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) -> dict:
     """The AISDD side: what the structured audit log records about each change.
 
@@ -373,7 +414,7 @@ def fmt_hours(seconds: float) -> str:
 
 def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict,
                 real_days: float | None = None, cost_per_day: float | None = None,
-                audit: dict | None = None) -> dict:
+                audit: dict | None = None, journal: dict | None = None) -> dict:
     stamps = [e["ts"] for e in (act.runs + act.files + act.turns)]
     first, last = (min(stamps), max(stamps)) if stamps else (None, None)
 
@@ -467,6 +508,7 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
         },
         "git": git,
         "audit": audit or {"available": False},
+        "journal": journal or {"available": False},
         "baseline": {
             "days": baseline_days,
             "sized_items": sized_items,
@@ -641,17 +683,22 @@ def md_tables(f: dict) -> str:
         out.append("")
 
     b, s, i = f["baseline"], f["savings"], f["intensity"]
-    out.append("### Contraste con el baseline humano\n")
+    out.append("### Calibracion de la estimacion frente a lo real\n")
     if s:
-        out.append("| KPI | Valor |")
+        # Las filas dicen lo que el numero **es**. Antes decian "ahorro" y
+        # "factor de aceleracion", que son resultados conseguidos: la seccion se
+        # llamaba contraste y las filas se leian como un logro. Y la fila que mas
+        # viaja es la del dinero, porque acaba en una diapositiva sin la seccion
+        # que la enmarca. El calculo es el mismo; cambia como se nombra.
+        out.append("| Concepto | Valor |")
         out.append("|---|---|")
-        out.append(f"| Esfuerzo humano estimado (baseline) | {b['days']:.1f} d-persona |")
-        out.append(f"| Esfuerzo real declarado | {s['real_days']:.2f} d-persona |")
-        out.append(f"| Ahorro absoluto | {s['saved_days']:.2f} d-persona |")
-        out.append(f"| Reduccion | {s['reduction_pct']:.1f} % |")
-        out.append(f"| Factor de aceleracion | x{s['acceleration']:.1f} |")
+        out.append(f"| Esfuerzo humano **estimado** (baseline de tallas) | {b['days']:.1f} d-persona |")
+        out.append(f"| Esfuerzo real **declarado** por el equipo | {s['real_days']:.2f} d-persona |")
+        out.append(f"| Diferencia entre ambos | {s['saved_days']:.2f} d-persona |")
+        out.append(f"| Desviacion de la estimacion | {s['reduction_pct']:.1f} % |")
+        out.append(f"| Relacion baseline / real | x{s['acceleration']:.1f} |")
         if "saved_cost" in s:
-            out.append(f"| Ahorro estimado ({s['cost_per_day']:.0f} por jornada) "
+            out.append(f"| Esa diferencia valorada a {s['cost_per_day']:.0f} por jornada "
                        f"| {s['saved_cost']:,.0f} |")
         if i:
             out.append(f"| Del tiempo real, atendiendo a la IA | "
@@ -659,6 +706,13 @@ def md_tables(f: dict) -> str:
         out.append("")
         out.append(f"Baseline calculado sobre {b['sized_items']} elementos con talla en "
                    f"`{b['source']}`.")
+        out.append("")
+        out.append("> **Que es y que no es esta tabla.** Es una **calibracion**: contrasta lo "
+                   "que se estimo con lo que el equipo declara que costo, y sirve para afinar "
+                   "la proxima estimacion. **No** es una medida de ahorro conseguido: el "
+                   "baseline es lo que se penso que costaria sin IA, y ese escenario no se "
+                   "ejecuto, asi que no hay nada con que compararlo de verdad. Usala para "
+                   "orientar el proceso, no como cifra de resultado.")
         if s["implausible"]:
             out.append("")
             out.append("> **Cifra no publicable.** Una aceleracion mayor de x10 casi nunca "
@@ -667,13 +721,13 @@ def md_tables(f: dict) -> str:
                        "o que el baseline estuviera inflado. Revisa ambos antes de usar "
                        "este numero fuera del equipo.")
     else:
-        out.append("**No se calcula ahorro.** El registro mide el tiempo *atendido* "
+        out.append("**No se calibra nada todavia.** El registro mide el tiempo *atendido* "
                    f"({fmt_hours(a['seconds'])}, {a['days']:.2f} d), que es solo la parte "
                    "del trabajo que transcurre dentro de los turnos de la IA: no incluye "
                    "leer, revisar, probar, teclear a mano ni reunirse. Restarlo del "
                    "baseline daria aceleraciones absurdas.")
         out.append("")
-        out.append("Para obtener ahorro hace falta el **esfuerzo real declarado** por el "
+        out.append("Para calibrar hace falta el **esfuerzo real declarado** por el "
                    "equipo en esta misma ventana (partes de horas, worklogs de Jira o una "
                    "estimacion honesta): pasalo con `--real-days N`. Mientras tanto, el "
                    f"tiempo atendido es una **cota inferior** del trabajo asistido por IA.")
@@ -685,6 +739,35 @@ def md_tables(f: dict) -> str:
             out.append("")
             out.append("Ademas no hay baseline: no se han encontrado tallas XS/S/M/L/XL en "
                        "`docs/detalle-historias-usuario.md`.")
+    j = f.get("journal") or {}
+    if j.get("available"):
+        out.append("")
+        out.append("### Autoria real (bitacora AIAD)\n")
+        out.append("| Autoria | Entradas | % |")
+        out.append("|---|---|---|")
+        etiquetas = [
+            ("human", "El humano escribio el codigo"),
+            ("advice-only", "La IA solo asesoro o explico"),
+            ("ai-tests", "La IA escribio las pruebas; el producto, el humano"),
+            ("ai-fragment", "La IA genero un fragmento acotado"),
+            ("ai-edit", "La IA edito un fichero (capturado por hook)"),
+        ]
+        tot = j["entries"]
+        for clave, etiqueta in etiquetas:
+            n = j["by_kind"].get(clave, 0)
+            if n:
+                out.append(f"| {etiqueta} | {n} | {n / tot * 100:.0f} % |")
+        out.append(f"| **Codigo de produccion del humano** | **{j['human_share_pct'] * tot / 100:.0f}** "
+                   f"| **{j['human_share_pct']:.0f} %** |")
+        out.append("")
+        out.append(f"Sobre {tot} entradas de `{j['path']}`. "
+                   f"{j['hook_captured']} las capturo el hook al ver a la IA tocar un fichero "
+                   f"--esas son factuales-- y {j['self_reported']} las declaro el humano.")
+        out.append("")
+        out.append("> **Es el unico dato real de autoria del informe.** El resto de esta "
+                   "seccion contrasta una estimacion con lo declarado; aqui hay una linea por "
+                   "pieza de trabajo, anotada en el momento.")
+
     out.append("")
     return "\n".join(out)
 
@@ -708,6 +791,9 @@ def main() -> int:
     parser.add_argument("--format", choices=["md", "json"], default="md",
                         help="Tablas en Markdown (por defecto) o hechos en JSON.")
     parser.add_argument("--no-git", action="store_true", help="Omite las metricas de git.")
+    parser.add_argument("--journal", default="docs/aiad-journal.md",
+                        help="Bitacora de autoria de AIAD. Si no existe, la seccion de "
+                             "autoria no aparece en el informe (no sale un cero).")
     parser.add_argument("--audit", default="openspec/audit",
                         help="Directorio de auditoria AISDD (por defecto openspec/audit). "
                              "Si no existe, el informe sale igual sin esa seccion.")
@@ -744,7 +830,7 @@ def main() -> int:
 
     facts = build_facts(act, baseline_days, sized, git,
                         real_days=args.real_days, cost_per_day=args.cost_per_day,
-                        audit=audit)
+                        audit=audit, journal=read_journal(Path(args.journal)))
     if args.baseline_days is not None:
         facts["baseline"]["source"] = "--baseline-days (indicado a mano)"
 

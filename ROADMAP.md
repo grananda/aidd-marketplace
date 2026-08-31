@@ -24,6 +24,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-16 | Auditoría por escritor: un fichero por dev, para que el registro no conflicte en cada merge | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
+| F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -284,3 +285,17 @@ Un bloque ausente es `null`, no un bloque a ceros: un cero se leería como cero 
 No se adivina: cambia por país, por cliente y por convenio. Sin la sección, el informe asume lunes a viernes sin festivos **y lo declara** — un lead time laborable sobre un calendario supuesto que nadie ha visto es peor que el natural, porque parece más preciso.
 
 **Queda de la línea:** retirar de `aiba metrics` la comparación humano-vs-máquina. Es una resta sobre una capacidad publicada, así que va en su propia PR.
+
+## F-19 — Calibración en vez de ahorro, y la autoría real cuando la hay
+
+**Estado:** implementada · **Versión:** `aiba` 1.7.0 · **Añadida:** 2026-08-31
+
+Se propuso **retirar** de `aiba metrics` la comparación humano-vs-máquina, por comparar contra un contrafáctico. Al revisarlo, el diseño ya era más cuidadoso de lo que la crítica suponía: la cifra **solo** sale si el equipo declara su esfuerzo real con `--real-days`, la sección se llamaba ya «Contraste con el baseline humano», y hay un guardarraíl que marca como no publicable cualquier relación mayor de x10.
+
+**El problema estaba en tres palabras, y en las filas de la tabla, no en el título.** Decían `Ahorro absoluto`, `Factor de aceleración` y `Ahorro estimado (X por jornada)` — resultados conseguidos. El título decía «contraste» y las filas se leían como un logro, y la fila que más viaja es la del dinero, porque acaba en una diapositiva sin la sección que la enmarca.
+
+Ahora dicen lo que el número **es**: `Diferencia entre ambos`, `Desviación de la estimación`, `Relación baseline / real`, `Esa diferencia valorada a X por jornada`. El cálculo no cambia; cambia cómo se nombra. Y la tabla lleva debajo qué es y qué no es: una calibración para afinar la próxima estimación, no una medida de ahorro, porque el escenario sin IA no se ejecutó.
+
+**Y se suma lo que la propuesta sí tenía bien**, que era un añadido y no un reemplazo: cuando existe `docs/aiad-journal.md`, el informe trae la **autoría real**. Es el único dato de autoría que no es una estimación — una línea por pieza de trabajo, anotada en el momento— y separa las dos calidades que lleva dentro: las entradas `ai-edit` las captura el hook al ver a la IA tocar un fichero, y el resto las declara el humano.
+
+Sin bitácora, **la sección no aparece**: no sale un cero ni un «no disponible». Un proyecto que no lleva bitácora no tiene un reparto de autoría del 0 %, simplemente no lo ha medido.
