@@ -161,6 +161,14 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
                     reg.setdefault("abierto", ts)
                 elif "close change" in cmd:
                     reg["cerrado"] = ts
+                # Tiempo atendido: lo que duraron los comandos, no lo que tardo
+                # el calendario. Necesita `started_at`, que existe desde
+                # `aisdd-specs` 3.2.0; las entradas anteriores no lo traen y
+                # simplemente no suman.
+                dur = _duracion(e.get("started_at"), ts)
+                if dur is not None:
+                    reg["atendido_h"] = reg.get("atendido_h", 0.0) + dur
+                    reg["comandos_medidos"] = reg.get("comandos_medidos", 0) + 1
             for dec in e.get("decisions") or []:
                 if (dec.get("type") == "bloqueante"
                         and str(dec.get("decision", "")).strip().lower() == "pendiente"):
@@ -168,6 +176,22 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
                                      "decision": dec.get("slug", ""), "desde": ts})
     return {"disponible": True, "entradas": entradas, "eventos": eventos,
             "bloqueos": bloqueos}, None
+
+
+def _duracion(inicio, fin) -> float | None:
+    """Horas entre dos marcas ISO. None si falta alguna o el orden no cuadra."""
+    if not inicio or not fin:
+        return None
+    try:
+        a = datetime.fromisoformat(str(inicio).replace("Z", "+00:00"))
+        b = datetime.fromisoformat(str(fin).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    h = (b - a).total_seconds() / 3600
+    # Un comando que sale negativo o que dura mas de un dia es un reloj mal
+    # puesto o una marca copiada, no un comando largo. Descartarlo es mejor que
+    # dejar que arrastre la media de todo el proyecto.
+    return h if 0 <= h <= 24 else None
 
 
 TALLA_RE = re.compile(r"\b(HU-[A-Za-z0-9-]+)\b")
@@ -363,6 +387,18 @@ def ritmo(eventos: dict, cerrados: set) -> dict:
     if not medidos:
         return {"changes_medidos": 0, "por_change": [],
                 "motivo": "la auditoria no tiene pares open/close con fecha"}
+    # Ratio atencion / calendario: de todo el tiempo que un change estuvo
+    # abierto, cuanto se estuvo trabajando en el. Bajo significa que el change
+    # estuvo **esperando**, no avanzando -- y esperando a algo que casi siempre
+    # esta en la lista de bloqueos.
+    for m in medidos:
+        reg = eventos.get(m["change"]) or {}
+        at = reg.get("atendido_h")
+        if at is not None and m["dias"] > 0:
+            m["atendido_h"] = round(at, 2)
+            m["ratio_atencion"] = round(at / (m["dias"] * 24) * 100, 1)
+
+    con_ratio = [m for m in medidos if "ratio_atencion" in m]
     dias = [m["dias"] for m in medidos]
     ultimos = dias[-3:]
     previos = dias[:-3]
@@ -371,10 +407,20 @@ def ritmo(eventos: dict, cerrados: set) -> dict:
         m1, m2 = sum(previos) / len(previos), sum(ultimos) / len(ultimos)
         tendencia = ("acelerando" if m2 < m1 * 0.9 else
                      "frenando" if m2 > m1 * 1.1 else "estable")
-    return {"changes_medidos": len(medidos),
-            "lead_time_medio_dias": round(sum(dias) / len(dias), 2),
-            "lead_time_ultimo": medidos[-1]["dias"],
-            "tendencia": tendencia, "por_change": medidos}
+    out = {"changes_medidos": len(medidos),
+           "lead_time_medio_dias": round(sum(dias) / len(dias), 2),
+           "lead_time_ultimo": medidos[-1]["dias"],
+           "tendencia": tendencia, "por_change": medidos}
+    if con_ratio:
+        out["atendido_horas"] = round(sum(m["atendido_h"] for m in con_ratio), 2)
+        out["ratio_atencion_medio"] = round(
+            sum(m["ratio_atencion"] for m in con_ratio) / len(con_ratio), 1)
+        out["changes_con_atencion"] = len(con_ratio)
+    else:
+        out["ratio_atencion_motivo"] = (
+            "las entradas de auditoria no traen `started_at`: es de aisdd-specs "
+            "3.2.0 en adelante, asi que el ratio arranca desde ahi")
+    return out
 
 
 def _fecha(txt: str, hoy: date) -> date | None:

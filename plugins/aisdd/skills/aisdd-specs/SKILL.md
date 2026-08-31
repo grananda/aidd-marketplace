@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos: primero se recoge la preferencia del usuario y despues un **pre-flight de optimizacion** calcula el calendario de cada modo y cada numero de developers y presenta los caminos enfrentados en un HTML, con sus barreras y sus tiempos, para decidir con la cifra delante. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Todos los comandos cierran sugiriendo el **proximo paso** con el comando ya resuelto, encadenando con la capa de entrega de AIBA cuando toca. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "3.2.0"
+  version: "3.3.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -57,6 +57,7 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 ## Reglas generales
 
 - Trabaja desde la raiz del proyecto del usuario.
+- **Anota la hora UTC al empezar el comando**, antes de leer nada, y pasala como `started_at` en la entrada de auditoria. Es lo unico que permite saber cuanto duro: con solo la marca de fin, el hueco hasta la entrada anterior mide la comida de por medio y no el trabajo. Un comando que empieza a las 18:50 y acaba a las 09:10 duro minutos, no catorce horas.
 - Antes de ejecutar comandos, confirma el estado relevante con comandos no destructivos (`Get-Command`, `npm list -g`, `openspec list`, busqueda de ficheros).
 - Si un argumento opcional no llega, intenta resolverlo desde OpenSpec. Pregunta solo si hay ambiguedad real.
 - No inventes cambios: usa el contexto del usuario y los artefactos OpenSpec existentes.
