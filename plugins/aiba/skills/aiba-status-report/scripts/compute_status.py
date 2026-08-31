@@ -32,7 +32,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 # Escala de tallas AIDD. Replicada a proposito en varios plugins --no se pueden
@@ -176,6 +176,56 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
                                      "decision": dec.get("slug", ""), "desde": ts})
     return {"disponible": True, "entradas": entradas, "eventos": eventos,
             "bloqueos": bloqueos}, None
+
+
+LABORABLE_DEFECTO = {"workweek": [1, 2, 3, 4, 5], "holidays": [], "por_defecto": True}
+
+
+def leer_calendario(roadmap: dict) -> dict:
+    """Semana laboral y festivos, de la seccion `calendar` de openspec/config.yaml.
+
+    No se puede adivinar: cambia por pais, por cliente y por convenio. Sin ella
+    se asume lunes a viernes sin festivos, y **el informe lo declara** -- un lead
+    time laborable calculado sobre un calendario supuesto que nadie ha visto es
+    peor que el de calendario, porque parece mas preciso.
+    """
+    cal = roadmap.get("calendar") if isinstance(roadmap.get("calendar"), dict) else None
+    if not cal:
+        return dict(LABORABLE_DEFECTO)
+    dias = [d for d in (cal.get("workweek") or []) if isinstance(d, int) and 1 <= d <= 7]
+    festivos = set()
+    for h in cal.get("holidays") or []:
+        try:
+            festivos.add(date.fromisoformat(str(h)))
+        except ValueError:
+            continue
+    return {"workweek": sorted(dias) or LABORABLE_DEFECTO["workweek"],
+            "holidays": sorted(f.isoformat() for f in festivos),
+            "timezone": cal.get("timezone"), "por_defecto": False}
+
+
+def dias_laborables(a: datetime, b: datetime, cal: dict) -> float:
+    """Dias laborables entre dos instantes, con la fraccion del primero y el ultimo.
+
+    Se cuenta por dias y no por horas de jornada a proposito: la jornada no esta
+    declarada en ningun sitio y suponerla seria inventar la mitad del numero.
+    """
+    if b <= a:
+        return 0.0
+    festivos = set(cal.get("holidays") or [])
+    semana = set(cal.get("workweek") or LABORABLE_DEFECTO["workweek"])
+
+    def laborable(d: date) -> bool:
+        return d.isoweekday() in semana and d.isoformat() not in festivos
+
+    total, dia = 0.0, a.date()
+    while dia <= b.date():
+        if laborable(dia):
+            ini = max(a, datetime.combine(dia, datetime.min.time(), tzinfo=a.tzinfo))
+            fin = min(b, datetime.combine(dia, datetime.max.time(), tzinfo=a.tzinfo))
+            total += max(0.0, (fin - ini).total_seconds() / 86400)
+        dia += timedelta(days=1)
+    return round(total, 2)
 
 
 def _duracion(inicio, fin) -> float | None:
@@ -367,7 +417,7 @@ def dependencias(fases: list, cls: dict) -> dict:
     return {"listas": listas, "bloqueadas": bloqueadas, "conflictos": conflictos}
 
 
-def ritmo(eventos: dict, cerrados: set) -> dict:
+def ritmo(eventos: dict, cerrados: set, cal: dict) -> dict:
     """Lead time real `open change` -> `close change`, por change.
 
     Es lo que dice si el equipo esta acelerando o frenando, y no se puede sacar
@@ -383,6 +433,7 @@ def ritmo(eventos: dict, cerrados: set) -> dict:
         except ValueError:
             continue
         medidos.append({"change": cid, "dias": round((c - a).total_seconds() / 86400, 2),
+                        "dias_laborables": dias_laborables(a, c, cal),
                         "abierto": e["abierto"], "cerrado": e["cerrado"]})
     if not medidos:
         return {"changes_medidos": 0, "por_change": [],
@@ -407,8 +458,11 @@ def ritmo(eventos: dict, cerrados: set) -> dict:
         m1, m2 = sum(previos) / len(previos), sum(ultimos) / len(ultimos)
         tendencia = ("acelerando" if m2 < m1 * 0.9 else
                      "frenando" if m2 > m1 * 1.1 else "estable")
+    lab = [m["dias_laborables"] for m in medidos]
     out = {"changes_medidos": len(medidos),
            "lead_time_medio_dias": round(sum(dias) / len(dias), 2),
+           "lead_time_laborable_medio": round(sum(lab) / len(lab), 2),
+           "calendario": cal,
            "lead_time_ultimo": medidos[-1]["dias"],
            "tendencia": tendencia, "por_change": medidos}
     if con_ratio:
@@ -515,6 +569,12 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
                       ("docs/mapa-historias-usuario.md", "personas y fases de las HU")):
         fuentes.append({"documento": doc, "existe": (root / doc).is_file(), "usado_para": para})
 
+    cal = leer_calendario(roadmap)
+    if cal.get("por_defecto"):
+        avisos.append("sin seccion `calendar` en openspec/config.yaml: el lead time "
+                      "laborable asume lunes a viernes y ningun festivo. Lo escribe "
+                      "`aiba project-plan`")
+
     fases = list(roadmap.get("phases") or [])
     if not fases:
         avisos.append("sin fases en openspec/config.yaml no hay avance que calcular: "
@@ -603,7 +663,7 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "bloqueos": aud.get("bloqueos", []),
         "dependencias": dependencias(fases, cls),
         "camino_critico": cc,
-        "ritmo": ritmo(aud.get("eventos", {}), cerrados),
+        "ritmo": ritmo(aud.get("eventos", {}), cerrados, cal),
         "avisos": avisos,
     }
 

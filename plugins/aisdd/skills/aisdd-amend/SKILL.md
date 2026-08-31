@@ -3,7 +3,7 @@ name: aisdd-amend
 description: AISDD (AI Spec-Driven Development) — incorpora una modificacion a un change de OpenSpec ya abierto y la ejecuta de forma incremental, mediante el comando `aisdd amend change [descripcion]` (alias legacy `native-ai amend change ...`). Pide al usuario que describa el cambio que quiere meter, lo traduce a delta de especificacion (criterios nuevos en `spec.md`, decision en `design.md`, tareas nuevas en `tasks.md`, entrada `Tipo: correccion` en `decisions.md`) y despues implementa **solo ese delta**, sin re-ejecutar `openspec instructions apply` y sin rehacer el trabajo ya entregado por el change. Toma una baseline de build y tests **antes** de tocar nada para distinguir lo que rompe el delta de lo que ya estaba roto, y verifica que el codigo relacionado con la nueva spec no provoca regresiones. En roadmaps **multilane** deriva del propio delta que changes abiertos quedan afectados (en vez de preguntarlo), trata un delta cross-lane como **parada coordinada** —lanes hermanos detenidos, una baseline por change, nivel 4 en `decisions.md`— y **marca** las fases futuras afectadas con `amended_by` para que el lane que aun no arranco no implemente contra un contrato ya desmentido; nunca re-fasea el roadmap. Asume que la documentacion AIDD ya recoge el cambio si hacia falta: **no la valida**. No reconcilia cambios manuales del working tree: trabaja sobre el codigo tal como lo encuentra. Escribe entrada de auditoria en `openspec/audit/` usando el script `audit.py` de `aisdd-specs` (determinista), con respaldo manual si Python no esta disponible. Usar cuando el usuario diga "mete este cambio en el change", "anade esto a lo que estamos implementando", "modifica el change abierto", "aisdd amend change", o similar.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.5.2"
+  version: "1.6.0"
 ---
 
 # aisdd-amend (AI Spec-Driven Development)
@@ -235,6 +235,8 @@ no se puede reparar — hay que regenerar el fichero; dilo en la verificacion fi
 ## Auditoria y trazabilidad
 
 Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/references/audit.md`): fichero `openspec/audit/YYYY-MM.jsonl`, append-only, una entrada por invocacion.
+
+**Incluye el bloque `verification`** con lo que dieron el build y los tests del delta: este comando toma baseline antes de tocar nada y verifica despues, asi que el dato ya lo tienes. Omite los campos que no ejecutaste en vez de ponerlos a cero.
 
 **Usa el script**, igual que el resto de comandos AISDD: `audit.py` de `aisdd-specs` compone la entrada, calcula los hashes y aplica la purga de forma determinista (ver `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/references/scripts.md`). Componerla a mano es la via de respaldo si Python no esta disponible.
 

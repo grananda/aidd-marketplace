@@ -3,7 +3,7 @@ name: aiba-project-plan
 description: Fase 3.5 (paso 3.5.1) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aiba project-plan` (alias `aiba planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aiba-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # aiba-project-plan (AIBA · Fase 3.5 · paso 3.5.1 · recursos)
@@ -141,6 +141,21 @@ Reglas de contenido:
 - **Doble estimacion**: da siempre el esfuerzo humano clasico y el esfuerzo con IA en paralelo (seccion 5), y deriva de ahi los KPIs de la diferencia (seccion 6). El esfuerzo con IA se comprime segun la naturaleza de la tarea; no uses un porcentaje unico para todo. La cifra IA es una hipotesis con supuestos, no un dato cerrado.
 - Costes cualitativos con rangos salvo que el usuario pida y aporte tarifas.
 - La seccion 9 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
+
+### Calendario laborable (si el proyecto usa AISDD)
+
+Si existe `openspec/config.yaml`, anade o actualiza en la raiz de `roadmap` la seccion `calendar` con la semana laboral y los festivos del equipo:
+
+```yaml
+  calendar:
+    workweek: [1, 2, 3, 4, 5]        # dias ISO; 1 = lunes
+    holidays: ['2026-08-15', '2026-12-25']
+    timezone: Europe/Madrid
+```
+
+**Es aqui y no en otro sitio** porque el calendario del equipo es un recurso, como los perfiles y la capacidad, y este es el skill que los declara. Lo consume `aiba status-report` para dar el lead time en dias laborables.
+
+**No lo adivines**: cambia por pais, por cliente y por convenio. Preguntalo con el resto de datos de equipo, y si el usuario no lo sabe, omite la seccion — el informe asumira lunes a viernes sin festivos **y lo declarara**, que es mejor que un calendario supuesto que nadie ha visto.
 
 ### Sello de version y fecha-hora (antes de renderizar)
 
