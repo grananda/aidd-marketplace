@@ -9,7 +9,14 @@ Cada comando del skill debe registrar una entrada de auditoria estructurada para
 ### Ubicacion y formato
 
 - Directorio: `openspec/audit/` en la raiz del proyecto. Crealo si no existe.
-- Fichero: `openspec/audit/YYYY-MM.jsonl` (un fichero por mes natural). Modo append-only, una entrada JSON por linea.
+- Fichero: **`openspec/audit/YYYY-MM/<quien>.jsonl`** — un directorio por mes natural y, dentro, **un fichero por escritor**. Modo append-only, una entrada JSON por linea.
+- `<quien>` sale de la identidad de git, por este orden: el `user` de la entrada (si trae un correo entre angulos, se usa el correo), `git config user.email`, y `desconocido`. `audit.py` lo resuelve por ti.
+
+> **Por que un fichero por escritor.** El registro es append-only y cada comando anade una linea **al final**. Con un fichero compartido, dos developers que parten de la misma base tocan la misma region y el merge conflicta — no es un caso raro, pasa en cada merge, y es justo el escenario que `multilane` fabrica a proposito. Separando por escritor el conflicto **deja de ser posible** en vez de tener que resolverse. Se elige la identidad de git porque lo que se evita es un conflicto *de git*, y esa identidad es justo lo que distingue a los escritores ahi.
+>
+> Como red, `aisdd init` deja en el `.gitattributes` del proyecto la linea `openspec/audit/**/*.jsonl merge=union`, que cubre el caso que queda: la misma persona en dos ramas. Union puede repetir una linea al concatenar los dos lados, asi que **quien lee deduplica por `id`** — es unico por diseno, y los dos lectores de AIBA ya lo hacen.
+
+- **Disposicion anterior.** Los proyectos que arrancaron antes tienen `openspec/audit/YYYY-MM.jsonl` (un solo fichero por mes). Sigue siendo valida y se lee igual: no la migres, las entradas nuevas van a la disposicion nueva y conviven.
 - Codificacion: UTF-8 sin BOM. Sin comas ni corchetes envolventes: JSON Lines puro.
 - No reescribas entradas existentes. Si necesitas corregir o anular una entrada, anade una nueva con `correction_of: <id>`.
 
@@ -96,8 +103,8 @@ Reglas para los campos:
   1. Clave `audit.retention_days` (entero positivo) en `config.yaml` de OpenSpec.
   2. Fichero `openspec/audit/.retention` con un entero positivo de dias en la primera linea.
   3. Default `365`.
-- **Al escribir la entrada** (no antes), comprueba los ficheros `openspec/audit/YYYY-MM.jsonl`. `audit.py` lo hace por ti en la misma invocacion; a mano, hazlo justo despues de anadir la linea:
-  - Si el ultimo dia del mes representado por el fichero es anterior a `hoy - retencion`, eliminalo.
+- **Al escribir la entrada** (no antes), comprueba los ficheros de auditoria en **las dos disposiciones** (`YYYY-MM/<quien>.jsonl` y `YYYY-MM.jsonl`). `audit.py` lo hace por ti en la misma invocacion; a mano, hazlo justo despues de anadir la linea:
+  - Si el ultimo dia del mes representado por el fichero es anterior a `hoy - retencion`, eliminalo. El mes lo lleva el directorio en la disposicion nueva y el propio nombre en la anterior. Un directorio de mes que se queda vacio se borra con su ultimo fichero.
   - No purgues entradas individuales dentro de un fichero. Trabaja por mes para preservar la integridad append-only.
 - Nunca apliques retencion menor a `30` dias aunque la configuracion lo indique: en ese caso usa `30` y avisa al usuario una vez.
 

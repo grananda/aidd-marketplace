@@ -21,6 +21,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-13 | CI de rutas de skills y de contratos documentación↔script | marketplace | **implementada** | 2026-08-29 |
 | F-14 | `aiba test-plan`: plan de pruebas por historia (inventario + evidencias) | aiba | **implementada** | 2026-08-31 |
 | F-15 | `aiba status-report`: informe de situación con avance medido por trabajo ejecutado | aiba | **implementada** | 2026-08-31 |
+| F-16 | Auditoría por escritor: un fichero por dev, para que el registro no conflicte en cada merge | aisdd, aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -229,3 +230,17 @@ Séptimo skill de AIBA. Responde a la pregunta que se hace en cada comité —*d
 La segunda: los sprints se emparejaban comparando el texto completo, así que la cabecera habitual —`## Sprint 1 — Funnel de cotización`— no casaba con el `sprint: Sprint 1` de `config.yaml` y el avance previsto salía vacío sin explicar por qué. Se emparejan por su número.
 
 Y `--anterior`, que compara con el informe previo y saca el dato que no se ve mirando solo el de hoy: **los bloqueos que repiten**. Uno que aparece en dos informes seguidos ya no es un bloqueo, es un problema de gobierno, y se resuelve escalándolo.
+
+## F-16 — La auditoría deja de conflictar en cada merge
+
+**Estado:** implementada · **Versión:** `aisdd` 3.2.0, `aiba` 1.4.1 · **Añadida:** 2026-08-31
+
+El registro de auditoría es append-only y cada comando añade una línea **al final** de `openspec/audit/YYYY-MM.jsonl`. Con un fichero compartido, dos developers que parten de la misma base tocan la misma región y el merge conflicta. No es un caso raro —pasa en cada merge, porque cada comando escribe— y es justo el escenario que `multilane` fabrica a propósito. La especificación no decía nada de concurrencia.
+
+**Un fichero por escritor:** `openspec/audit/YYYY-MM/<quien>.jsonl`. Dos devs no tocan nunca el mismo fichero, así que el conflicto **deja de ser posible** en vez de tener que resolverse. `<quien>` sale de la identidad de git —el `user` de la entrada, su correo si viene entre ángulos, `git config user.email`, y `desconocido`— porque lo que se evita es un conflicto *de git* y esa identidad es exactamente lo que distingue a los escritores ahí.
+
+**Y `merge=union` como red**, que `aisdd init` deja en el `.gitattributes` del proyecto igual que ya hacía con `.gitignore` para `openspec/.lane`. Cubre el caso que queda: la misma persona en dos ramas. Union puede repetir una línea al concatenar los dos lados, así que **los dos lectores deduplican por `id`** — es único por diseño.
+
+**No hay migración.** La disposición anterior sigue siendo válida y los lectores miran las dos; las entradas nuevas van a la nueva y conviven. La purga también: el mes lo lleva el directorio en una y el nombre del fichero en la otra, y un directorio de mes se borra con su último fichero.
+
+Es prerrequisito del cambio de esquema de la auditoría —`started_at`, `attempt`, `preflight{}`— que viene después: añadir campos a un fichero que conflicta en cada merge no es progreso.

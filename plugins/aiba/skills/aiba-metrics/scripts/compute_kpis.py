@@ -245,11 +245,16 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
     out: dict = {"available": False, "path": str(audit_dir)}
     if not audit_dir.is_dir():
         return out
-    files = sorted(audit_dir.glob("*.jsonl"))
+    # Dos disposiciones: `YYYY-MM/<quien>.jsonl` (un fichero por escritor, para
+    # que dos devs no conflicten en cada merge) y `YYYY-MM.jsonl`, la anterior,
+    # que sigue existiendo en los proyectos que ya estaban en marcha.
+    files = sorted(list(audit_dir.glob("*.jsonl")) + list(audit_dir.glob("*/*.jsonl")))
     if not files:
         return out
 
     parsed, malformed, in_window = 0, 0, []
+    vistos: set[str] = set()
+    duplicados = 0
     for path in files:
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
@@ -271,6 +276,16 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
             if ts is None:
                 malformed += 1
                 continue
+            # `merge=union` en .gitattributes es la red del reparto por escritor,
+            # y al concatenar dos lados puede repetir una linea. El `id` es unico
+            # por diseno, asi que la repeticion se descarta aqui y no cuenta dos
+            # veces en ningun KPI.
+            eid = str(entry.get("id") or "")
+            if eid and eid in vistos:
+                duplicados += 1
+                continue
+            if eid:
+                vistos.add(eid)
             parsed += 1
             if (since and ts < since) or (until and ts > until):
                 continue
