@@ -110,13 +110,25 @@ Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos
 
 1. **La independencia no se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. La comprobacion de rutas de `close change` se cumple sola.
 2. **Un change, una PR.** El change vive entero en un repo, se cierra con un merge y el roadmap dice la verdad en el momento en que lo dice.
-3. **El lane no se elige, lo dice el directorio.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--.
+3. **El lane no se elige, se infiere.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--. Ver "Resolver el lane activo en multirepo".
 4. **No hay barreras.** `F0` y `FB-NN` existen para serializar superficie compartida, y aqui no hay ninguna: ningun repo compila, testea ni despliega contra el fuente de otro. Un roadmap multirepo **no lleva fases barrera**.
 5. **La auditoria no colisiona.** Cada repo tiene su `openspec/audit/`, y dentro un fichero por escritor.
 
 > **El punto 4 es la apuesta del modelo, y hay que sostenerla.** Descansa en que los repos son de verdad independientes en codigo: lo que compartan viaja como **artefacto versionado** --un contrato OpenAPI publicado, un paquete, un esquema de eventos-- y cada repo consume la version que elige, cuando la elige. Publicar una version nueva de un contrato es una fase del lane que lo publica; adoptarla es otra fase del lane que lo consume. Ninguna de las dos para a nadie.
 >
 > Si aparece un repo que necesita el fuente de otro para funcionar, **eso no se arregla faseando**: la frontera esta mal puesta y hay que registrarlo en la seccion 13 de la arquitectura. El roadmap no puede reparar un acoplamiento de compilacion, solo esconderlo.
+
+#### Resolver el lane activo en multirepo
+
+Lo aplican `open change`, `close change` y `aisdd lane status`. **Nunca se pregunta por un `switch`**, y nunca se escribe `openspec/.lane`.
+
+Por este orden, y parando en el primero que resuelva:
+
+1. **`roadmap.repo` de `openspec/config.yaml`.** Es lo normal: lo escribio `aisdd init`. Comprueba que corresponde a un `lane-id` que existe en `roadmap.lanes`; si no, el config se quedo atras respecto al roadmap — dilo y remite a `aisdd roadmap`.
+2. **Si falta, infierelo del nombre**: el del directorio raiz del repo, o el ultimo segmento de `git remote get-url origin`, contra los `lane-id` de `roadmap.lanes`. Si **uno solo** coincide, usalo, **dilo en el resumen** y ofrece escribir `roadmap.repo` para que no haya que inferirlo cada vez.
+3. **Si no coincide ninguno, o coincide mas de uno, preguntaselo al usuario** con la lista de `lane-id` disponibles.
+
+**No sigas por descarte ni por parecido**, y no elijas "el mas probable". Trabajar con el lane equivocado abre changes de otro repo, escribe specs que no son de aqui y no se nota hasta mucho despues; preguntar cuesta una linea. Es el mismo criterio que `aisdd init` aplica al identificar el repo.
 
 **Fuera de multirepo, un repo no es un lane.** Con un solo repositorio el corte de lanes se hace por modulos y sigue los criterios de arriba: el lane es una linea de trabajo, no una frontera de despliegue.
 

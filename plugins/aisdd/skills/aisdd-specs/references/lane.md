@@ -52,7 +52,7 @@ Informa de:
 
 Si `openspec/.lane` no existe y el modo es `multilane`, no falles: informa de que no hay lane activo y lista los disponibles.
 
-**En multirepo siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Lo que si hay que comprobar es lo contrario: que `roadmap.repo` corresponde a un `lane-id` que existe en `roadmap.lanes`. Si no, el `config.yaml` de este repo se ha quedado atras respecto al roadmap; dilo y remite a `aisdd roadmap`.
+**En multirepo siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Resuelvelo segun "Resolver el lane activo en multirepo" (`references/parallelism.md`), que es tambien donde esta que hacer si `roadmap.repo` falta o no corresponde a ningun `lane-id`. Di ademas **como lo has resuelto** --declarado o inferido del nombre--: no es lo mismo para quien lee.
 
 ### Proximos pasos
 

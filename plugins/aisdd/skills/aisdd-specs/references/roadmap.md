@@ -185,7 +185,18 @@ Procedimiento:
 4. **Comprueba que la foto es coherente.** Si hay mas changes abiertos que developers, alguien lleva dos o el equipo esta mal contado: el script lo avisa y el calendario sale optimista. Y si una fase cerrada depende de una que no lo esta, el calculo se detiene: es una historia imposible, y ahi el problema son los estados, no el faseado.
 5. **Lanza el pre-flight de optimizacion** (`references/optimizer.md`) con los estados marcados. Compara **calendario restante**, no total: lo entregado no vuelve.
 6. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
-7. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
+7. **Intenta no tocar el sprint-plan, y di lo que no puedas evitar.** El reparto en sprints esta acordado con el negocio y a veces volcado a Jira: pasar a lanes es una decision de ejecucion, y no deberia obligar a renegociar fechas comprometidas.
+
+   Lo que lo mantiene en pie es **conservar el `change_hint` de cada fase**, que es la clave con la que `sprint-plan.md` y Jira se enganchan al roadmap. Con el intacto, **renombrar una fase a `F-<lane>-NN` no rompe nada**: el nombre cambia, el enlace no.
+
+   Dos cosas si lo rompen, y hay que reconocerlas al hacer el corte:
+
+   - **Partir una fase pendiente entre dos lanes.** Nacen fases nuevas con `change_hint` nuevos que no estan en ningun sprint. Antes de partir, mira si el corte se puede hacer por otro sitio que deje la fase entera; si no se puede, se parte — pero que sea una decision, no un efecto colateral.
+   - **Reordenar pendientes de forma que cambien de sprint.** El paralelismo adelanta trabajo, y eso es lo que se buscaba; el problema es cuando adelanta trabajo comprometido para mas tarde y retrasa el de ahora.
+
+   **En ninguno de los dos casos reescribas `docs/sprint-plan.md`.** Registra el desajuste en la seccion "Conflictos de alineacion roadmap<->sprint" de `docs/roadmap.md` --que fase se parte, en cuantas, que sprint desborda-- y **dilo en el resumen**: re-ejecutar `aiba sprint-planning` es seguro, mueve HU y **no recrea Stories**. La decision de re-empaquetar sprints es del negocio, no del faseado.
+
+8. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
 
 **Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: no se reparte un `openspec/` en lanes, se **replica** en N repos que a partir de ahi siguen caminos separados.
 

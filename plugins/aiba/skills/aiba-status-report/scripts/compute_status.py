@@ -585,9 +585,22 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
     # quedaria clavado en un tercio para siempre, y no por ir retrasado.
     repo_id = str(roadmap.get("repo") or "") if roadmap.get("multirepo") else ""
     if roadmap.get("multirepo") and not repo_id:
-        avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`: no se sabe "
-                      "cual de los repos es este, asi que se cuentan las fases de todos y el "
-                      "avance sale diluido. Lo escribe `aisdd init`")
+        # Sin `roadmap.repo` se infiere del nombre del directorio, igual que hacen
+        # los comandos de aisdd. Solo si hay **una** coincidencia: con cero o con
+        # varias no se elige, se avisa. Un script no puede preguntar.
+        ids = {str(l.get("id")) for l in (roadmap.get("lanes") or []) if l.get("id")}
+        nombre = root.resolve().name
+        cand = sorted(i for i in ids if i == nombre)
+        if len(cand) == 1:
+            repo_id = cand[0]
+            avisos.append(f"falta `roadmap.repo`: se ha inferido `{repo_id}` del nombre del "
+                          f"directorio. Escribelo en `openspec/config.yaml` para no depender "
+                          f"del nombre de la carpeta")
+        else:
+            avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`, y el "
+                          "nombre del directorio no coincide con ningun lane: se cuentan las "
+                          "fases de todos y el avance de este repo sale diluido. Lo escribe "
+                          "`aisdd init`")
     # Fases **sin lane**: las de antes de la migracion a multirepo. Al partir el
     # proyecto el `openspec/` viejo se copia entero a cada repo para no perder el
     # registro de lo entregado, asi que estan **repetidas en los N repos**. Se
