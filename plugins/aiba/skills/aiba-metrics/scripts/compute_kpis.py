@@ -897,11 +897,16 @@ def md_tables(f: dict) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Calcula KPIs medidos de uso de IA para un proyecto AIDD/AISDD.")
-    parser.add_argument("--activity", default="docs/aidd-activity.md",
-                        help="Registro de actividad (por defecto docs/aidd-activity.md).")
+    parser.add_argument("--activity", action="append", metavar="RUTA",
+                        help="Registro de actividad (por defecto docs/aidd-activity.md). "
+                             "**Repetible**: el hook escribe uno por directorio de "
+                             "trabajo, asi que con varios repos hay varios registros.")
     parser.add_argument("--details", default="docs/detalle-historias-usuario.md",
                         help="Documento con las tallas XS/S/M/L/XL para el baseline.")
-    parser.add_argument("--repo", default=".", help="Raiz del repositorio git.")
+    parser.add_argument("--repo", action="append", metavar="RUTA",
+                        help="Raiz de un repositorio git (por defecto, el actual). "
+                             "**Repetible**: con varios repos, uno por repo, y las "
+                             "metricas de git salen sumadas.")
     parser.add_argument("--baseline-days", type=float,
                         help="Fuerza el baseline en dias-persona en vez de derivarlo de las tallas.")
     parser.add_argument("--worklog", metavar="RUTA",
@@ -927,17 +932,30 @@ def main() -> int:
                         help="Omite las metricas de la auditoria AISDD.")
     args = parser.parse_args()
 
-    activity = Path(args.activity)
-    if not activity.is_file():
-        print(f"ERROR: No existe el registro de actividad: {activity}", file=sys.stderr)
+    # `--activity` y `--repo` son repetibles porque el trabajo puede estar
+    # repartido en varios repositorios. El hook de actividad escribe **relativo
+    # al directorio donde se trabaja**, asi que con N repos hay N registros, y
+    # medir solo uno daria un informe con la actividad de un tercio del equipo y
+    # ninguna senal de que falta el resto.
+    rutas = [Path(x) for x in (args.activity or ["docs/aidd-activity.md"])]
+    faltan = [x for x in rutas if not x.is_file()]
+    presentes = [x for x in rutas if x.is_file()]
+    if not presentes:
+        print(f"ERROR: No existe ningun registro de actividad: "
+              f"{', '.join(str(x) for x in rutas)}", file=sys.stderr)
         print("Activalo con `touch docs/aidd-activity.md` y vuelve a intentarlo "
               "cuando haya actividad registrada.", file=sys.stderr)
         return 2
+    for x in faltan:
+        sys.stderr.write(f"ADVERTENCIA: no existe {x}: su actividad no entra en el "
+                         f"informe, y las cifras salen cortas en esa parte\n")
 
     act = Activity()
-    act.load(activity)
+    for x in presentes:
+        act.load(x)
     if act.empty:
-        print(f"ERROR: {activity} no contiene ninguna entrada legible todavia.", file=sys.stderr)
+        print(f"ERROR: {', '.join(str(x) for x in presentes)} no contiene ninguna "
+              f"entrada legible todavia.", file=sys.stderr)
         return 3
 
     if args.baseline_days is not None:
@@ -948,7 +966,22 @@ def main() -> int:
     stamps = [e["ts"] for e in (act.runs + act.files + act.turns)]
     git = {"available": False}
     if not args.no_git:
-        git = git_stats(Path(args.repo), min(stamps), max(stamps))
+        repos = [Path(x) for x in (args.repo or ["."])]
+        parciales = [(r, git_stats(r, min(stamps), max(stamps))) for r in repos]
+        vivos = [(r, g) for r, g in parciales if g.get("available")]
+        if vivos:
+            git = {"available": True, "commits": 0, "added": 0, "removed": 0,
+                   "authors": {}, "repos": [str(r) for r, _ in vivos]}
+            for _, g in vivos:
+                for k in ("commits", "added", "removed"):
+                    git[k] += g.get(k, 0)
+                for a, n_ in (g.get("authors") or {}).items():
+                    git["authors"][a] = git["authors"].get(a, 0) + n_
+        mudos = [str(r) for r, g in parciales if not g.get("available")]
+        if mudos:
+            sys.stderr.write(f"ADVERTENCIA: sin metricas de git en {', '.join(mudos)}: "
+                             f"o no es un repositorio, o no tiene commits en la ventana. "
+                             f"Churn y volumen de codigo salen cortos\n")
 
     audit = {"available": False}
     if not args.no_audit:

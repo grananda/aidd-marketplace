@@ -126,7 +126,8 @@ En `externalizado`, `openspec/` y `docs/` viven **fuera de los repos** y cada re
 
 1. **Esa carpeta hay que versionarla.** La auditoria es obligatoria y **una auditoria sin historia no vale como registro**: sin control de versiones no hay quien diga cuando se escribio cada entrada ni quien puede demostrar que no se toco despues. Si el equipo la deja en un disco compartido sin versionar, **dilo como riesgo** y registralo; no lo des por bueno en silencio.
 2. **Un repo clonado solo no arranca.** Su `AGENTS.md` apunta a una ubicacion que puede no existir en esa maquina. Es el precio de no duplicar, y quien reciba el repo tiene que saberlo.
-3. **La ruta es local y varia por dev.** Lo que se declara en `arquitectura-base.md` es el **nombre** de cada repo y **su ruta relativa a la carpeta externa**; la ruta absoluta de esa carpeta es de cada maquina y no se versiona.
+3. **El registro de actividad sigue dentro de los repos.** El hook de `aidd-activity.md` escribe **relativo al directorio donde se trabaja**, y en `externalizado` eso son los repos, no la carpeta externa. Asi que el `openspec/` esta fuera y los registros de actividad dentro, repartidos. `aiba metrics` lo resuelve con `--activity` repetido, pero **hay que saberlo**: medir uno solo publica la actividad de una parte del equipo sin senal de que falta el resto.
+4. **La ruta es local y varia por dev.** Lo que se declara en `arquitectura-base.md` es el **nombre** de cada repo y **su ruta relativa a la carpeta externa**; la ruta absoluta de esa carpeta es de cada maquina y no se versiona.
 
 ### Lanes por repositorio (topologia `fraccionado`)
 

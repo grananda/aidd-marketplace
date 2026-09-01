@@ -405,4 +405,11 @@ Lo que cambia de verdad no son las rutas: es **si un change puede cruzar repos**
 2. **Un repo clonado suelto no arranca**, porque su `AGENTS.md` apunta a una ubicación que puede no existir en esa máquina.
 3. **La ruta absoluta es de cada dev** y no se versiona; lo que se declara son las rutas de los repos **relativas a la carpeta**.
 
+**Y al repasar la externalización aparecieron dos cosas que sí rompía**, ninguna en el sitio donde las buscaba:
+
+- **`aiba metrics` era single-repo**, en las dos topologías de varios repos y desde F-20. El registro de actividad lo escribe un hook que anota **relativo al directorio donde se trabaja**, así que con N repos hay N registros y los KPIs medían uno. Publicar la actividad de un tercio del equipo sin ninguna señal de que falta el resto es peor que no publicarla. `--activity` y `--repo` pasan a ser **repetibles**, con aviso cuando alguno falta.
+- **En `externalizado`, el `openspec/` está fuera y los registros de actividad dentro** de cada repo, que es donde el hook escribe. Queda dicho explícitamente, porque buscarlos al lado del `openspec/` no los encuentra.
+
+Lo que **no** rompe, comprobado: `audit.py` funciona fuera de un repo git —cae a la identidad global— y las métricas de git degradan a `available: false` sin romper el informe.
+
 `multirepo: true` sigue valiendo como `fraccionado` — migración aditiva, sin romper los `config.yaml` ya escritos. Y cambiar de topología a mitad de proyecto tiene procedimiento propio: **es una migración**, no un ajuste, y en la dirección `externalizado → fraccionado` hay un caso incómodo que hay que decir antes de empezar — los changes archivados que tocaron varios repos no tienen un sitio único.

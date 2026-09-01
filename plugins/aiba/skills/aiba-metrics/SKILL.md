@@ -109,6 +109,26 @@ Es el dato que faltaba, y ya existe: el equipo lo imputa en Jira. Sacarlo de ahi
 
 **Diselo al usuario en el resumen**: cuantas horas, de cuantos issues, y que cobertura. Si la cobertura esta por debajo del 100 %, esa frase va **antes** que la relacion baseline/real, no despues.
 
+### 2.ter Con el producto en varios repositorios
+
+**El registro de actividad lo escribe un hook, y el hook escribe donde se trabaja.** Eso vale para las dos topologias de varios repos y es la trampa de esta seccion: si mides un solo registro, publicas la actividad de un tercio del equipo **sin ninguna senal de que falta el resto**.
+
+Por eso `--activity` y `--repo` son **repetibles**:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
+  --activity repo-front/docs/aidd-activity.md \
+  --activity repo-bff/docs/aidd-activity.md \
+  --repo repo-front --repo repo-bff \
+  --worklog worklog-jira.json
+```
+
+- **`--activity` por cada repo donde se haya trabajado.** El script los concatena. Si alguno no existe **avisa y sigue**: no es un error, pero las cifras salen cortas en esa parte y hay que decirlo al presentar.
+- **`--repo` por cada repositorio.** Commits, lineas y autores salen **sumados**. Un repo sin commits en la ventana, o que no es un repo, sale como aviso — churn y volumen quedan cortos.
+- **En topologia `externalizado`, `--activity` no esta donde estan las specs.** El `openspec/` vive fuera de los repos, pero el hook sigue escribiendo dentro de cada repo, junto al codigo. Buscalos ahi, no al lado del `openspec/`.
+
+**El baseline y el worklog no se repiten**: son del proyecto entero, no de un repo.
+
 ### 3. Calculo (el script hace los numeros)
 
 ```bash
