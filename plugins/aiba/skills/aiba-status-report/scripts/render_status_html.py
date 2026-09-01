@@ -481,6 +481,66 @@ def sec_calendario(d: dict) -> str:
     return "\n".join(p)
 
 
+def sec_atribucion(d: dict) -> str:
+    """Por que cada change se desvio. Retrasos y adelantos, con el mismo detalle.
+
+    Un adelanto sin explicar se pierde: es lo unico del informe que dice **que
+    hay que repetir**, y si solo se miran los retrasos solo se aprende de lo que
+    sale mal. Por eso los dos lados llevan sus causas, no solo el rojo.
+    """
+    a = d.get("atribucion") or {}
+    if not a.get("changes"):
+        return ""
+    filas = [c for c in a["changes"] if c.get("sentido") in ("retrasado", "adelantado")]
+
+    p = ['<h2>Por que se desvio cada change</h2>',
+         '<div class="nota">Cada causa nombra <b>el dato de la auditoria del que sale</b>. '
+         'Un change desviado sin ninguna senal aparece como <b>hueco</b>, no se le asigna la '
+         'causa mas probable: una causa inventada es peor que un hueco porque se actua sobre '
+         'ella. Se compara en <b>dias laborables</b> contra el esfuerzo estimado de su fase, y '
+         + e(a.get("umbral", "")) + '.</div>']
+
+    p.append('<div class="kpis">')
+    for val, lab, tono, sub in (
+        (str(a.get("retrasados", 0)), "Changes retrasados", "rojo",
+         f'{a.get("dias_perdidos", 0):.4g} dias de mas'),
+        (str(a.get("adelantados", 0)), "Changes adelantados", "verde",
+         f'{a.get("dias_ganados", 0):.4g} dias de menos'),
+        (str(a.get("en_linea", 0)), "En linea", "azul", "dentro del 25 %"),
+        (str(len(a.get("sin_causa") or [])), "Sin causa identificable", "ambar",
+         "desviados y sin senal en la auditoria"),
+    ):
+        p.append(f'<div class="kpi"><div class="v" style="color:var(--{tono})">{e(val)}</div>'
+                 f'<div class="l">{e(lab)}</div><div class="s">{e(sub)}</div></div>')
+    p.append("</div>")
+
+    if not filas:
+        p.append('<p class="hueco">Ningun change se desvio mas del 25 % de su esfuerzo '
+                 'estimado.</p>')
+        return "<section>" + "".join(p) + "</section>"
+
+    for c in sorted(filas, key=lambda x: -abs(x.get("desviacion_dias") or 0)):
+        retraso = c["sentido"] == "retrasado"
+        tono = "rojo" if retraso else "verde"
+        signo = "+" if retraso else ""
+        p.append('<div class="card">')
+        p.append(f'<h3>{e(str(c["change"]))} {pill(c["sentido"], tono)}</h3>')
+        p.append(f'<p class="pie-dato">Estimado {e(str(c.get("estimado_dias")))} d · real '
+                 f'{e(str(c.get("real_laborable")))} d laborables · '
+                 f'<b style="color:var(--{tono})">{signo}{e(str(c.get("desviacion_dias")))} d '
+                 f'({signo}{e(str(c.get("desviacion_pct")))} %)</b></p>')
+        if c.get("causas"):
+            p.append("<ul>")
+            for x in c["causas"]:
+                p.append(f'<li><b>{e(x["senal"])}</b>: {e(x["valor"])} — {e(x["dice"])}</li>')
+            p.append("</ul>")
+        else:
+            p.append('<p class="hueco">Sin senal en la auditoria que explique la desviacion. '
+                     'No es que no haya causa: es que no esta registrada.</p>')
+        p.append("</div>")
+    return "<section>" + "".join(p) + "</section>"
+
+
 def sec_narrativa(d: dict) -> str:
     n = d.get("narrativa") or {}
     p = ['<h2>Analisis de desviaciones y acciones</h2>']
@@ -599,6 +659,7 @@ def construir(d: dict) -> str:
 {sec_repos(d)}
 {sec_riesgos(d)}
 {sec_calendario(d)}
+{sec_atribucion(d)}
 {sec_narrativa(d)}
 {sec_fuentes(d)}
 <p class="pie">Generado por <code>aiba status-report</code> el {e(d.get("generado",""))}.

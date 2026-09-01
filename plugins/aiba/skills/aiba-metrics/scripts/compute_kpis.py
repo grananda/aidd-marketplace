@@ -412,9 +412,78 @@ def fmt_hours(seconds: float) -> str:
     return f"{hours:.1f} h"
 
 
+JORNADA_HORAS = 8.0
+
+
+def read_worklog(path: Path) -> tuple[dict | None, str | None]:
+    """Horas imputadas por el humano, leidas de un fichero que escribe el skill.
+
+    El script **no habla con Jira**: no tiene dependencias de red y las tools del
+    MCP viven en el modelo, no en un proceso hijo. El skill consulta el worklog
+    via MCP y deja aqui el resultado; esto solo lo suma y lo declara.
+
+    Un total suelto no valdria. Sin el desglose por issue no se puede decir
+    **que parte del alcance tiene worklog**, y un equipo que imputa a medias da
+    pocas horas, pocas horas dan una aceleracion inflada, y esa es la cifra que
+    peor se sostiene delante de un cliente. Con la cobertura al lado, el mismo
+    numero se lee por lo que es.
+
+    Formato esperado:
+
+        {"issues": [{"key": "ABC-12", "hours": 6.5, "change": "<slug o null>"}],
+         "sin_worklog": ["ABC-13"],          # del alcance, sin horas imputadas
+         "fuente": "Jira via MCP", "consultado": "2026-09-01T09:00:00Z"}
+    """
+    if not path.is_file():
+        return None, f"no existe {path}"
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as ex:
+        return None, f"{path} no es JSON valido: {ex}"
+
+    issues = d.get("issues") or []
+    if not isinstance(issues, list):
+        return None, f"{path}: `issues` tiene que ser una lista"
+
+    horas, con, detalle = 0.0, 0, []
+    for it in issues:
+        if not isinstance(it, dict):
+            continue
+        try:
+            h = float(it.get("hours") or 0.0)
+        except (TypeError, ValueError):
+            continue
+        if h <= 0:
+            continue
+        horas += h
+        con += 1
+        detalle.append({"key": str(it.get("key") or "?"), "hours": h,
+                        "change": it.get("change")})
+
+    sin = [str(x) for x in (d.get("sin_worklog") or [])]
+    alcance = con + len(sin)
+    if not con:
+        return None, (f"{path} no trae ningun issue con horas imputadas: "
+                      f"sin esfuerzo real no hay calibracion")
+
+    return {
+        "hours": horas,
+        "days": horas / JORNADA_HORAS,
+        "issues_con_worklog": con,
+        "issues_sin_worklog": len(sin),
+        "sin_worklog": sin,
+        "cobertura_pct": (con / alcance * 100) if alcance else None,
+        "detalle": detalle,
+        "fuente": d.get("fuente") or "Jira",
+        "consultado": d.get("consultado"),
+        "jornada_horas": JORNADA_HORAS,
+    }, None
+
+
 def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict,
                 real_days: float | None = None, cost_per_day: float | None = None,
-                audit: dict | None = None, journal: dict | None = None) -> dict:
+                audit: dict | None = None, journal: dict | None = None,
+                worklog: dict | None = None) -> dict:
     stamps = [e["ts"] for e in (act.runs + act.files + act.turns)]
     first, last = (min(stamps), max(stamps)) if stamps else (None, None)
 
@@ -524,10 +593,26 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
     # equipo. Sin ese dato se publica actividad medida, no ahorro.
     facts["savings"] = None
     facts["intensity"] = None
+    facts["worklog"] = worklog
+
+    # El worklog manda sobre `--real-days`: uno son horas imputadas y el otro una
+    # cifra tecleada. Si vienen los dos, se usa el worklog y se dice, en vez de
+    # elegir en silencio entre dos numeros que no coinciden.
+    origen_real = "--real-days (declarado a mano)"
+    if worklog and worklog.get("days"):
+        if real_days and abs(real_days - worklog["days"]) > 0.05:
+            facts["real_days_conflicto"] = {
+                "real_days": real_days, "worklog_days": worklog["days"],
+                "usado": "worklog",
+            }
+        real_days = worklog["days"]
+        origen_real = f"worklog de {worklog.get('fuente', 'Jira')}"
+
     if real_days and real_days > 0:
         facts["intensity"] = {
             "attended_share_pct": min(100.0, (attended_days / real_days) * 100),
             "real_days": real_days,
+            "real_days_source": origen_real,
         }
         if baseline_days > 0:
             saved = baseline_days - real_days
@@ -538,7 +623,11 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
                 "reduction_pct": (1 - real_days / baseline_days) * 100,
                 "acceleration": (baseline_days / real_days) if real_days else 0.0,
                 "implausible": (baseline_days / real_days) > 10 if real_days else False,
+                "real_days_source": origen_real,
             }
+            if worklog:
+                savings["cobertura_pct"] = worklog.get("cobertura_pct")
+                savings["issues_sin_worklog"] = worklog.get("issues_sin_worklog")
             if cost_per_day and cost_per_day > 0:
                 savings["cost_per_day"] = cost_per_day
                 savings["saved_cost"] = saved * cost_per_day
@@ -693,7 +782,9 @@ def md_tables(f: dict) -> str:
         out.append("| Concepto | Valor |")
         out.append("|---|---|")
         out.append(f"| Esfuerzo humano **estimado** (baseline de tallas) | {b['days']:.1f} d-persona |")
-        out.append(f"| Esfuerzo real **declarado** por el equipo | {s['real_days']:.2f} d-persona |")
+        etiqueta = ("**imputado** en Jira" if "worklog" in (s.get("real_days_source") or "")
+                    else "**declarado** por el equipo")
+        out.append(f"| Esfuerzo real {etiqueta} | {s['real_days']:.2f} d-persona |")
         out.append(f"| Diferencia entre ambos | {s['saved_days']:.2f} d-persona |")
         out.append(f"| Desviacion de la estimacion | {s['reduction_pct']:.1f} % |")
         out.append(f"| Relacion baseline / real | x{s['acceleration']:.1f} |")
@@ -703,6 +794,37 @@ def md_tables(f: dict) -> str:
         if i:
             out.append(f"| Del tiempo real, atendiendo a la IA | "
                        f"{i['attended_share_pct']:.0f} % |")
+        out.append("")
+        # La cobertura va **pegada al numero**, no en una nota al pie: un worklog a
+        # medias da pocas horas, pocas horas dan una relacion alta, y esa es la
+        # cifra que mas viaja sola. Quien la lea tiene que ver de que esta hecha.
+        w = f.get("worklog")
+        if w:
+            cob = w.get("cobertura_pct")
+            out.append(f"Esfuerzo real: **{w['hours']:.1f} h** imputadas en "
+                       f"{w['issues_con_worklog']} issues de {w.get('fuente', 'Jira')}, "
+                       f"a {w['jornada_horas']:.0f} h por jornada"
+                       + (f", consultado el {w['consultado']}" if w.get("consultado") else "")
+                       + ".")
+            if cob is not None and cob < 100:
+                out.append("")
+                out.append(f"> **Cobertura del worklog: {cob:.0f} %.** "
+                           f"{w['issues_sin_worklog']} issues del alcance no tienen horas "
+                           f"imputadas"
+                           + (f" ({', '.join(w['sin_worklog'][:6])}"
+                              + ("..." if len(w['sin_worklog']) > 6 else "") + ")"
+                              if w.get("sin_worklog") else "")
+                           + ". El esfuerzo real sale **corto** en esa proporcion, asi que la "
+                           "relacion baseline/real sale **alta por defecto de imputacion, no "
+                           "por rendimiento**. No presentes esta tabla sin este dato.")
+        if f.get("real_days_conflicto"):
+            c = f["real_days_conflicto"]
+            out.append("")
+            out.append(f"> **Habia dos cifras del esfuerzo real y no coinciden**: "
+                       f"{c['real_days']:.2f} d-persona pasadas con `--real-days` y "
+                       f"{c['worklog_days']:.2f} del worklog. Se ha usado **el worklog**, "
+                       f"que son horas imputadas y no una estimacion. Si la buena era la otra, "
+                       f"el desacuerdo esta en Jira y ahi es donde hay que arreglarlo.")
         out.append("")
         out.append(f"Baseline calculado sobre {b['sized_items']} elementos con talla en "
                    f"`{b['source']}`.")
@@ -729,7 +851,7 @@ def md_tables(f: dict) -> str:
         out.append("")
         out.append("Para calibrar hace falta el **esfuerzo real declarado** por el "
                    "equipo en esta misma ventana (partes de horas, worklogs de Jira o una "
-                   "estimacion honesta): pasalo con `--real-days N`. Mientras tanto, el "
+                   "estimacion honesta): sale del **worklog de Jira** (`--worklog`, que el skill obtiene via MCP) o, en su defecto, se declara con `--real-days N`. Mientras tanto, el "
                    f"tiempo atendido es una **cota inferior** del trabajo asistido por IA.")
         if b["days"] > 0:
             out.append("")
@@ -782,6 +904,10 @@ def main() -> int:
     parser.add_argument("--repo", default=".", help="Raiz del repositorio git.")
     parser.add_argument("--baseline-days", type=float,
                         help="Fuerza el baseline en dias-persona en vez de derivarlo de las tallas.")
+    parser.add_argument("--worklog", metavar="RUTA",
+                        help="JSON con las horas imputadas por issue, que el skill "
+                             "obtiene de Jira via MCP. Manda sobre --real-days y "
+                             "ademas declara la cobertura del alcance.")
     parser.add_argument("--real-days", type=float,
                         help="Esfuerzo humano REAL dedicado en la ventana, en dias-persona "
                              "(partes de horas, worklogs). Sin esto no se calcula ahorro: el "
@@ -828,9 +954,16 @@ def main() -> int:
     if not args.no_audit:
         audit = read_audit(Path(args.audit), min(stamps), max(stamps))
 
+    worklog, wl_err = (None, None)
+    if args.worklog:
+        worklog, wl_err = read_worklog(Path(args.worklog))
+        if wl_err:
+            sys.stderr.write(f"ADVERTENCIA: worklog no usable: {wl_err}\n")
+
     facts = build_facts(act, baseline_days, sized, git,
                         real_days=args.real_days, cost_per_day=args.cost_per_day,
-                        audit=audit, journal=read_journal(Path(args.journal)))
+                        audit=audit, journal=read_journal(Path(args.journal)),
+                        worklog=worklog)
     if args.baseline_days is not None:
         facts["baseline"]["source"] = "--baseline-days (indicado a mano)"
 

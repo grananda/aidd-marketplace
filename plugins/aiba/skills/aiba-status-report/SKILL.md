@@ -1,9 +1,9 @@
 ---
 name: aiba-status-report
-description: AIBA (AI Business Analyst) — genera el informe de situacion del proyecto en HTML, ejecutivo y visual, mediante el comando `aiba status-report` (alias `aiba estado`, `aiba informe estado`). Actua como jefe de proyecto que mide el avance **por trabajo ejecutado y no por fechas**: cruza las fases de `openspec/config.yaml` con `openspec/changes/archive/` por `change_hint`, pesa cada fase con su esfuerzo (`effort_ai` o las tallas XS/S/M/L/XL de sus HU) y da dos metricas jerarquizadas — changes como principal, con tres estados (cerrado, activo, pendiente), e historias de usuario como secundaria. Lo contrasta con el avance previsto que se deriva de los sprints ya cerrados de `docs/sprint-plan.md` y expresa la desviacion en puntos y en dias. Anade bloqueos **medidos** (decisiones bloqueantes sin resolver en `openspec/audit/`), dependencias listas y bloqueadas del grafo `depends_on`, conflictos de faseado cross-lane, camino critico, ritmo real de entrega (lead time `open change` -> `close change` y su tendencia), riesgos y GAPs consolidados, analisis de desviaciones con responsable y plazo, y un resumen cualitativo con acciones de corto plazo. Los numeros los calcula un script y la narrativa la escribe el skill: cada cifra declara el documento del que sale, y lo que no se puede derivar aparece como hueco declarado, nunca como cifra plausible. Produce `docs/estado-proyecto.json` (el registro, versionable y comparable semana a semana) y `docs/html/estado-proyecto.html` (autocontenido, sin recursos externos). Con el producto repartido en **varios repositorios** —cada uno con su propio `openspec/` y su lane— `--root` es repetible y el informe sale agregado: se suman dias de esfuerzo y no porcentajes, se anade el desglose `por_repo` con el peso real de cada uno, y los caminos criticos se dan por repo porque son cadenas paralelas que no se suman. Degrada sin detenerse: con menos documentos da menos informe y lo dice. Usar cuando el usuario pida "informe de estado", "como va el proyecto", "reporte de situacion", "status del proyecto", "avance real vs previsto", o equivalentes.
+description: AIBA (AI Business Analyst) — genera el informe de situacion del proyecto en HTML, ejecutivo y visual, mediante el comando `aiba status-report` (alias `aiba estado`, `aiba informe estado`). Actua como jefe de proyecto que mide el avance **por trabajo ejecutado y no por fechas**: cruza las fases de `openspec/config.yaml` con `openspec/changes/archive/` por `change_hint`, pesa cada fase con su esfuerzo (`effort_ai` o las tallas XS/S/M/L/XL de sus HU) y da dos metricas jerarquizadas — changes como principal, con tres estados (cerrado, activo, pendiente), e historias de usuario como secundaria. Lo contrasta con el avance previsto que se deriva de los sprints ya cerrados de `docs/sprint-plan.md` y expresa la desviacion en puntos y en dias. Anade bloqueos **medidos** (decisiones bloqueantes sin resolver en `openspec/audit/`), dependencias listas y bloqueadas del grafo `depends_on`, conflictos de faseado cross-lane, camino critico, ritmo real de entrega (lead time `open change` -> `close change` y su tendencia), riesgos y GAPs consolidados, analisis de desviaciones con responsable y plazo, y un resumen cualitativo con acciones de corto plazo. Cruza ademas el lead time real de cada change con el esfuerzo estimado de su fase y **atribuye la desviacion a las senales de la auditoria** que la explican --ratio de atencion, bloqueos sin resolver, reintentos, `first_run_green`, correcciones e intervenciones--, con el mismo detalle para los **adelantos**, que son los que dicen que hay que repetir; un change desviado sin senal registrada se declara como hueco y **no se le asigna la causa mas probable**. Los numeros los calcula un script y la narrativa la escribe el skill: cada cifra declara el documento del que sale, y lo que no se puede derivar aparece como hueco declarado, nunca como cifra plausible. Produce `docs/estado-proyecto.json` (el registro, versionable y comparable semana a semana) y `docs/html/estado-proyecto.html` (autocontenido, sin recursos externos). Con el producto repartido en **varios repositorios** —cada uno con su propio `openspec/` y su lane— `--root` es repetible y el informe sale agregado: se suman dias de esfuerzo y no porcentajes, se anade el desglose `por_repo` con el peso real de cada uno, y los caminos criticos se dan por repo porque son cadenas paralelas que no se suman. Degrada sin detenerse: con menos documentos da menos informe y lo dice. Usar cuando el usuario pida "informe de estado", "como va el proyecto", "reporte de situacion", "status del proyecto", "avance real vs previsto", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # aiba-status-report (AIBA · Informe de situacion)
@@ -25,7 +25,7 @@ Responde y documenta en espanol. Conserva en ingles nombres de comandos, fichero
 |---|---|
 | `openspec/config.yaml` | Fases, `change_hint`, `hus`, `depends_on`, `sprint` y esfuerzo por fase |
 | `openspec/changes/` y `.../archive/` | Que changes estan activos y cuales cerrados |
-| `openspec/audit/**/*.jsonl` | **Cuando** se abrio y cerro cada uno, **cuanto duro cada comando** (`started_at`), y que bloqueos siguen pendientes |
+| `openspec/audit/**/*.jsonl` | **Cuando** se abrio y cerro cada uno, **cuanto duro cada comando** (`started_at`), que bloqueos siguen pendientes, y las senales que explican cada desviacion: `attempt`, `preflight`, `verification.first_run_green`, correcciones e `interventions` |
 | `docs/detalle-historias-usuario.md` | Tallas XS/S/M/L/XL para pesar cada fase |
 | `docs/sprint-plan.md` | Sprints y fechas, de donde sale el avance previsto |
 | `docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/arquitectura-base.md` | Riesgos declarados, que tu consolidas |
@@ -106,6 +106,20 @@ Abre el JSON y **entiende el numero antes de narrarlo**. Preguntas que responder
 - ¿El camino critico pasa por algo bloqueado? Cruza `camino_critico.cadena` con `bloqueos[].change`. Si coincide, **es el hallazgo principal del informe** y va primero: cada dia de bloqueo es un dia de calendario, no de holgura.
 - ¿Divergen changes y HU? Un avance de changes alto con HU bajo significa fases grandes a medias.
 - ¿Hay fases listas para abrir y nadie las ha abierto? Es capacidad ociosa.
+
+#### Y la pregunta nueva: ¿por que se desvio cada change?
+
+El bloque `atribucion` cruza el lead time real de cada change con el esfuerzo estimado de su fase y adjunta **las senales de la auditoria que lo explican**. Es lo que convierte «vamos tres dias tarde» en algo accionable: sin la causa no se sabe si hay que contratar, desbloquear o rehacer specs, y son tres decisiones distintas.
+
+**Como narrarlo, y esto no es opcional:**
+
+- **No anadas causas que el bloque no traiga.** Si un change viene en `sin_causa`, di que **no hay senal registrada que lo explique** y sigue. La tentacion es escribir «probablemente por la complejidad de la integracion»; eso es inventar, y sobre una causa inventada se toman decisiones reales. El hueco es el dato.
+- **Narra los adelantos con el mismo detalle que los retrasos.** Es la parte que todo el mundo se salta, y es la unica que dice **que hay que repetir**. Un change que costo la mitad porque el pre-flight resolvio cuatro dudas antes de empezar es una recomendacion de proceso, no una anecdota.
+- **Un ratio de atencion bajo no es falta de capacidad.** Significa que el change estuvo **esperando**, y meter mas gente no acorta una espera. Cruza con `bloqueos` para nombrar a que esperaba y propon desbloquear, no reforzar.
+- **Varias senales sobre el mismo change no son varias causas independientes.** Reintentos, rojo en la primera pasada y correcciones suelen ser **el mismo problema visto tres veces**: las specs no estaban listas. Dilo una vez y bien, en vez de listar tres viñetas que parecen tres problemas.
+- **`interventions` es auto-declarado** y no se puede contrastar con ningun artefacto. Uselo como contexto; no construyas una recomendacion solo sobre el.
+
+**Que el umbral sea del 25 %** quiere decir que lo que no aparece **esta en linea**, no que no se haya mirado. Dilo si el informe sale con pocas desviaciones: es un resultado, no una carencia.
 
 ### 3. Anadir la narrativa al JSON
 

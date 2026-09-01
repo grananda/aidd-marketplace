@@ -26,6 +26,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
 | F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
+| F-21 | Esfuerzo humano del worklog de Jira, y desviaciones atribuidas a la auditoría | aiba | **implementada** | 2026-09-01 |
 
 ---
 
@@ -345,3 +346,36 @@ La marca que los distingue es que **las fases anteriores a la migración no tien
 
 - **Cada repo lleva el roadmap completo pero solo ejecuta las fases de su lane**, así que el informe de un repo filtra por su `roadmap.repo`. Sin ese filtro se quedaría clavado en un tercio para siempre, y no por ir retrasado.
 - **Se suman días de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 días que a uno de 4. El HTML añade «Avance por repositorio» con la columna **Peso**, que es la que distingue tres repos al 27 % de dos acabados con uno sin empezar. Los caminos críticos se dan por repo y **no se suman**: son cadenas paralelas, y el del proyecto es el más largo.
+
+## F-21 — El esfuerzo humano real, y por qué se desvió cada change
+
+**Estado:** implementada · **Versión:** `aiba` 1.9.0 · **Añadida:** 2026-09-01 · **Issue:** #26
+
+Dos cosas que iban juntas porque comparten fuente y destino.
+
+### El único número que se tecleaba
+
+`compute_kpis.py` calibra un baseline de tallas contra el esfuerzo real, y ese esfuerzo real era el único dato del informe que alguien escribía a mano con `--real-days`. No por descuido: el tiempo atendido mide solo los turnos —no ver al humano leer, revisar, teclear a mano ni reunirse— y restarlo del baseline da aceleraciones de x100.
+
+Pero el dato existe: **está imputado en Jira**. Ahora sale de ahí.
+
+**Se accede por MCP, y la regla de `jira.md` no se toca**: nada de REST manual ni de gestionar credenciales. Eso tiene una consecuencia que decide el diseño — **el script no puede llamar al MCP**, porque es Python sin dependencias de red y las tools viven en el modelo. Así que el skill consulta el worklog siguiendo el mapa HU → Story → change de `docs/jira-sync.md`, lo deja en un JSON, y el script lo suma. El script sigue siendo puro.
+
+**Y no se pasa un total, se pasa el desglose por issue.** Un worklog al 50 % da la mitad de horas, la mitad de horas da el doble de relación baseline/real, y esa es la cifra que más viaja sola a una diapositiva. Con el desglose, el informe declara la **cobertura** pegada al número:
+
+> **Cobertura del worklog: 50 %.** 2 issues del alcance no tienen horas imputadas. El esfuerzo real sale corto en esa proporción, así que la relación baseline/real sale **alta por defecto de imputación, no por rendimiento**.
+
+El worklog manda sobre `--real-days`, y si vienen los dos y no coinciden **lo dice** en vez de elegir en silencio entre dos números distintos.
+
+### Por qué se desvió cada change
+
+El informe ya sabía cuánto duró cada change. Lo que faltaba era **por qué**, y sin eso «vamos tres días tarde» no dice si hay que contratar, desbloquear o rehacer specs — tres decisiones distintas.
+
+La auditoría ya tenía la materia prima. `atribucion` cruza el lead time en **días laborables** contra el esfuerzo estimado de la fase y adjunta la señal que lo explica: ratio de atención, bloqueos sin resolver, reintentos, `first_run_green`, correcciones e intervenciones.
+
+Dos reglas la sostienen:
+
+- **Nada se inventa.** Un change desviado sin señal registrada se declara como **hueco**, no recibe la causa más plausible. Una causa inventada es peor que un hueco porque se actúa sobre ella.
+- **Los adelantos se explican igual que los retrasos.** Es lo único del informe que dice **qué hay que repetir**, y mirando solo los rojos solo se aprende de lo que sale mal.
+
+El umbral es el ±25 %: un change de 3 días que tarda 3,5 no es un hallazgo, y marcarlo llenaría el informe de falsos positivos.
