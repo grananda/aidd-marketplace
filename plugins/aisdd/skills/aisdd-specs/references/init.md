@@ -49,7 +49,11 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight" (`references/preflight.md`)). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
 11. **Si el producto vive en varios repositorios, di cual es este.** Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara mas de un repositorio, **`aisdd init` se ejecuta una vez por repo**, dentro de cada uno, y cada ejecucion crea el `openspec/` **de ese repo**.
 
-    Identifica cual es comparando el `remote` de la tabla con `git remote get-url origin`. Escribe `roadmap.multirepo: true` y `roadmap.repo: <id>` en `openspec/config.yaml`: es lo unico que distingue esta copia de las demas. **Si ningun remote de la tabla coincide con el de este repo, no lo adivines por el nombre de la carpeta**: detente, di que has encontrado y pide al usuario que confirme cual es o que corrija la arquitectura.
+    Identifica cual es, en este orden: (a) si `openspec/config.yaml` ya trae `roadmap.repo`, ese es y no se toca; (b) si el nombre de la carpeta o el ultimo segmento de `git remote get-url origin` coincide con un `id` de la tabla, proponlo; (c) **si no, preguntaselo al usuario** con la lista de `id` disponibles.
+
+    **No lo decidas por parecido ni por descarte.** Elegir mal el `repo` hace que este `openspec/` ejecute las fases de otro lane, y el error no se ve hasta que alguien abre un change que no le tocaba. Preguntar cuesta una linea.
+
+    Escribe despues `roadmap.multirepo: true` y `roadmap.repo: <id>` en `openspec/config.yaml`: es lo unico que distingue esta copia de las demas.
 
     Recuerdale ademas, en el resumen, las dos cosas que no se deducen solas: que **`docs/` va copiado entero en cada repo** y hay que replicar ahi cualquier cambio, y que **este `openspec/` solo lleva los changes de este repo** --los KPI del proyecto completo se sacan agregando los de todos, desde la carpeta que los contiene--.
 

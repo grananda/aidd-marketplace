@@ -588,11 +588,19 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`: no se sabe "
                       "cual de los repos es este, asi que se cuentan las fases de todos y el "
                       "avance sale diluido. Lo escribe `aisdd init`")
+    # Fases **sin lane**: las de antes de la migracion a multirepo. Al partir el
+    # proyecto el `openspec/` viejo se copia entero a cada repo para no perder el
+    # registro de lo entregado, asi que estan **repetidas en los N repos**. Se
+    # apartan aqui y el agregado las suma **una sola vez**: contarlas N veces
+    # daria un proyecto mas avanzado de lo que esta.
+    heredadas: list = []
     if repo_id:
         propias = [f for f in fases if str(f.get("lane") or "") == repo_id]
-        if propias:
-            fases = propias
+        heredadas = [f for f in fases if not str(f.get("lane") or "")]
+        if propias or heredadas:
+            fases = propias + heredadas
         else:
+            heredadas = []
             avisos.append(f"`roadmap.repo` es `{repo_id}` pero ninguna fase declara ese "
                           f"lane: el config.yaml de este repo no cuadra con el roadmap. "
                           f"Se calcula sobre todas las fases, asi que el avance de este "
@@ -629,6 +637,25 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
     hus_ok = {str(h) for f in cls["cerradas"] for h in (f.get("hus") or [])}
     hus_curso = {str(h) for f in cls["activas"] for h in (f.get("hus") or [])}
 
+    her = None
+    if heredadas:
+        ids_her = {str(f.get("id")) for f in heredadas}
+        def _dias(lista):
+            return round(sum(pesos.get(str(f.get("id")), 0.0) for f in lista
+                             if str(f.get("id")) in ids_her), 2)
+        her = {
+            "fases": len(heredadas),
+            "esfuerzo_dias": round(sum(pesos.get(i, 0.0) for i in ids_her), 2),
+            "cerrado_dias": _dias(cls["cerradas"]),
+            "activo_dias": _dias(cls["activas"]),
+            "cerradas": sum(1 for f in cls["cerradas"] if str(f.get("id")) in ids_her),
+            "activas": sum(1 for f in cls["activas"] if str(f.get("id")) in ids_her),
+            "ids": sorted(ids_her),
+        }
+        avisos.append(f"{len(heredadas)} fases sin lane, anteriores a la migracion a "
+                      f"multirepo: estan repetidas en el `openspec/` de todos los repos "
+                      f"y el informe agregado las cuenta una sola vez")
+
     prev = previsto(fases, pesos, sprints, hoy, total_d)
     real_pct = round(cerr_d / total_d * 100, 1) if total_d else None
     desv = {}
@@ -653,6 +680,7 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "modo_faseado": roadmap.get("mode", "atomic"),
         "multirepo": bool(roadmap.get("multirepo")),
         "repo": repo_id or None,
+        "heredado": her,
         "raiz": str(root),
         "parallel_developers": roadmap.get("parallel_developers"),
         "fuentes": fuentes,
@@ -676,6 +704,8 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
                 "sin_iniciar": len(hus_todas - hus_ok - hus_curso),
                 "pct_ok": round(len(hus_ok) / len(hus_todas) * 100, 1) if hus_todas else None,
                 "ids_ok": sorted(hus_ok),
+                "ids_todas": sorted(hus_todas),
+                "ids_en_curso": sorted(hus_curso),
             },
         },
         "previsto": prev,
@@ -738,21 +768,64 @@ def agregar(estados: list[dict], hoy) -> dict:
             d = (d or {}).get(k) or {}
         return d if isinstance(d, (int, float)) else defecto
 
-    total_d = sum(num(e, "avance", "esfuerzo", "total_dias") for e in estados)
-    cerr_d = sum(num(e, "avance", "esfuerzo", "cerrado_dias") for e in estados)
-    act_d = sum(num(e, "avance", "esfuerzo", "activo_dias") for e in estados)
+    # Lo anterior a la migracion vive repetido en los N repos: se resta de cada
+    # uno y se suma una vez. Si las copias no coinciden han divergido, y eso se
+    # dice en vez de elegir una en silencio.
+    hers = [e.get("heredado") for e in estados if e.get("heredado")]
+    her = hers[0] if hers else None
+    aviso_her = None
+    if hers and any(h.get("ids") != hers[0].get("ids") for h in hers[1:]):
+        aviso_her = ("las copias del `openspec/` anterior a la migracion no coinciden entre "
+                     "repos: se toma la del primero, asi que lo heredado puede quedarse corto. "
+                     "Revisa que la carpeta se copio igual en todos")
+    elif hers and len(hers) < len(estados):
+        aviso_her = (f"solo {len(hers)} de {len(estados)} repos traen el `openspec/` anterior "
+                     f"a la migracion: el trabajo previo se cuenta igual una vez")
 
-    ch = {"total": 0, "cerrados": 0, "activos": 0, "pendientes": 0}
+    def propio(e, clave_esf, clave_her):
+        """Lo de este repo, ya sin lo heredado que comparte con los demas."""
+        h = e.get("heredado") or {}
+        return num(e, "avance", "esfuerzo", clave_esf) - float(h.get(clave_her) or 0.0)
+
+    total_d = sum(propio(e, "total_dias", "esfuerzo_dias") for e in estados)
+    cerr_d = sum(propio(e, "cerrado_dias", "cerrado_dias") for e in estados)
+    act_d = sum(propio(e, "activo_dias", "activo_dias") for e in estados)
+    if her:
+        total_d += float(her.get("esfuerzo_dias") or 0.0)
+        cerr_d += float(her.get("cerrado_dias") or 0.0)
+        act_d += float(her.get("activo_dias") or 0.0)
+
+    ch = {"total": 0, "cerrados": 0, "activos": 0}
     for e in estados:
         c = (e.get("avance") or {}).get("changes") or {}
-        for k in ch:
-            ch[k] += int(c.get(k) or 0)
+        h = e.get("heredado") or {}
+        ch["total"] += int(c.get("total") or 0) - int(h.get("fases") or 0)
+        ch["cerrados"] += int(c.get("cerrados") or 0) - int(h.get("cerradas") or 0)
+        ch["activos"] += int(c.get("activos") or 0) - int(h.get("activas") or 0)
+    if her:
+        ch["total"] += int(her.get("fases") or 0)
+        ch["cerrados"] += int(her.get("cerradas") or 0)
+        ch["activos"] += int(her.get("activas") or 0)
+    ch["pendientes"] = ch["total"] - ch["cerrados"] - ch["activos"]
 
-    hus = {"total": 0, "ok": 0, "en_curso": 0, "sin_iniciar": 0}
+    # Las HU se deduplican **por id**, no restando: una misma HU puede aparecer en
+    # dos repos sin que sea un error --el openspec heredado esta repetido, y una
+    # HU se puede repartir entre repos--, asi que se unen conjuntos.
+    ids_t, ids_ok, ids_c = set(), set(), set()
     for e in estados:
         h = (e.get("avance") or {}).get("hus") or {}
-        for k in hus:
-            hus[k] += int(h.get(k) or 0)
+        ids_t |= {str(x) for x in (h.get("ids_todas") or [])}
+        ids_ok |= {str(x) for x in (h.get("ids_ok") or [])}
+        ids_c |= {str(x) for x in (h.get("ids_en_curso") or [])}
+    if ids_t:
+        hus = {"total": len(ids_t), "ok": len(ids_ok), "en_curso": len(ids_c),
+               "sin_iniciar": len(ids_t - ids_ok - ids_c)}
+    else:
+        hus = {"total": 0, "ok": 0, "en_curso": 0, "sin_iniciar": 0}
+        for e in estados:
+            h = (e.get("avance") or {}).get("hus") or {}
+            for k in hus:
+                hus[k] += int(h.get(k) or 0)
 
     real_pct = round(cerr_d / total_d * 100, 1) if total_d else None
 
@@ -802,6 +875,8 @@ def agregar(estados: list[dict], hoy) -> dict:
 
     avisos = [f"[{e.get('repo') or e.get('raiz')}] {a}"
               for e in estados for a in (e.get("avisos") or [])]
+    if aviso_her:
+        avisos.append(aviso_her)
     faltan = [r["repo"] for r in por_repo if r["pct_cerrado"] is None]
     if faltan:
         avisos.append(f"sin avance calculable en {', '.join(map(str, faltan))}: el total "
@@ -827,6 +902,7 @@ def agregar(estados: list[dict], hoy) -> dict:
                      "base_repos": [e.get("repo") for e in con_plan]},
         "desviacion": desv,
         "por_repo": por_repo,
+        "heredado": her,
         "bloqueos": [dict(b, repo=e.get("repo")) for e in estados
                      for b in (e.get("bloqueos") or [])],
         "caminos_criticos": [{"repo": e.get("repo"),

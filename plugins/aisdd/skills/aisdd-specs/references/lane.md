@@ -28,11 +28,11 @@ Lista los lanes de `roadmap.lanes` y, por cada uno:
 
 Anade al final las **barreras pendientes** (`FB-NN` no archivadas): bloquean a todos los lanes, asi que condicionan lo que cualquier dev puede abrir.
 
-**En multirepo** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --sus fases y su `remote`--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
+**En multirepo** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --su nombre y sus fases--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
 
 ### `switch <lane-id>`
 
-0. **Si `roadmap.multirepo` es `true`, rechaza el `switch`** y para. El lane de este `openspec/` es `roadmap.repo` y no se puede cambiar desde aqui: el trabajo del lane pedido se hace en su propio repositorio. Di cual es, con su `remote` de `roadmap.lanes[].remote`, para que el usuario sepa donde ir. **No escribas `openspec/.lane`**: en este modo nadie lo lee, y dejarlo escrito es una pista falsa para el siguiente que mire.
+0. **Si `roadmap.multirepo` es `true`, rechaza el `switch`** y para. El lane de este `openspec/` es `roadmap.repo` y no se puede cambiar desde aqui: el trabajo del lane pedido se hace en su propio repositorio. Di cual es por su nombre, para que el usuario sepa donde ir. **No escribas `openspec/.lane`**: en este modo nadie lo lee, y dejarlo escrito es una pista falsa para el siguiente que mire.
 1. Valida que `<lane-id>` existe en `roadmap.lanes`. Si no, lista los validos y detente. **No lo crees**: los lanes nacen en `aisdd roadmap`, no aqui.
 2. Escribe el `lane-id` en `openspec/.lane` (una linea, sin espacios). Crea el fichero si no existe.
 3. Comprueba que `.gitignore` contiene `openspec/.lane`; si falta, anadela y dilo (`aisdd init` deberia haberlo hecho).

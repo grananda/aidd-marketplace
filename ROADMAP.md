@@ -329,6 +329,14 @@ Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y 
 
 **El coste conocido:** `docs/` va copiado entero en cada repo, y un cambio en cualquiera hay que replicarlo en todos. `aisdd init` lo dice explícitamente en su resumen, porque no se descubre solo.
 
+**El faseado se decide una vez.** `aisdd roadmap` gana un tercer camino, **Adoptar**, junto a Anotar y Re-fasear: se fasea en el repo que tiene los documentos de diseño, el humano copia `docs/` a los demás —el comando no puede, no ve esos repos— y en cada uno se adopta: leer el documento, derivar sus fases al `config.yaml`, y no re-fasear, no preguntar, no correr el optimizador, no tocar `docs/`. Ejecutarlo entero en los tres daría tres roadmaps distintos del mismo proyecto y mandaría el del último que lo corriera.
+
+**Pasar de un repo a varios es una migración, no un cambio de estrategia.** El `openspec/` anterior se copia **entero** a cada repo nuevo, para que ninguno arranque como si el proyecto empezara hoy. Eso deja los changes ya cerrados **duplicados en los N repos, a propósito** — y es exactamente el dato que rompe un informe si nadie lo sabe.
+
+La marca que los distingue es que **las fases anteriores a la migración no tienen `lane`**: se fasearon cuando no había repos. `compute_status.py` las aparta en un bloque `heredado` y las suma **una sola vez**. Sobre un caso de tres repos con 22 días heredados, la diferencia es **44 días y 59,1 %** frente a **88 días y 79,5 %**: contarlas por repo inflaba el avance veinte puntos. El HTML lo explica, porque la primera pregunta del comité es por qué la suma de las columnas no da el total. Y las HU se deduplican **por id**, no restando: una HU puede estar legítimamente en dos repos.
+
+**Los repos se declaran solo con el nombre.** Ni URL de remote ni ruta local: no las necesita nadie —ningún comando salta de un repo a otro— y son lo primero que caduca cuando el cliente migra de organización. `aisdd init` identifica el repo por su nombre y, si no está claro, **pregunta**: elegir mal el `repo` hace que ese `openspec/` ejecute las fases de otro lane, y el error no se ve hasta que alguien abre un change que no le tocaba.
+
 **Y los KPI globales, que es donde estaba el trabajo de verdad.** `compute_status.py --root` pasa a ser repetible. Dos cosas que parecían detalles y no lo son:
 
 - **Cada repo lleva el roadmap completo pero solo ejecuta las fases de su lane**, así que el informe de un repo filtra por su `roadmap.repo`. Sin ese filtro se quedaría clavado en un tercio para siempre, y no por ir retrasado.

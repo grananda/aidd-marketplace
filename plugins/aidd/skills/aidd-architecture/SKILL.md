@@ -1,6 +1,6 @@
 ---
 name: aidd-architecture
-description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | remote | carpeta | contiene`: cada repo es autonomo —su propio `openspec/` y su propia copia de `docs/`—, sin repo padre ni submodulos, y declararlos **obliga a `aisdd roadmap` al modo `multilane` con un lane por repo**. Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--: cada repo es autonomo —su propio `openspec/` y su propia copia de `docs/`—, sin repo padre ni submodulos, y declararlos **obliga a `aisdd roadmap` al modo `multilane` con un lane por repo**. Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
   version: "1.3.0"
@@ -84,7 +84,7 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 ## 1. Objetivo y alcance
 ## 2. Principios y decisiones arquitectonicas
 ## 3. Estructura de la solucion (arbol de carpetas real)
-- **Si el producto vive en mas de un repositorio, declaralos aqui** con una tabla `id | remote | carpeta | contiene`. Cada repo es autonomo --su propio `openspec/` y su propia copia de `docs/`-- y declararlos **obliga al modo `multilane` con un lane por repo**. Ver "Producto repartido en varios repositorios".
+- **Si el producto vive en mas de un repositorio, declaralos aqui** con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--. Cada repo es autonomo --su propio `openspec/` y su propia copia de `docs/`-- y declararlos **obliga al modo `multilane` con un lane por repo**. Ver "Producto repartido en varios repositorios".
 ## 4. Descomposicion por modulos / dominios
 ## 5. Capas y responsabilidades
 ## 6. Componentes base y relaciones
@@ -113,17 +113,17 @@ Si es el caso, la seccion 3 lleva la tabla de repositorios:
 El producto vive en <N> repositorios **independientes**. Cada uno tiene su propio
 `docs/` y su propio `openspec/`, y se desarrolla como una linea de trabajo separada.
 
-| id | Remote | Carpeta | Contiene |
-|---|---|---|---|
-| `front` | `git@...:org/front.git` | `repo-front/` | SPA Angular |
-| `bff` | `git@...:org/bff.git` | `repo-bff/` | BFF y agregacion |
-| `datos` | `git@...:org/datos.git` | `repo-datos/` | Batch y modelo de datos |
+| id | Contiene |
+|---|---|
+| `front` | SPA Angular |
+| `bff` | BFF y agregacion |
+| `datos` | Batch y modelo de datos |
 ```
 
 Reglas:
 
+- **Con el nombre basta.** `id` y una linea de contenido es todo lo que hace falta. **No pidas la URL del remote ni la ruta local**: no las necesita nadie —ningun comando salta de un repo a otro— y son lo primero que se queda obsoleto cuando el cliente migra de organizacion o alguien clona con otro nombre. Si el usuario las da, puedes anadirlas como columnas opcionales; **no las inventes y no las exijas**.
 - **`id` en kebab-case y estable.** Es el nombre del repo **y el de su lane**, que son lo mismo. Es la clave con la que el roadmap reparte fases y con la que se agregan los KPI globales. Cambiarlo rompe esos enlaces, igual que cambiar un `change_hint`.
-- **La identidad es el remote, no la carpeta.** Cada dev clona donde quiere y el nombre local varia; el remote no. La columna `Carpeta` es la convencion recomendada para la carpeta comun desde la que se sacan informes, no una ruta que nadie deba respetar para trabajar.
 - **Di que contiene cada uno en una linea.** Es lo que permite decidir despues si un modulo cae en uno o en otro, y es la unica parte que un humano va a leer.
 - **La descomposicion por modulos (seccion 4) indica en que repo cae cada modulo.** Un modulo repartido entre dos repos es una senal de que la frontera esta mal puesta: dilo en la seccion 13 en vez de esconderlo.
 - **Los repos tienen que ser independientes en codigo, y eso hay que comprobarlo.** El modelo entero descansa en que ninguno compila, testea ni despliega contra el fuente de otro. Lo que compartan viaja como **artefacto versionado** --un contrato OpenAPI publicado, un paquete, un esquema de eventos-- y cada repo consume la version que elige, cuando la elige.

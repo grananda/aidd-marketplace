@@ -86,6 +86,15 @@ Tres cosas que hay que saber leer, y que el informe dice pero conviene entender:
 
 **Un `--root` por repo, siempre todos.** Si dejas uno fuera, el informe sale coherente y equivocado: las cifras cuadran entre si y le falta un tercio del proyecto. Comprueba la lista contra la seccion 3 de `docs/arquitectura-base.md` antes de ejecutar.
 
+**Si el proyecto migro de un repo a varios, hay datos repetidos y el script lo sabe.** Al partir, el `openspec/` anterior se copia entero a cada repo para no perder el registro de lo entregado, asi que **los changes ya cerrados estan duplicados en los N**. Se distinguen porque sus fases **no tienen `lane`** —se fasearon cuando no habia repos—, y el script las aparta en el bloque `heredado` y las suma **una sola vez**.
+
+Dos cosas que decir al narrar, porque las va a preguntar quien lea el informe:
+
+- **La suma de las columnas por repo no da el total**, y es correcto: lo heredado no se atribuye a ninguno porque fue de todos.
+- **Ese trabajo no cuenta como avance de ningun repo.** Si uno sale bajo, mira si lo suyo empezo despues de la migracion antes de leerlo como retraso.
+
+Si el script avisa de que las copias **no coinciden entre repos**, no lo narres como dato: significa que alguien edito una y no las otras, y el total heredado puede quedarse corto. Es un hallazgo, no una nota al pie.
+
 **Lee los avisos que emite por stderr antes de seguir.** Dicen que no ha podido calcular y por que: fases sin `change_hint`, fases sin esfuerzo, changes abiertos que no estan en el roadmap. Cada uno de ellos cambia como hay que leer las cifras, y varios son hallazgos por si solos — un change fuera de plan es trabajo que nadie previo.
 
 ### 2. Leer las cifras antes de escribir nada

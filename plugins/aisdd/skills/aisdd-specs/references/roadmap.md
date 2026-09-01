@@ -111,7 +111,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 16. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
 17. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
 
-    **En multirepo el bloque de cada lane se encabeza con el repositorio, no con un `switch`**: su `remote` y la instruccion de clonarlo y trabajar dentro. Sin `F0` y sin barreras, porque no las hay. Y como cada repo lleva **su propia copia** de este fichero, di al principio de cada bloque **cual de ellos es el tuyo**: un dev que abre el suyo tiene que ver de un vistazo que bloque le toca y que el resto es contexto de los demas.
+    **En multirepo el bloque de cada lane se encabeza con el repositorio, no con un `switch`**: su nombre y la instruccion de trabajar dentro de el. Sin `F0` y sin barreras, porque no las hay. Y como cada repo lleva **su propia copia** de este fichero, di al principio de cada bloque **cual de ellos es el tuyo**: un dev que abre el suyo tiene que ver de un vistazo que bloque le toca y que el resto es contexto de los demas.
 18. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
 19. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
 20. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
@@ -152,7 +152,7 @@ El faseado, en cambio, **es uno solo** — un roadmap con todas las fases de tod
 
 1. **Se fasea en un repo, una sola vez.** El que tenga los documentos de diseno: `arquitectura-base.md` con su tabla de repositorios y `detalle-historias-usuario.md` con las tallas. Ahi `aisdd roadmap` corre completo y produce `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md` con las fases de **los tres**.
 2. **El humano copia `docs/` a los demas repos.** No lo hagas tu: no ves esos repos, y escribir en ellos exigiria una ruta que no tienes. **Dilo explicitamente al terminar**, listando que ficheros y a que repos — es el paso que, si se olvida, deja a dos equipos trabajando sin roadmap y nadie se entera hasta el primer `open change`.
-3. **En cada uno de los demas se ejecuta `aisdd init` y despues `aisdd roadmap`.** El `init` reconoce cual es el repo por su remote; el `roadmap` encuentra el documento ya escrito y toma el camino **Adoptar** del paso 0.
+3. **En cada uno de los demas se ejecuta `aisdd init` y despues `aisdd roadmap`.** El `init` reconoce cual es el repo por su nombre --o lo pregunta--; el `roadmap` encuentra el documento ya escrito y toma el camino **Adoptar** del paso 0.
 
 **Que hace exactamente "Adoptar":**
 
@@ -187,20 +187,30 @@ Procedimiento:
 6. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
 7. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
 
-**Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: aqui no se reparte un `openspec/` en lanes, se parte en tres `openspec/` distintos, y el trabajo ya archivado tiene que quedarse en el repo al que pertenece su codigo.
+**Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: no se reparte un `openspec/` en lanes, se **replica** en N repos que a partir de ahi siguen caminos separados.
 
 Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronteras de repo que ningun comando atraviesa:
 
 1. **Actualiza la arquitectura primero** (`aidd architecture`): sin la tabla de repositorios de la seccion 3 no hay lanes que asignar, y es esa tabla la que fuerza el modo.
-2. **Re-fasea en el repo original** con el camino normal de arriba. Las fases **hechas** y **en curso** conservan su id: no las renombres a `F-<repo>-NN` aunque ahora pertenezcan a un lane, porque su `change_hint` es el enlace con lo ya archivado y con Jira. Solo las **pendientes** reciben nomenclatura de lane.
-3. **El humano crea los repos nuevos y mueve el codigo.** Tu no: es una operacion de git que no se deshace sola y que decide fronteras de despliegue.
-4. **Los changes archivados no se reparten: se quedan donde estan.** Mover un `openspec/changes/archive/<slug>/` a otro repo lo separa de la historia de git que lo produjo, que es lo unico que lo hace verificable. El repo original conserva el archivo historico completo; los repos nuevos arrancan con el suyo vacio.
+2. **El re-faseado se ejecuta una sola vez, en el repo unico que aun existe.** Todavia no hay repos nuevos a los que ir, asi que aqui no aplica el reparto de "Multirepo: donde se ejecuta este comando": se fasea aqui, y las copias se hacen despues, en el paso 4.
+3. **Re-fasea aqui mismo** con el camino normal de arriba. Las fases **hechas** y **en curso** conservan su id: no las renombres a `F-<repo>-NN`, porque su `change_hint` es el enlace con lo ya archivado y con Jira. Solo las **pendientes** reciben nomenclatura de lane.
 
-   Diselo tal cual, porque tiene una consecuencia visible: durante un tiempo el informe agregado ensena **todo lo entregado antes de la migracion en un solo repo** y los demas al 0 %. No es un error de calculo — es donde se hizo el trabajo—, pero si nadie lo avisa parece un fallo del informe.
+   **El `lane` si se asigna distinto en cada caso, y aqui hay que ser exacto:**
+
+   | Fase | `lane` | Por que |
+   |---|---|---|
+   | **Hecha** | **ninguno** | Es trabajo del proyecto entero, hecho antes de que hubiera repos. Es la marca que permite contarlo una sola vez pese a estar copiado en todos |
+   | **En curso** | **el del repo donde se termina** | Alguien la esta trabajando y va a cerrarla en un repo concreto. Sin lane quedaria como heredada y no se atribuiria a nadie |
+   | **Pendiente** | el que le toque | Reparto normal |
+4. **El AI Lead crea los repos nuevos, mueve el codigo y copia `docs/` y `openspec/` enteros a cada uno.** Tu no: es una operacion de git que no se deshace sola y que decide fronteras de despliegue. Copiar el `openspec/` entero es deliberado — asi el trabajo ya entregado queda registrado en todos y ninguno arranca como si el proyecto empezara hoy.
+
+   **Eso deja los changes ya cerrados duplicados en los N repos, y es a proposito.** Pero hay que saberlo al medir: contarlos una vez por repo triplicaria lo entregado y daria un proyecto mucho mas avanzado de lo que esta.
+
+   La forma de distinguirlos es que **las fases anteriores a la migracion no tienen `lane`** — se faseo cuando no habia lanes— y las nuevas si. `compute_status.py` las aparta por eso y las suma **una sola vez** en el agregado, y el informe lo dice para que nadie se pregunte por que la suma de las columnas no da el total. **No les pongas `lane` al re-fasear**: es lo unico que las hace reconocibles, y ponerselo las convertiria en trabajo de un repo cuando fueron de todos.
 5. **`aisdd init` y `aisdd roadmap` en cada repo nuevo**, con `docs/` ya copiado, segun "Multirepo: donde se ejecuta este comando".
-6. **Registra la migracion** en `docs/roadmap.md` con fecha, que repos se crearon y donde quedo el archivo historico. Es la linea que explica, seis meses despues, por que un repo tiene cien changes archivados y los otros doce.
+6. **Registra la migracion** en `docs/roadmap.md` con fecha, que repos se crearon y cuantas fases quedaron como heredadas. Es la linea que explica, seis meses despues, por que los tres repos comparten los mismos cien changes archivados y a partir de cierta fecha cada uno va por su lado.
 
-**Lo que no se debe hacer:** re-abrir changes archivados para "moverlos" al repo nuevo, ni renumerar las fases ya cerradas. Las dos cosas rompen enlaces que ya no se pueden reconstruir a cambio de una coherencia estetica.
+**Lo que no se debe hacer:** re-abrir changes archivados, renumerar las fases ya cerradas, ni asignarles lane. Las tres rompen enlaces o borran la senal que distingue lo heredado, a cambio de una coherencia estetica.
 
 **Lo que este camino no arregla.** Si el pre-flight dice que el calendario ya toca el camino critico, **el cuello es una cadena de dependencias y no la plantilla**: anadir gente no lo acorta. Dilo tal cual. Acortarlo exige romper esa cadena partiendo o reordenando fases pendientes, que es una decision de faseado, no de estrategia.
 
@@ -312,7 +322,7 @@ Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fa
 
 **En multirepo las dos secciones cambian de contenido**, porque la mitad de lo que piden no existe:
 
-- En **"Lanes"**, sustituye el numero de lanes y su calculo (`min(modulos, devs)`) por **la tabla de repositorios de la arquitectura**: no hubo calculo, hubo una frontera dada. Anade el `remote` de cada uno --es su identidad-- y **omite el dueno del contrato compartido**: no hay contrato en el fuente. Si algun repo publica un artefacto que otros consumen, di **quien lo publica y en que fase**, que es lo que aqui hace ese papel.
+- En **"Lanes"**, sustituye el numero de lanes y su calculo (`min(modulos, devs)`) por **la tabla de repositorios de la arquitectura**: no hubo calculo, hubo una frontera dada. **Omite el dueno del contrato compartido**: no hay contrato en el fuente. Si algun repo publica un artefacto que otros consumen, di **quien lo publica y en que fase**, que es lo que aqui hace ese papel.
 - La justificacion del corte es la misma para todos y cabe en una linea: **son repositorios distintos**.
 - En **"Dependencias cross-lane"**, el punto 2 de la regla de lectura --resuelta por barrera-- **no aplica**: no hay barreras. Quedan tres lecturas: sin dependencias (el objetivo y lo normal), dependencia declarada de **artefacto publicado** —legitima, no bloquea, y el consumidor sigue con la version que ya tiene— y dependencia **de codigo fuente**, que aqui no es un error de faseado sino de arquitectura: no la declares, registrala como riesgo en la seccion 13 de `arquitectura-base.md` y dilo.
 - Marca `[RIESGO]` igual al repo que se queda **sin fases que ejecutar** mientras espera: es un dev parado, y es lo mismo que el modo pretende evitar.
@@ -410,7 +420,6 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      lanes:                            # solo si mode: multilane
        - id: <lane-id>                 # kebab-case, estable; clave de union con sprint-plan y openspec/.lane
          label: <nombre legible>       # en multirepo, el `id` es el del repo
-         remote: <url>                 # solo en multirepo: identidad del repo del lane
          paths: [<prefijo/de/ruta/>, ...]   # rutas propias; ningun prefijo puede serlo de otro lane.
                                             # En multirepo van relativas a la raiz de SU repo
                                             # y solo documentan: el repo ya separa
@@ -468,7 +477,7 @@ El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como
    - **`atomic`**: solo esas dos lineas. Anade una tercera: `> Sin aislamiento garantizado: dos changes abiertos a la vez pueden producir decisiones contradictorias.`
    - **`waves`**: anade el numero de oleadas y una linea recordando que **las oleadas no las verifica ningun comando**; el reparto real entre developers es del equipo.
    - **`multilane`**: anade una tabla de lanes (`lane-id`, rutas, perfil), el dueno del contrato compartido, y una linea operativa: `Selecciona tu linea con` `aisdd lane switch <lane-id>`; `un change abierto por lane.`
-   - **`multilane` en multirepo**: la linea operativa de arriba **es falsa aqui** y no se escribe --`aisdd lane switch` se rechaza en este modo--. Escribe en su lugar: que repo es este (`roadmap.repo`), la tabla de los demas con su `remote`, y estas dos lineas: `Tu linea de trabajo es este repositorio; se cambia clonando otro.` y `docs/ va copiado en cada repo: un cambio en cualquiera hay que replicarlo en todos.` Anade tambien que **el informe de estado del proyecto no sale de aqui**, sino de `aiba status-report` con un `--root` por repo desde la carpeta que los contiene. Es lo que un agente que abre este repo no puede deducir mirando alrededor.
+   - **`multilane` en multirepo**: la linea operativa de arriba **es falsa aqui** y no se escribe --`aisdd lane switch` se rechaza en este modo--. Escribe en su lugar: que repo es este (`roadmap.repo`), la lista de los demas por su nombre, y estas dos lineas: `Tu linea de trabajo es este repositorio; se cambia clonando otro.` y `docs/ va copiado en cada repo: un cambio en cualquiera hay que replicarlo en todos.` Anade tambien que **el informe de estado del proyecto no sale de aqui**, sino de `aiba status-report` con un `--root` por repo desde la carpeta que los contiene. Es lo que un agente que abre este repo no puede deducir mirando alrededor.
 
 3. **Registra el bloque con `agents_block.py`** (marker `roadmap`) — ver "Scripts del skill" (`references/scripts.md`). A mano: si ya existe un bloque entre `<!-- BEGIN aisdd-specs roadmap ... -->` y `<!-- END aisdd-specs roadmap -->`, **reemplazalo integramente**; si no existe, anadelo al final precedido de una linea en blanco.
 4. **No toques nada mas del fichero.** En particular, no reordenes ni reescribas el bloque `<!-- BEGIN aisdd-specs commands -->`: son bloques distintos con ciclos de vida distintos (uno lo gestiona `init`, este lo gestiona `roadmap`).

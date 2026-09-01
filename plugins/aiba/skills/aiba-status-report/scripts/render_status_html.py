@@ -184,6 +184,17 @@ def sec_repos(d: dict) -> str:
     p.append('<div class="nota">El camino critico se da <b>por repositorio</b> y no se suma: '
              'son cadenas paralelas que avanzan a la vez. El del proyecto es el mas largo de '
              'los tres, no su suma.</div>')
+
+    # Lo anterior a la migracion aparece en los N repos por igual. Decirlo evita
+    # la pregunta obvia del comite: por que la suma de las columnas no da el total.
+    her = d.get("heredado") or {}
+    if her.get("fases"):
+        p.append('<div class="nota"><b>Antes de la migracion a varios repositorios</b> hubo '
+                 f'{her["fases"]} fases ({e(str(her.get("esfuerzo_dias")))} dias de esfuerzo, '
+                 f'{her.get("cerradas", 0)} cerradas). Ese registro esta <b>copiado en el '
+                 '<code>openspec/</code> de todos los repos</b>, asi que el total lo cuenta '
+                 '<b>una sola vez</b> y no se atribuye a ninguno: por eso la suma de las '
+                 'columnas de arriba no cuadra con el total del proyecto.</div>')
     return "<section>" + "".join(p) + "</section>"
 
 
