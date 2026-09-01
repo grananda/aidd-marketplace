@@ -27,6 +27,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
 | F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
 | F-21 | Esfuerzo humano del worklog de Jira, y desviaciones atribuidas a la auditoría | aiba | **implementada** | 2026-09-01 |
+| F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 
 ---
 
@@ -379,3 +380,29 @@ Dos reglas la sostienen:
 - **Los adelantos se explican igual que los retrasos.** Es lo único del informe que dice **qué hay que repetir**, y mirando solo los rojos solo se aprende de lo que sale mal.
 
 El umbral es el ±25 %: un change de 3 días que tarda 3,5 no es un hallazgo, y marcarlo llenaría el informe de falsos positivos.
+
+## F-22 — Dónde vive `openspec/` es una pregunta, no una deducción
+
+**Estado:** implementada · **Versión:** `aidd` 2.5.0, `aisdd` 3.6.0, `aiba` 1.9.0 · **Añadida:** 2026-09-01
+
+F-20 asumió que varios repos implican un `openspec/` por repo. Es una de las dos formas de trabajar, no la única: un equipo puede querer **un solo registro y un solo roadmap** y preferir el coste de coordinar al de replicar documentos.
+
+Ahora hay una decisión anterior al modo de faseado —la **topología**, en `roadmap.topology`— y **se pregunta**:
+
+| Topología | `openspec/` y `docs/` | Lane y repo | PR por change | Barreras |
+|---|---|---|---|---|
+| **`mono`** | En el repo | No aplica | Una | Sí |
+| **`fraccionado`** | Uno **por repo** | **Son lo mismo, 1:1** | **Una** | **No hay** |
+| **`externalizado`** | **Unos solos, fuera** | **Cosas distintas** | **Una por repo que toque** | Sí |
+
+Lo que cambia de verdad no son las rutas: es **si un change puede cruzar repos**. En `fraccionado` no puede —el lane es el repo— y por eso la independencia es estructural y una PR basta. En `externalizado` sí puede, y con ello vuelve la regla de N repos → N PR y el diff repo a repo que F-20 había retirado.
+
+**No se deduce del número de repos.** Con varios hay dos respuestas válidas y la elección es del equipo, así que `aisdd roadmap` la pregunta con el intercambio delante: `fraccionado` obliga a replicar `docs/`; `externalizado` no duplica nada pero reintroduce el cierre con varias PR.
+
+**Y de `externalizado` hay que decir tres cosas que no se descubren solas:**
+
+1. **Esa carpeta hay que versionarla.** La auditoría es obligatoria y una auditoría sin historia no vale como registro: sin control de versiones nadie puede demostrar cuándo se escribió cada entrada. Si el equipo la deja en un disco compartido, se registra como riesgo.
+2. **Un repo clonado suelto no arranca**, porque su `AGENTS.md` apunta a una ubicación que puede no existir en esa máquina.
+3. **La ruta absoluta es de cada dev** y no se versiona; lo que se declara son las rutas de los repos **relativas a la carpeta**.
+
+`multirepo: true` sigue valiendo como `fraccionado` — migración aditiva, sin romper los `config.yaml` ya escritos. Y cambiar de topología a mitad de proyecto tiene procedimiento propio: **es una migración**, no un ajuste, y en la dirección `externalizado → fraccionado` hay un caso incómodo que hay que decir antes de empezar — los changes archivados que tocaron varios repos no tienen un sitio único.

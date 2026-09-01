@@ -157,7 +157,7 @@ El faseado, en cambio, **es uno solo** — un roadmap con todas las fases de tod
 **Que hace exactamente "Adoptar":**
 
 - Lee `docs/roadmap.md` y saca de el las fases, sus `change_hint`, sus `depends_on` y su lane.
-- Escribe `openspec/config.yaml`: `mode: multilane`, `multirepo: true`, `repo: <id de este>`, la lista completa de `lanes` y las `phases` **de este lane**.
+- Escribe `openspec/config.yaml`: `topology: fraccionado`, `mode: multilane`, `repo: <id de este>`, la lista completa de `lanes` y las `phases` **de este lane**.
 - **No re-fasea, no pregunta, no ejecuta el pre-flight de optimizacion y no toca `docs/`.** El documento es el mismo en los tres repos y tiene que seguir siendolo: reescribirlo aqui lo haria divergir del de al lado, que es la unica forma real de romper este modelo.
 - Registra el bloque de paralelismo en `AGENTS.md` y escribe su entrada de auditoria, como cualquier otra ejecucion.
 
@@ -198,6 +198,22 @@ Procedimiento:
 
 8. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
 
+### Cambiar de topologia
+
+Cambiar `roadmap.topology` con el proyecto en marcha **no es un ajuste de faseado, es una migracion**: mueve carpetas entre repos y cambia donde vive el registro. Preguntalo siempre antes de tocar nada, y **no la hagas tu**: las operaciones de git y de ficheros son del humano.
+
+**De `fraccionado` a `externalizado`** --el equipo se cansa de replicar `docs/`--:
+
+1. Elige **cual de los N `openspec/` es el bueno**. No se fusionan sin mas: cada uno tiene sus changes archivados y su auditoria, y concatenarlos a ciegas duplica lo que se copio en la migracion anterior. Si vienen de un repo unico que se partio, las **fases sin lane** estan repetidas en todos y solo debe quedar una copia.
+2. El humano crea la carpeta externa, mueve ahi `docs/` y el `openspec/` elegido, y **anade a los demas** los changes archivados que solo ellos tengan.
+3. `roadmap.topology: externalizado`, la tabla `roadmap.repos` con sus rutas, y el `AGENTS.md` de cada repo apuntando a la carpeta.
+4. Los `paths` de los lanes pasan a ir **prefijados con la ruta del repo**; antes eran relativos a su raiz.
+5. Borra los `openspec/` que quedan dentro de los repos, **pero solo cuando el externo este completo y versionado**. Dos registros vivos a la vez es peor que cualquiera de los dos.
+
+**De `externalizado` a `fraccionado`** --el equipo quiere repos autonomos--: se copia `docs/` a cada repo, se reparte el `openspec/` por lane, y **los changes archivados que tocaron varios repos no tienen un sitio unico**: dejalos en el repo del lane que los abrio y registra la decision. Es el caso incomodo de esta direccion y hay que decirlo antes de empezar, no despues.
+
+**En las dos direcciones, registralo** en `docs/roadmap.md` con fecha, topologia anterior, nueva y motivo. Sin esa linea, seis meses despues nadie sabe por que el registro esta donde esta.
+
 **Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: no se reparte un `openspec/` en lanes, se **replica** en N repos que a partir de ahi siguen caminos separados.
 
 Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronteras de repo que ningun comando atraviesa:
@@ -229,13 +245,29 @@ Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronter
 
 Este paso decide entre los tres modos (`atomic`, `waves`, `multilane`) y fija `parallel_developers`. Lee antes la seccion "Modos de faseado (paralelismo)" (`references/parallelism.md`), que define el modelo; aqui esta el procedimiento.
 
-**0.pre. Mira cuantos repositorios hay. Si son varios, no hay nada que decidir.**
+**0.pre. Resuelve primero la topologia, y con varios repositorios PREGUNTALA.**
 
-Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara **mas de un repositorio**, el modo es **`multilane` con un lane por repo** y este apartado entero se salta: no preguntes el modo, no propongas alternativas y **no ejecutes el pre-flight de optimizacion del paso 11** --no hay caminos que comparar cuando el corte ya esta hecho--. `parallel_developers` es el numero de repos.
+Antes del modo hay una decision anterior: **donde viven `openspec/` y `docs/`**. Condiciona todo lo que viene despues --si un change puede cruzar repos, cuantas PR lo cierran, si hay documentos que copiar-- y **no se deduce del numero de repos**. Ver "Las tres topologias" (`references/parallelism.md`).
 
-Dilo al usuario en una linea, con el motivo: la frontera de repos ya partio el trabajo y el faseado la reconoce. Pasa directamente a "Construccion de los lanes por repositorio".
+Lee la seccion 3 de `docs/arquitectura-base.md` y actua segun lo que declare:
 
-**Con un solo repositorio no se fuerza nada** y sigue el procedimiento normal, salvo que el usuario pida explicitamente lanes.
+- **Un solo repositorio** -> topologia `mono`. No preguntes nada: `openspec/` y `docs/` viven en el repo y el modo se decide con el procedimiento normal de abajo.
+- **Varios repositorios** -> **pregunta con `AskUserQuestion`** cual de las dos, con la recomendacion puesta y el intercambio dicho:
+
+  | Opcion | Que implica |
+  |---|---|
+  | **`fraccionado` (Recomendada)** | Un `openspec/` y una copia de `docs/` **por repo**. Un lane por repo, un change no cruza repos, una PR por change, sin barreras. El precio: `docs/` va copiado y un cambio hay que replicarlo en todos |
+  | **`externalizado`** | Un `openspec/` y un `docs/` **unicos, fuera de los repos**, referenciados desde el `AGENTS.md` de cada uno. Nada que copiar y un solo registro. El precio: un change puede cruzar repos y entonces se cierra con **N PR**, y esa carpeta hay que versionarla en algun sitio o la auditoria se queda sin historia |
+
+  **Presenta el intercambio, no solo los nombres.** La eleccion es del equipo y las dos son legitimas; lo que no vale es elegir sin saber que `externalizado` reintroduce el cierre con varias PR y que `fraccionado` obliga a replicar documentos.
+
+**Si `openspec/config.yaml` ya trae `roadmap.topology`, proponlo como default**: el proyecto ya eligio. Cambiarla a mitad **no es un ajuste de faseado, es una migracion** — ver "Cambiar de topologia".
+
+**Consecuencias inmediatas de la respuesta:**
+
+- **`fraccionado`**: el modo es `multilane` con **un lane por repo**, no se pregunta y **no se ejecuta el pre-flight de optimizacion del paso 11** --no hay caminos que comparar cuando el corte ya esta hecho--. `parallel_developers` es el numero de repos. Pasa directamente a "Construccion de los lanes por repositorio".
+- **`externalizado`**: el modo **si se decide** con el procedimiento normal de abajo, y los tres siguen disponibles. Aqui **lane y repo vuelven a ser cosas distintas**: un lane puede abarcar varios repos y un repo tener varios lanes. Sigue en el paso 0.
+- **`mono`**: nada cambia respecto a siempre.
 
 **0. Resuelve `parallel_developers` primero.** Es el dato del que dependen los otros dos modos, y se resuelve igual para ambos:
 
@@ -422,18 +454,25 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      context_budget: bajo | medio | alto
      complexity: baja | media | alta
      mode: atomic | waves | multilane  # ausente o `atomic` = comportamiento clasico
-     multirepo: true                   # solo si el producto vive en varios repositorios:
-     repo: <repo-id>                   # los lanes son los repos. `repo` dice cual es ESTE,
+     topology: mono | fraccionado | externalizado   # donde viven openspec/ y docs/.
+                                       # Se PREGUNTA en el pre-flight cuando hay varios
+                                       # repos; no se deduce. Ausente = `mono`
+     repo: <repo-id>                   # SOLO en `fraccionado`: cual de los repos es ESTE,
                                        # el que contiene este openspec/. Es lo unico que
                                        # cambia entre las copias de config.yaml
+     repos:                            # SOLO en `externalizado`: hay un openspec para
+       - id: <repo-id>                 # todos, asi que tiene que saber donde estan
+         path: <ruta/relativa/a/esta/carpeta/>
      parallel_developers: <entero >= 1>   # devs que trabajan a la vez; 1 => secuencial
      contract_owner: <rol/persona>     # solo si mode: multilane
      lanes:                            # solo si mode: multilane
        - id: <lane-id>                 # kebab-case, estable; clave de union con sprint-plan y openspec/.lane
-         label: <nombre legible>       # en multirepo, el `id` es el del repo
+         label: <nombre legible>       # en `fraccionado`, el `id` es el del repo
          paths: [<prefijo/de/ruta/>, ...]   # rutas propias; ningun prefijo puede serlo de otro lane.
-                                            # En multirepo van relativas a la raiz de SU repo
-                                            # y solo documentan: el repo ya separa
+                                            # `fraccionado`: relativas a la raiz de SU repo, y solo
+                                            #   documentan, porque el repo ya separa
+                                            # `externalizado`: prefijadas con la ruta del repo
+                                            #   (`repo-front/src/`), que es un prefijo mas
          profile: <perfil de planificacion-proyecto.md>
      docs:
        roadmap: docs/roadmap.md
@@ -485,10 +524,11 @@ El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como
    <!-- END aisdd-specs roadmap -->
    ```
 
+   - **Topologia `externalizado`, en cualquier modo**: la primera linea del bloque dice **donde estan `openspec/` y `docs/`**, porque el `AGENTS.md` esta en un repo que no los contiene y sin eso un agente que abra ese repo no tiene forma de encontrarlos. Anade la lista de repos con su ruta relativa a esa carpeta, y una linea recordando que **un change que toca varios repos se cierra con varias PR**.
    - **`atomic`**: solo esas dos lineas. Anade una tercera: `> Sin aislamiento garantizado: dos changes abiertos a la vez pueden producir decisiones contradictorias.`
    - **`waves`**: anade el numero de oleadas y una linea recordando que **las oleadas no las verifica ningun comando**; el reparto real entre developers es del equipo.
    - **`multilane`**: anade una tabla de lanes (`lane-id`, rutas, perfil), el dueno del contrato compartido, y una linea operativa: `Selecciona tu linea con` `aisdd lane switch <lane-id>`; `un change abierto por lane.`
-   - **`multilane` en multirepo**: la linea operativa de arriba **es falsa aqui** y no se escribe --`aisdd lane switch` se rechaza en este modo--. Escribe en su lugar: que repo es este (`roadmap.repo`), la lista de los demas por su nombre, y estas dos lineas: `Tu linea de trabajo es este repositorio; se cambia clonando otro.` y `docs/ va copiado en cada repo: un cambio en cualquiera hay que replicarlo en todos.` Anade tambien que **el informe de estado del proyecto no sale de aqui**, sino de `aiba status-report` con un `--root` por repo desde la carpeta que los contiene. Es lo que un agente que abre este repo no puede deducir mirando alrededor.
+   - **`multilane` en topologia `fraccionado`**: la linea operativa de arriba **es falsa aqui** y no se escribe --`aisdd lane switch` se rechaza en esta topologia--. Escribe en su lugar: que repo es este (`roadmap.repo`), la lista de los demas por su nombre, y estas dos lineas: `Tu linea de trabajo es este repositorio; se cambia clonando otro.` y `docs/ va copiado en cada repo: un cambio en cualquiera hay que replicarlo en todos.` Anade tambien que **el informe de estado del proyecto no sale de aqui**, sino de `aiba status-report` con un `--root` por repo desde la carpeta que los contiene. Es lo que un agente que abre este repo no puede deducir mirando alrededor.
 
 3. **Registra el bloque con `agents_block.py`** (marker `roadmap`) — ver "Scripts del skill" (`references/scripts.md`). A mano: si ya existe un bloque entre `<!-- BEGIN aisdd-specs roadmap ... -->` y `<!-- END aisdd-specs roadmap -->`, **reemplazalo integramente**; si no existe, anadelo al final precedido de una linea en blanco.
 4. **No toques nada mas del fichero.** En particular, no reordenes ni reescribas el bloque `<!-- BEGIN aisdd-specs commands -->`: son bloques distintos con ciclos de vida distintos (uno lo gestiona `init`, este lo gestiona `roadmap`).

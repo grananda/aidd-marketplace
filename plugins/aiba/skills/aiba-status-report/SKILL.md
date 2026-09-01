@@ -68,6 +68,11 @@ anterior antes de escribir el nuevo. Si es el primer informe, lo dice y sigue.
 
 #### Si el proyecto vive en varios repositorios
 
+**Depende de la topologia** (`roadmap.topology`), y son dos invocaciones distintas:
+
+- **`externalizado`** — hay **un solo `openspec/`**, fuera de los repos. Ejecutalo ahi con un unico `--root` y ya esta: no hay nada que agregar, ni desglose por repo, ni datos duplicados. Es el caso mas simple de los dos.
+- **`fraccionado`** — hay uno por repo y el estado del proyecto no esta en ninguno. Sigue leyendo.
+
 `--root` es **repetible**. Pasa uno por repo, desde la carpeta que los contiene:
 
 ```bash

@@ -87,7 +87,14 @@ Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `
 
 Lo normal en cliente: los repos vienen dados —uno por parte del proyecto— y no hay repo raíz que los agrupe. Declararlos en la sección 3 de `docs/arquitectura-base.md`, **solo con el nombre** —ni URL ni ruta, no las necesita nadie—, **obliga** al modo `multilane` con **un lane por repo**. Con un solo repo no se fuerza nada.
 
-**Cada repo es autónomo**: su propio `openspec/` y su copia completa de `docs/`. Sin repo padre, sin submódulos, sin nada que clonar de forma especial. De ese 1:1 sale todo lo demás:
+Sin repo padre y sin submódulos. Lo que sí hay son **dos formas de repartir la documentación**, y `aisdd roadmap` **pregunta cuál** — no se deduce del número de repos:
+
+| Topología | `openspec/` y `docs/` | El precio |
+|---|---|---|
+| **`fraccionado`** | Uno **por repo**, autónomos | `docs/` va copiado y un cambio hay que replicarlo en todos |
+| **`externalizado`** | **Unos solos, fuera de los repos**, referenciados desde el `AGENTS.md` de cada uno | Un change puede cruzar repos y entonces se cierra con **N PR**, y esa carpeta hay que versionarla |
+
+Con **`fraccionado`**, de ese 1:1 entre lane y repo sale todo lo demás:
 
 | | En multirepo |
 |---|---|
@@ -96,6 +103,8 @@ Lo normal en cliente: los repos vienen dados —uno por parte del proyecto— y 
 | Lane activo | **Se infiere del repo.** `aisdd lane switch` se rechaza; si no está claro cuál es, se pregunta |
 | Barreras | **No hay.** No existe superficie compartida que serializar |
 | Estado del proyecto | No está en ningún repo: `aiba status-report` con un `--root` por repo |
+
+Con **`externalizado`** nada de eso aplica: el modo se decide con normalidad, **lane y repo vuelven a ser cosas distintas**, hay barreras, y el informe de estado sale de un solo `--root` a la carpeta externa.
 
 La apuesta es que los repos son de verdad **independientes en código**: lo que compartan viaja como artefacto versionado —un contrato OpenAPI publicado, un paquete— y cada repo consume la versión que elige. Uno que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta.
 

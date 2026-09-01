@@ -623,8 +623,13 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
     # Multirepo: cada repo lleva una copia del roadmap **completo** pero solo
     # ejecuta las fases de su lane. Sin este filtro el informe de un repo se
     # quedaria clavado en un tercio para siempre, y no por ir retrasado.
-    repo_id = str(roadmap.get("repo") or "") if roadmap.get("multirepo") else ""
-    if roadmap.get("multirepo") and not repo_id:
+    # `topology` es la clave buena; `multirepo: true` es el nombre anterior y
+    # sigue valiendo como `fraccionado`, para no romper los config ya escritos.
+    topo = str(roadmap.get("topology") or
+               ("fraccionado" if roadmap.get("multirepo") else "mono"))
+    fraccionado = topo == "fraccionado"
+    repo_id = str(roadmap.get("repo") or "") if fraccionado else ""
+    if fraccionado and not repo_id:
         # Sin `roadmap.repo` se infiere del nombre del directorio, igual que hacen
         # los comandos de aisdd. Solo si hay **una** coincidencia: con cero o con
         # varias no se elige, se avisa. Un script no puede preguntar.
@@ -637,7 +642,7 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
                           f"directorio. Escribelo en `openspec/config.yaml` para no depender "
                           f"del nombre de la carpeta")
         else:
-            avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`, y el "
+            avisos.append("la topologia es `fraccionado` pero falta `roadmap.repo`, y el "
                           "nombre del directorio no coincide con ningun lane: se cuentan las "
                           "fases de todos y el avance de este repo sale diluido. Lo escribe "
                           "`aisdd init`")
@@ -739,7 +744,8 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "generado": hoy.isoformat(),
         "proyecto": roadmap.get("project") or roadmap.get("name") or "",
         "modo_faseado": roadmap.get("mode", "atomic"),
-        "multirepo": bool(roadmap.get("multirepo")),
+        "topology": topo,
+        "multirepo": fraccionado,
         "repo": repo_id or None,
         "heredado": her,
         "raiz": str(root),
