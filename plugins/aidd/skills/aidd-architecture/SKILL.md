@@ -1,9 +1,9 @@
 ---
 name: aidd-architecture
-description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--: cada repo es autonomo —su propio `openspec/` y su propia copia de `docs/`—, sin repo padre ni submodulos, y declararlos **obliga a `aisdd roadmap` al modo `multilane` con un lane por repo**. Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)
@@ -84,6 +84,7 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 ## 1. Objetivo y alcance
 ## 2. Principios y decisiones arquitectonicas
 ## 3. Estructura de la solucion (arbol de carpetas real)
+- **Si el producto vive en mas de un repositorio, declaralos aqui** con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--. Cada repo es autonomo --su propio `openspec/` y su propia copia de `docs/`-- y declararlos **obliga al modo `multilane` con un lane por repo**. Ver "Producto repartido en varios repositorios".
 ## 4. Descomposicion por modulos / dominios
 ## 5. Capas y responsabilidades
 ## 6. Componentes base y relaciones
@@ -97,6 +98,42 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 ## 14. Decisiones tomadas en el paso 2.4
 - Registro ligero: pregunta, opciones, decision, origen (usuario | default), una linea de justificacion.
 ```
+
+## Producto repartido en varios repositorios
+
+Un producto puede vivir en varios repos --frontal, servicios, datos-- y **eso es una decision de arquitectura**, no de faseado: decide fronteras de despliegue, de equipo y de contrato. Por eso se declara aqui y no en el roadmap, que la consume.
+
+Lo habitual no es elegirlo: el cliente crea un repo por parte del proyecto y no hay repo raiz que los agrupe. El modelo lo asume. **Cada repo es autonomo**: lleva su propio `openspec/` y su propia copia de `docs/`. No hay repo padre, no hay submodulos y no hay nada que clonar de forma especial.
+
+Si es el caso, la seccion 3 lleva la tabla de repositorios:
+
+```markdown
+### Repositorios
+
+El producto vive en <N> repositorios **independientes**. Cada uno tiene su propio
+`docs/` y su propio `openspec/`, y se desarrolla como una linea de trabajo separada.
+
+| id | Contiene |
+|---|---|
+| `front` | SPA Angular |
+| `bff` | BFF y agregacion |
+| `datos` | Batch y modelo de datos |
+```
+
+Reglas:
+
+- **Con el nombre basta.** `id` y una linea de contenido es todo lo que hace falta. **No pidas la URL del remote ni la ruta local**: no las necesita nadie —ningun comando salta de un repo a otro— y son lo primero que se queda obsoleto cuando el cliente migra de organizacion o alguien clona con otro nombre. Si el usuario las da, puedes anadirlas como columnas opcionales; **no las inventes y no las exijas**.
+- **`id` en kebab-case y estable.** Es el nombre del repo **y el de su lane**, que son lo mismo. Es la clave con la que el roadmap reparte fases y con la que se agregan los KPI globales. Cambiarlo rompe esos enlaces, igual que cambiar un `change_hint`.
+- **Di que contiene cada uno en una linea.** Es lo que permite decidir despues si un modulo cae en uno o en otro, y es la unica parte que un humano va a leer.
+- **La descomposicion por modulos (seccion 4) indica en que repo cae cada modulo.** Un modulo repartido entre dos repos es una senal de que la frontera esta mal puesta: dilo en la seccion 13 en vez de esconderlo.
+- **Los repos tienen que ser independientes en codigo, y eso hay que comprobarlo.** El modelo entero descansa en que ninguno compila, testea ni despliega contra el fuente de otro. Lo que compartan viaja como **artefacto versionado** --un contrato OpenAPI publicado, un paquete, un esquema de eventos-- y cada repo consume la version que elige, cuando la elige.
+
+  Si al describir la arquitectura aparece un repo que necesita el codigo de otro para funcionar, **la frontera esta mal puesta y hay que decirlo en la seccion 13**. No lo resuelvas moviendo la coordinacion al roadmap: el faseado no puede arreglar un acoplamiento de compilacion.
+- **No inventes repos.** Si el usuario no ha dicho cuantos hay, es uno. Preguntalo en el paso de recopilacion, no lo deduzcas de que la arquitectura "pide" separacion. Y **no partas en repos para paralelizar**: partir cuesta un despliegue, un pipeline y una copia de la documentacion.
+
+> **Por que importa aguas abajo.** Declarar mas de un repo aqui **obliga al modo `multilane`** en `aisdd roadmap`, con **un lane por repo**. No es una recomendacion ni una pregunta del pre-flight: la frontera de repos ya partio el trabajo, y el faseado solo la reconoce. Con un solo repo no se fuerza nada y los tres modos siguen disponibles.
+>
+> Cada repo ejecuta **solo las fases de su lane**, y todo lo demas ocurre dentro de sus propios muros: su `git`, su `openspec/`, un change abierto a la vez, **una PR por change**. Los KPI globales se sacan aparte, agregando los `openspec/` de todos los repos desde la carpeta que los contiene.
 
 Reglas de contenido:
 

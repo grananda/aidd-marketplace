@@ -46,7 +46,7 @@ Todos los comandos, ordenados por fase del método. Cada comando activa su skill
 | 4 | `aisdd implement change [change-slug]` | AI Developer | Pre-flight + implementa el código del change |
 | 4 | `aisdd amend change [descripción]` | Developer / Lead | Incorpora una modificación a un change **ya abierto** y ejecuta **solo ese delta**, sin re-aplicar el change (skill `aisdd-amend`) |
 | 4 | `aisdd close change [change-slug]` | Outcome Validator | Valida y archiva el change |
-| 4 | `aisdd lane [list \| switch \| status]` | AI Developer / AI Lead | Selecciona la **línea de trabajo activa** (solo roadmaps `multilane`), como `git switch` con las ramas |
+| 4 | `aisdd lane [list \| switch \| status]` | AI Developer / AI Lead | Selecciona la **línea de trabajo activa** (solo roadmaps `multilane`), como `git switch` con las ramas. Con varios repositorios el lane **es** el repo, así que `switch` se rechaza y solo quedan `list` y `status` |
 | 2 / 4 (aux) | `aisdd prototype-ux [change-slug]` | Architect / Developer | Prototipos UX del change (invoca `booster-ux`) |
 | aux | `aisdd uml [change-slug]` | Cualquiera | Diagramas UML del change en HTML (invoca `booster-uml`) |
 
@@ -72,7 +72,7 @@ lane import     │          │ F-import-01   │           │          │
 |------|----------------|----------|--------|
 | `atomic` | Nada | **Por convención**, no verificada | Un dev, o sin base para separar. **Default** |
 | `waves` (oleadas) | Hasta `N` fases a la vez, respetando dependencias | **Ninguna** — ordena, no protege | Varios devs sin superficies declarables |
-| `multilane` (lanes) | `N` líneas persistentes, un change **por lane** | Declarada y **verificada** al cerrar | Módulos con rutas de código disjuntas |
+| `multilane` (lanes) | `N` líneas persistentes, un change **por lane** | Declarada y **verificada** al cerrar | Módulos con rutas de código disjuntas, o **un repo por lane** |
 
 Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `multilane`, `aisdd close change` comprueba que el change no escribió fuera de las rutas de su lane, y una corrección que toca el contrato compartido para a los lanes hermanos en vez de resolverse en silencio.
 
@@ -81,6 +81,27 @@ Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `
 - Roadmap ya diseñado y validado que no quieres alterar → **`waves` anotado** (se añade sin re-fasear: conserva nombres de fase, así que no rompe el enlace con el sprint-plan ni con Jira).
 - Proyecto con módulos de rutas separadas y varios devs → **`multilane`**.
 - Un solo dev, o sin base para separar superficies → **`atomic`**.
+- **Producto repartido en varios repositorios → `multilane` obligatorio, un lane por repo.** No se elige: ver abajo.
+
+#### Un producto en varios repositorios
+
+Lo normal en cliente: los repos vienen dados —uno por parte del proyecto— y no hay repo raíz que los agrupe. Declararlos en la sección 3 de `docs/arquitectura-base.md`, **solo con el nombre** —ni URL ni ruta, no las necesita nadie—, **obliga** al modo `multilane` con **un lane por repo**. Con un solo repo no se fuerza nada.
+
+**Cada repo es autónomo**: su propio `openspec/` y su copia completa de `docs/`. Sin repo padre, sin submódulos, sin nada que clonar de forma especial. De ese 1:1 sale todo lo demás:
+
+| | En multirepo |
+|---|---|
+| Independencia entre lanes | **No se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo |
+| Entrega | **Un change, una PR** |
+| Lane activo | **Se infiere del repo.** `aisdd lane switch` se rechaza; si no está claro cuál es, se pregunta |
+| Barreras | **No hay.** No existe superficie compartida que serializar |
+| Estado del proyecto | No está en ningún repo: `aiba status-report` con un `--root` por repo |
+
+La apuesta es que los repos son de verdad **independientes en código**: lo que compartan viaja como artefacto versionado —un contrato OpenAPI publicado, un paquete— y cada repo consume la versión que elige. Uno que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta.
+
+El coste, dicho sin adornos: **`docs/` va copiado en cada repo** y un cambio hay que replicarlo en todos.
+
+Y si el proyecto **migra** de un repo a varios, el `openspec/` anterior se copia entero a cada uno para no perder el registro de lo entregado. Eso deja los changes cerrados duplicados a propósito; se distinguen porque **las fases anteriores a la migración no llevan `lane`**, y el informe las cuenta **una sola vez**.
 
 Detalle completo, con un ejemplo del mismo proyecto faseado en los tres modos y sus calendarios reales, en **§3.bis** de `plugins/aisdd/methodology/native-ai-aidd-sdd.md` (y su `.html` hermano).
 
@@ -104,7 +125,7 @@ El ciclo de `aisdd` no es una secuencia fija: qué toca ahora depende del modo, 
 Donde más se nota es en los dos empalmes que no son obvios:
 
 - **Tras `aisdd roadmap`**, hacia la capa de entrega: `aiba project-plan` si aún no hay plan de recursos, `aiba sprint-planning` cuando ya lo hay — y si el `sprint-plan.md` es anterior a este roadmap, avisa de que quedó desalineado y de que re-ejecutarlo es seguro.
-- **Tras `aisdd close change`**, hacia la siguiente fase: con `multilane` incluye el `aisdd lane switch` previo si la fase es de otro lane, y si lo que toca es una barrera te dice si ya se desbloqueó o qué lanes faltan por cerrar.
+- **Tras `aisdd close change`**, hacia la siguiente fase: con `multilane` incluye el `aisdd lane switch` previo si la fase es de otro lane, y si lo que toca es una barrera te dice si ya se desbloqueó o qué lanes faltan por cerrar. Con varios repositorios, si en este ya no quedan fases **te lo dice y para**: lo que falte se abre en su propio repo.
 
 Cuando el roadmap se agota, lo dice y sugiere `aiba metrics`.
 
@@ -187,7 +208,7 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | 1 (post) | `aiba test-plan [HU-XX]` | `aiba-test-plan` | Por historia, el **plan de pruebas** en `docs/pruebas/`: un `.xlsx` con el inventario de casos (`PS.FU.CU01.01`, criticidad, pasos, resultado esperado, traza al requisito y al change, marca manual/automatizable) y un `.docx` de evidencias con un bloque por caso. **Genera el plan; no ejecuta las pruebas** |
 | 3.5.1 | `aiba project-plan` | `aiba-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de la diferencia) |
 | 3.5.2 | `aiba sprint-planning` | `aiba-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
-| transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo |
+| transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo. Con **varios repositorios**, `--root` repetido agrega los `openspec/` de todos y añade el desglose por repo |
 | transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA) |
 
 Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis`.

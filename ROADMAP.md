@@ -25,6 +25,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
+| F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -299,3 +300,48 @@ Ahora dicen lo que el número **es**: `Diferencia entre ambos`, `Desviación de 
 **Y se suma lo que la propuesta sí tenía bien**, que era un añadido y no un reemplazo: cuando existe `docs/aiad-journal.md`, el informe trae la **autoría real**. Es el único dato de autoría que no es una estimación — una línea por pieza de trabajo, anotada en el momento— y separa las dos calidades que lleva dentro: las entradas `ai-edit` las captura el hook al ver a la IA tocar un fichero, y el resto las declara el humano.
 
 Sin bitácora, **la sección no aparece**: no sale un cero ni un «no disponible». Un proyecto que no lleva bitácora no tiene un reparto de autoría del 0 %, simplemente no lo ha medido.
+
+## F-20 — Un producto en varios repositorios
+
+**Estado:** implementada · **Versión:** `aidd` 2.4.0, `aisdd` 3.5.0, `aiba` 1.8.0 · **Añadida:** 2026-08-31
+
+Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y `openspec/`. Un producto repartido en tres repos no tenía sitio.
+
+**La forma descartada, y por qué.** El primer diseño puso un repo de gobierno en la raíz con `docs/` y **un solo** `openspec/`, y los repos de código como directorios hermanos. Es más elegante sobre el papel —un roadmap, una auditoría, un informe— y no sobrevive al contexto real: en cliente los repos vienen dados, uno por parte del proyecto, y **un cuarto repo que no contiene código no se justifica ante nadie**. Se evaluaron también los submódulos, que resuelven el anclaje de SHA y el layout del workspace pero cobran su precio en HEAD desacoplado y conflictos de puntero, y son buenos fijando y malos desarrollando en paralelo, que es justo lo que aquí se hace todos los días.
+
+**La forma adoptada: nada en el centro.** Cada repo es autónomo — su propio `openspec/` y su propia copia completa de `docs/`. No hay repo padre, no hay submódulos y no hay nada que clonar de forma especial. Los KPI globales se sacan **fuera**, desde la carpeta que contiene los repos, que no necesita ser un repo.
+
+**Declarar varios repos en `docs/arquitectura-base.md` §3 obliga al modo `multilane` con un lane por repo.** No se pregunta en el pre-flight y no se ejecuta el pre-flight de optimización: no hay caminos que comparar cuando la frontera de despliegue ya partió el trabajo. Con un solo repo no se fuerza nada.
+
+**Fuera de multirepo un repo sigue sin ser un lane** — el repo es una frontera de despliegue, el lane una línea de trabajo—, pero en multirepo son lo mismo por decisión, y de ahí sale todo lo demás:
+
+| | Consecuencia |
+|---|---|
+| Independencia | **No se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. |
+| Entrega | **Un change, una PR.** El roadmap dice la verdad en el momento en que lo dice. |
+| Lane activo | **Lo dice el directorio.** `openspec/.lane` no se usa y `aisdd lane switch` se rechaza: se cambia de lane cambiando de repo. |
+| Barreras | **No hay.** `F0` y `FB-NN` serializan superficie compartida, y aquí no la hay. |
+| Auditoría | Cada repo la suya, y dentro un fichero por escritor. |
+
+**La apuesta, dicha en voz alta:** que los repos son de verdad independientes en código. Lo que compartan viaja como **artefacto versionado** —un contrato OpenAPI publicado, un paquete, un esquema de eventos— y cada repo consume la versión que elige, cuando la elige. Publicar la versión nueva de un contrato es una fase del lane que publica; adoptarla es otra fase del que consume, y ninguna para a nadie. Un repo que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta, y se registra como riesgo en la sección 13 de la arquitectura.
+
+**Un `depends_on` que cruza repos avisa, no bloquea.** No se puede comprobar —esa fase se archiva en un `openspec/` que no está aquí— y bloquear con lo que no se puede ver sería bloquear a ciegas.
+
+**El coste conocido:** `docs/` va copiado entero en cada repo, y un cambio en cualquiera hay que replicarlo en todos. `aisdd init` lo dice explícitamente en su resumen, porque no se descubre solo.
+
+**El faseado se decide una vez.** `aisdd roadmap` gana un tercer camino, **Adoptar**, junto a Anotar y Re-fasear: se fasea en el repo que tiene los documentos de diseño, el humano copia `docs/` a los demás —el comando no puede, no ve esos repos— y en cada uno se adopta: leer el documento, derivar sus fases al `config.yaml`, y no re-fasear, no preguntar, no correr el optimizador, no tocar `docs/`. Ejecutarlo entero en los tres daría tres roadmaps distintos del mismo proyecto y mandaría el del último que lo corriera.
+
+**Pasar de un repo a varios es una migración, no un cambio de estrategia.** El `openspec/` anterior se copia **entero** a cada repo nuevo, para que ninguno arranque como si el proyecto empezara hoy. Eso deja los changes ya cerrados **duplicados en los N repos, a propósito** — y es exactamente el dato que rompe un informe si nadie lo sabe.
+
+La marca que los distingue es que **las fases anteriores a la migración no tienen `lane`**: se fasearon cuando no había repos. `compute_status.py` las aparta en un bloque `heredado` y las suma **una sola vez**. Sobre un caso de tres repos con 22 días heredados, la diferencia es **44 días y 59,1 %** frente a **88 días y 79,5 %**: contarlas por repo inflaba el avance veinte puntos. El HTML lo explica, porque la primera pregunta del comité es por qué la suma de las columnas no da el total. Y las HU se deduplican **por id**, no restando: una HU puede estar legítimamente en dos repos.
+
+**El lane se infiere, y si no está claro se pregunta.** No hay `switch` que hacer: `roadmap.repo` primero, y si falta, el nombre del directorio contra los `lane-id`. Una coincidencia, se usa y se dice; ninguna o varias, **se pregunta**. Nunca por descarte ni por parecido — trabajar con el lane equivocado abre changes de otro repo y no se nota hasta mucho después. El script hace lo mismo salvo preguntar, que no puede: infiere si hay una sola coincidencia y avisa si no.
+
+**Convertir a lanes intenta no tocar el sprint-plan.** Lo que lo sostiene es conservar el `change_hint`, que es la clave con la que `sprint-plan.md` y Jira se enganchan: con él intacto, **renombrar una fase a `F-<lane>-NN` no rompe nada**. Solo lo rompen partir una fase pendiente entre dos lanes —nacen `change_hint` nuevos que no están en ningún sprint— y reordenar pendientes de forma que cambien de sprint. En ninguno de los dos se reescribe el sprint-plan: se registra el conflicto y se dice que re-ejecutar `aiba sprint-planning` es seguro. Re-empaquetar sprints es del negocio, no del faseado.
+
+**Los repos se declaran solo con el nombre.** Ni URL de remote ni ruta local: no las necesita nadie —ningún comando salta de un repo a otro— y son lo primero que caduca cuando el cliente migra de organización. `aisdd init` identifica el repo por su nombre y, si no está claro, **pregunta**: elegir mal el `repo` hace que ese `openspec/` ejecute las fases de otro lane, y el error no se ve hasta que alguien abre un change que no le tocaba.
+
+**Y los KPI globales, que es donde estaba el trabajo de verdad.** `compute_status.py --root` pasa a ser repetible. Dos cosas que parecían detalles y no lo son:
+
+- **Cada repo lleva el roadmap completo pero solo ejecuta las fases de su lane**, así que el informe de un repo filtra por su `roadmap.repo`. Sin ese filtro se quedaría clavado en un tercio para siempre, y no por ir retrasado.
+- **Se suman días de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 días que a uno de 4. El HTML añade «Avance por repositorio» con la columna **Peso**, que es la que distingue tres repos al 27 % de dos acabados con uno sin empezar. Los caminos críticos se dan por repo y **no se suman**: son cadenas paralelas, y el del proyecto es el más largo.

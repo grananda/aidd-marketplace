@@ -130,6 +130,74 @@ def tabla(cabeceras: list[str], filas: list[list[str]], numericas: set[int] | No
 
 # --- Secciones ---------------------------------------------------------------
 
+def sec_repos(d: dict) -> str:
+    """Desglose por repositorio. Solo en multirepo.
+
+    El titular del proyecto es una suma ponderada, y una suma esconde de que
+    esta hecha: un 27% global puede ser tres repos al 27 o dos acabados y uno
+    sin empezar, y no se hace lo mismo en los dos casos. La columna que lo
+    revela es el **peso**, no el porcentaje.
+    """
+    repos = d.get("por_repo") or []
+    if not repos:
+        return ""
+    p = ['<h2>Avance por repositorio</h2>',
+         '<div class="nota">Cada repositorio es una <b>linea de trabajo independiente</b> con su '
+         'propio <code>openspec/</code>. El avance del proyecto es la suma de sus dias de '
+         'esfuerzo, no la media de sus porcentajes: un repo de 40 dias no vale lo mismo que '
+         'uno de 4.</div>']
+
+    p.append('<div class="grid2">')
+    for r in repos:
+        pct = r.get("pct_cerrado")
+        peso = r.get("peso_en_el_proyecto")
+        ch = r.get("changes") or {}
+        sentido = (r.get("desviacion") or {}).get("sentido") or ""
+        tono = {"adelantado": "verde", "retrasado": "rojo", "en linea": "azul"}.get(sentido, "gris")
+        p.append('<div class="card"><h3>' + e(str(r.get("repo") or "?")) + "</h3>")
+        p.append('<div class="barra"><div class="cab">'
+                 f'<span>Cerrado · {e(str(r.get("esfuerzo_dias") or "?"))} dias de esfuerzo</span>'
+                 + (f"<b>{pct:.4g}%</b>" if pct is not None else '<b class="hueco">sin datos</b>')
+                 + "</div>")
+        p.append(barra([(pct or 0, "verde")]))
+        p.append("</div>")
+        p.append(f'<p class="pie-dato">{ch.get("cerrados", 0)} cerrados · '
+                 f'{ch.get("activos", 0)} activos · {ch.get("pendientes", 0)} pendientes'
+                 + (f' · pesa el {peso:.4g}% del proyecto' if peso is not None else "")
+                 + (f' · {r.get("bloqueos")} bloqueos' if r.get("bloqueos") else "")
+                 + "</p>")
+        if sentido:
+            p.append(pill(sentido, tono))
+        p.append("</div>")
+    p.append("</div>")
+
+    filas = [[e(str(r.get("repo") or "?")),
+              f'{r["pct_cerrado"]:.4g}%' if r.get("pct_cerrado") is not None
+              else '<span class="hueco">—</span>',
+              e(str(r.get("esfuerzo_dias") or "—")),
+              f'{r["peso_en_el_proyecto"]:.4g}%' if r.get("peso_en_el_proyecto") is not None
+              else "—",
+              e(str(r.get("camino_critico_dias") or "—")),
+              e(str(r.get("bloqueos") or 0))] for r in repos]
+    p.append(tabla(["Repositorio", "Avance", "Esfuerzo (dias)", "Peso", "Camino critico (dias)",
+                    "Bloqueos"], filas, numericas={1, 2, 3, 4, 5}))
+    p.append('<div class="nota">El camino critico se da <b>por repositorio</b> y no se suma: '
+             'son cadenas paralelas que avanzan a la vez. El del proyecto es el mas largo de '
+             'los tres, no su suma.</div>')
+
+    # Lo anterior a la migracion aparece en los N repos por igual. Decirlo evita
+    # la pregunta obvia del comite: por que la suma de las columnas no da el total.
+    her = d.get("heredado") or {}
+    if her.get("fases"):
+        p.append('<div class="nota"><b>Antes de la migracion a varios repositorios</b> hubo '
+                 f'{her["fases"]} fases ({e(str(her.get("esfuerzo_dias")))} dias de esfuerzo, '
+                 f'{her.get("cerradas", 0)} cerradas). Ese registro esta <b>copiado en el '
+                 '<code>openspec/</code> de todos los repos</b>, asi que el total lo cuenta '
+                 '<b>una sola vez</b> y no se atribuye a ninguno: por eso la suma de las '
+                 'columnas de arriba no cuadra con el total del proyecto.</div>')
+    return "<section>" + "".join(p) + "</section>"
+
+
 def sec_avance(d: dict) -> str:
     a = d.get("avance", {})
     ch, es, hu = a.get("changes", {}), a.get("esfuerzo", {}), a.get("hus", {})
@@ -500,7 +568,12 @@ def construir(d: dict) -> str:
         (("+" if (desv.get("puntos") or 0) > 0 else "") +
          (f'{desv["puntos"]:.4g} pts' if desv.get("puntos") is not None else "—"),
          "Desviacion", {"adelantado": "verde", "retrasado": "rojo"}.get(desv.get("sentido"), "gris"),
-         e(desv.get("sentido", ""))),
+         # El `motivo` acompana al sentido, no lo sustituye: una desviacion
+         # calculada sobre dos tercios del proyecto y presentada a secas es la
+         # clase de cifra que se defiende en un comite y no se sostiene.
+         e(desv.get("sentido", "")) + (f' <span class="hueco">({e(desv["motivo"])})</span>'
+                                       if desv.get("motivo") and desv.get("puntos") is not None
+                                       else "")),
     ]
     tarjetas = "".join(
         f'<div class="kpi"><div class="v" style="color:var(--{c})">{e(v)}</div>'
@@ -514,7 +587,7 @@ def construir(d: dict) -> str:
 <div class="wrap">
 <header class="hero">
   <div><h1>Informe de situacion</h1>
-  <p class="sub">{e(proyecto)} · faseado <b>{e(d.get("modo_faseado","atomic"))}</b></p></div>
+  <p class="sub">{e(proyecto)} · faseado <b>{e(d.get("modo_faseado","atomic"))}</b>{f" · {len(d['repos'])} repositorios" if d.get("repos") else ""}</p></div>
   <div style="display:flex;gap:26px">
     <div class="hero-dato"><b>{e(d.get("generado",""))}</b><span>Fecha del informe</span></div>
     {f'<div class="hero-dato"><b>{e(fin)}</b><span>Fin del ultimo sprint</span></div>' if fin else ''}
@@ -523,6 +596,7 @@ def construir(d: dict) -> str:
 <div class="kpis">{tarjetas}</div>
 {sec_comparativa(d)}
 {sec_avance(d)}
+{sec_repos(d)}
 {sec_riesgos(d)}
 {sec_calendario(d)}
 {sec_narrativa(d)}

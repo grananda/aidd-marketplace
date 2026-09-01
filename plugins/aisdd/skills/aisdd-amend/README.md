@@ -51,6 +51,10 @@ Sin esa baseline, ninguna afirmacion sobre regresiones seria fiable.
 - Un **delta que cruza lanes es una parada coordinada**: se detienen los lanes hermanos, se toma **una baseline por change** y se enmienda en orden de dependencia. Si los lanes no se pueden detener, el skill no lo ejecuta: remite a una barrera `FB-NN` via `aisdd roadmap`.
 - Los lanes **cuya fase aun no esta abierta** no se pueden enmendar (no hay change vivo). El skill **marca** esas fases futuras con `amended_by` para que no arranquen contra un contrato ya desmentido, pero **no re-fasea** el roadmap.
 
+**Con el producto en varios repositorios, en cambio, la baseline vuelve a ser simple**: un `amend` no sale de su repo. Los changes de los demas lanes viven en otros repositorios, con su propio `openspec/` y su propio arbol, asi que no se pueden leer, ni enmendar, ni tomarles baseline — y tampoco hace falta detener a nadie, porque no hay contrato compartido en el fuente.
+
+Un delta que toca dos repos son **dos enmiendas independientes**, una en cada uno. El skill enmienda la de aqui, **nombra la que queda pendiente y en que repo**, y para. Lo que no hace es presentarla como hecha.
+
 ## Lo que NO hace
 
 - **No valida la documentacion AIDD.** Asume que, si el cambio requeria tocar `docs/`, ya lo hiciste. Lo deja escrito en `decisions.md` como asuncion, no como comprobacion.

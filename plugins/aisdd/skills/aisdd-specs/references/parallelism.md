@@ -80,12 +80,57 @@ Lo que hace disjuntos dos lanes que por dominio no lo serian (tipicamente back y
 Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
+
+   > Con **un solo repositorio** las rutas van relativas a su raiz y el corte es un acuerdo entre personas que hay que verificar. Con **varios**, el corte ya existe y lo garantiza el sistema de ficheros: ver "Lanes por repositorio".
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
+
+   > **En multirepo esta condicion se cumple de otra forma**, y hay que saberlo porque aqui no hay `F0` ni barreras: lo compartido no se fija en una fase, se **publica como artefacto versionado** y cada repo consume la version que elige. El equivalente de "fijado antes de arrancar" es "publicado y con version".
 
 Las condiciones 1 y 2 **no se negocian**: dos lanes que escriben los mismos ficheros o las mismas specs no son dos lanes, y ninguna declaracion los convierte en tales.
 
 La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo compartido se puede fijar de antemano — ver "Lanes con dependencias".
+
+### Lanes por repositorio (multirepo)
+
+Cuando `docs/arquitectura-base.md` declara **mas de un repositorio**, el modo es `multilane` y **hay un lane por repo, sin excepcion**. No se pregunta en el pre-flight ni se calcula: la frontera de repos ya partio el trabajo, y el faseado se limita a reconocerla.
+
+Es el caso normal en cliente, donde los repos vienen dados --uno por parte del proyecto-- y no hay repo raiz que los agrupe. **No hay repo padre, ni submodulos, ni nada que clonar de forma especial.**
+
+**Como se reparte todo:**
+
+| | Donde vive |
+|---|---|
+| `openspec/` | Uno **por repo**. Solo lleva los changes de ese repo. |
+| `docs/` | Una **copia completa por repo** --`arquitectura-base.md`, `guia-estilos.md`, `detalle-historias-usuario.md`, `roadmap.md`--. |
+| El roadmap | **El mismo documento** en todos, con todas las fases. Cada repo ejecuta **solo las de su lane**, que reconoce por su `id`. |
+| Los KPI | Se agregan **fuera**, desde la carpeta que contiene los repos, leyendo sus `openspec/`. |
+
+Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos:
+
+1. **La independencia no se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. La comprobacion de rutas de `close change` se cumple sola.
+2. **Un change, una PR.** El change vive entero en un repo, se cierra con un merge y el roadmap dice la verdad en el momento en que lo dice.
+3. **El lane no se elige, se infiere.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--. Ver "Resolver el lane activo en multirepo".
+4. **No hay barreras.** `F0` y `FB-NN` existen para serializar superficie compartida, y aqui no hay ninguna: ningun repo compila, testea ni despliega contra el fuente de otro. Un roadmap multirepo **no lleva fases barrera**.
+5. **La auditoria no colisiona.** Cada repo tiene su `openspec/audit/`, y dentro un fichero por escritor.
+
+> **El punto 4 es la apuesta del modelo, y hay que sostenerla.** Descansa en que los repos son de verdad independientes en codigo: lo que compartan viaja como **artefacto versionado** --un contrato OpenAPI publicado, un paquete, un esquema de eventos-- y cada repo consume la version que elige, cuando la elige. Publicar una version nueva de un contrato es una fase del lane que lo publica; adoptarla es otra fase del lane que lo consume. Ninguna de las dos para a nadie.
+>
+> Si aparece un repo que necesita el fuente de otro para funcionar, **eso no se arregla faseando**: la frontera esta mal puesta y hay que registrarlo en la seccion 13 de la arquitectura. El roadmap no puede reparar un acoplamiento de compilacion, solo esconderlo.
+
+#### Resolver el lane activo en multirepo
+
+Lo aplican `open change`, `close change` y `aisdd lane status`. **Nunca se pregunta por un `switch`**, y nunca se escribe `openspec/.lane`.
+
+Por este orden, y parando en el primero que resuelva:
+
+1. **`roadmap.repo` de `openspec/config.yaml`.** Es lo normal: lo escribio `aisdd init`. Comprueba que corresponde a un `lane-id` que existe en `roadmap.lanes`; si no, el config se quedo atras respecto al roadmap — dilo y remite a `aisdd roadmap`.
+2. **Si falta, infierelo del nombre**: el del directorio raiz del repo, o el ultimo segmento de `git remote get-url origin`, contra los `lane-id` de `roadmap.lanes`. Si **uno solo** coincide, usalo, **dilo en el resumen** y ofrece escribir `roadmap.repo` para que no haya que inferirlo cada vez.
+3. **Si no coincide ninguno, o coincide mas de uno, preguntaselo al usuario** con la lista de `lane-id` disponibles.
+
+**No sigas por descarte ni por parecido**, y no elijas "el mas probable". Trabajar con el lane equivocado abre changes de otro repo, escribe specs que no son de aqui y no se nota hasta mucho despues; preguntar cuesta una linea. Es el mismo criterio que `aisdd init` aplica al identificar el repo.
+
+**Fuera de multirepo, un repo no es un lane.** Con un solo repositorio el corte de lanes se hace por modulos y sigue los criterios de arriba: el lane es una linea de trabajo, no una frontera de despliegue.
 
 ### Lanes con dependencias (escalon intermedio)
 
@@ -133,7 +178,7 @@ Advertencia frecuente: **`data` rara vez es un lane independiente de `back`** �
 
 El lane sobre el que trabaja un dev es **estado local suyo**, equivalente a la rama de Git:
 
-- Vive en `openspec/.lane` (una linea con el `lane-id`).
+- Vive en `openspec/.lane` (una linea con el `lane-id`). **En multirepo no existe**: el lane lo fija el repositorio, via `roadmap.repo`, y nada lo puede mover — ver "Lanes por repositorio".
 - **Nunca** en `openspec/config.yaml`: ese fichero se versiona y dos devs se pisarian el puntero en cada commit.
 - `aisdd init` lo anade a `.gitignore`.
 - Se consulta y cambia con `aisdd lane` (ver su seccion).
