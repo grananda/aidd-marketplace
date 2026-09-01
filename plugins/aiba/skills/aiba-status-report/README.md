@@ -38,6 +38,22 @@ El **avance previsto** sale de los sprints ya cerrados, no del calendario prorra
 | Desviaciones y acciones | Con responsable y plazo: sin ellos una recomendación es una opinión |
 | Resumen cualitativo | Lo escribe el analista sobre las cifras |
 
+## Con el producto en varios repositorios
+
+`--root` es **repetible**: uno por repo, desde la carpeta que los contiene.
+
+```bash
+compute_status.py --root repo-front --root repo-bff --root repo-datos --out estado-proyecto.json
+```
+
+Cada repo tiene su propio `openspec/` y cierra solo las fases de su lane, así que **el estado del proyecto no está en ninguno**: hay que sumarlos. Tres cosas que el informe hace y conviene saber leer:
+
+- **Se suman días de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 días que a uno de 4. La columna **Peso** de «Avance por repositorio» es la que distingue tres repos al 27 % de dos acabados con uno sin empezar.
+- **La desviación se compara sobre la misma base.** Si un repo no tiene sprint-plan queda fuera del cálculo y el informe **dice sobre cuántos días compara**. Meterlo solo en el denominador hundía el previsto y el proyecto salía más sano por no tener plan.
+- **Los caminos críticos no se suman.** Son cadenas paralelas: el del proyecto es el más largo, no el total.
+
+**Si el proyecto migró de un repo a varios hay datos repetidos**, y el script lo sabe. Al partir, el `openspec/` anterior se copia entero a cada repo para no perder el registro de lo entregado, así que los changes ya cerrados están duplicados en los N. Se distinguen porque **sus fases no llevan `lane`** —se fasearon cuando no había repos— y se cuentan **una sola vez**. Por eso la suma de las columnas por repo no cuadra con el total: lo heredado no se atribuye a ninguno porque fue de todos.
+
 ## Números y narrativa, separados
 
 **Los números los calcula `compute_status.py`; la narrativa la escribe el skill.** Esa separación es la que impide que el resumen cualitativo diga una cosa y la barra de progreso otra.

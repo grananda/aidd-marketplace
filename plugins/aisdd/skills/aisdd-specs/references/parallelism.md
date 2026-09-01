@@ -102,8 +102,8 @@ Es el caso normal en cliente, donde los repos vienen dados --uno por parte del p
 | | Donde vive |
 |---|---|
 | `openspec/` | Uno **por repo**. Solo lleva los changes de ese repo. |
-| `docs/` | Una **copia completa por repo** --`arquitectura-base.md`, `guia-estilo.md`, `detalle-hu.md`, `roadmap.md`--. |
-| El roadmap | **El mismo documento** en los tres, con todas las fases. Cada repo ejecuta **solo las de su lane**, que reconoce por su `id`. |
+| `docs/` | Una **copia completa por repo** --`arquitectura-base.md`, `guia-estilos.md`, `detalle-historias-usuario.md`, `roadmap.md`--. |
+| El roadmap | **El mismo documento** en todos, con todas las fases. Cada repo ejecuta **solo las de su lane**, que reconoce por su `id`. |
 | Los KPI | Se agregan **fuera**, desde la carpeta que contiene los repos, leyendo sus `openspec/`. |
 
 Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos:
