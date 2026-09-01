@@ -25,7 +25,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-17 | Tiempos en la auditoría: `started_at`, `attempt` y pre-flight, sin depender del hook | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
-| F-20 | Producto repartido en varios repositorios: declarados en la arquitectura, un lane por repo | aidd, aisdd | **implementada** | 2026-08-31 |
+| F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
 
 ---
 
@@ -303,20 +303,33 @@ Sin bitácora, **la sección no aparece**: no sale un cero ni un «no disponible
 
 ## F-20 — Un producto en varios repositorios
 
-**Estado:** implementada · **Versión:** `aidd` 2.4.0, `aisdd` 3.5.0 · **Añadida:** 2026-08-31
+**Estado:** implementada · **Versión:** `aidd` 2.4.0, `aisdd` 3.5.0, `aiba` 1.8.0 · **Añadida:** 2026-08-31
 
-Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y `openspec/`. Un producto repartido en tres repos no tenía sitio: o se duplicaba `docs/` en los tres —tres copias que divergen, la película que ya vimos con `stamp_doc.py` y las metodologías— o el faseado trataba los tres como si fueran uno.
+Todo el diseño asumía «la raíz del proyecto» = un directorio con `docs/` y `openspec/`. Un producto repartido en tres repos no tenía sitio.
 
-**La forma:** un repo de gobierno en la raíz del workspace, con `docs/` y **un solo** `openspec/`, y los repos de código como directorios hermanos. Un roadmap, una auditoría, un informe de estado. Funciona porque **un change no es código: es la especificación del código**, y no tiene por qué vivir donde vive el código.
+**La forma descartada, y por qué.** El primer diseño puso un repo de gobierno en la raíz con `docs/` y **un solo** `openspec/`, y los repos de código como directorios hermanos. Es más elegante sobre el papel —un roadmap, una auditoría, un informe— y no sobrevive al contexto real: en cliente los repos vienen dados, uno por parte del proyecto, y **un cuarto repo que no contiene código no se justifica ante nadie**. Se evaluaron también los submódulos, que resuelven el anclaje de SHA y el layout del workspace pero cobran su precio en HEAD desacoplado y conflictos de puntero, y son buenos fijando y malos desarrollando en paralelo, que es justo lo que aquí se hace todos los días.
 
-**Los repos se declaran en `docs/arquitectura-base.md`, sección 3.** Es una decisión de arquitectura —fija fronteras de despliegue, de equipo y de contrato—, no de faseado. `aisdd roadmap` los copia a `roadmap.repos` en `openspec/config.yaml` con el mismo `id`, que es la clave con la que todo lo demás los nombra.
+**La forma adoptada: nada en el centro.** Cada repo es autónomo — su propio `openspec/` y su propia copia completa de `docs/`. No hay repo padre, no hay submódulos y no hay nada que clonar de forma especial. Los KPI globales se sacan **fuera**, desde la carpeta que contiene los repos, que no necesita ser un repo.
 
-**Un repo no es un lane.** El repo es una frontera de despliegue; el lane, una línea de trabajo en paralelo. La relación es de muchos a muchos: un lane puede abarcar varios repos, un repo puede tener varios lanes, y **un roadmap `atomic` con tres repos no tiene ningún lane** —un dev, un change vivo, y ese change toca los tres—. Los repos existen en los tres modos de faseado; los lanes solo en `multilane`.
+**Declarar varios repos en `docs/arquitectura-base.md` §3 obliga al modo `multilane` con un lane por repo.** No se pregunta en el pre-flight y no se ejecuta el pre-flight de optimización: no hay caminos que comparar cuando la frontera de despliegue ya partió el trabajo. Con un solo repo no se fuerza nada.
 
-Cuando la frontera de repos **coincide** con el corte de trabajo, el lane sale barato: dos repos no comparten rutas por construcción. Cuando no coincide, forzarlo crea coordinación donde no hacía falta. Los `paths` van relativos al workspace (`repo-front/src/`): el repo es un prefijo más, y la regla de «ningún prefijo puede serlo de otro lane» funciona sin tocarla.
+**Fuera de multirepo un repo sigue sin ser un lane** — el repo es una frontera de despliegue, el lane una línea de trabajo—, pero en multirepo son lo mismo por decisión, y de ahí sale todo lo demás:
 
-**Un change que toca tres repos se cierra con tres PR.** Archivarlo con dos abiertos deja el roadmap diciendo que la fase está hecha cuando dos tercios del código no están en ninguna rama principal — y el informe de estado lo cuenta como avance real. `close change` verifica la integración repo a repo y no archiva hasta que están todos, y respeta el orden entre repos cuando la arquitectura lo declara: un merge en el orden equivocado rompe el entorno aunque los tres PR existan.
+| | Consecuencia |
+|---|---|
+| Independencia | **No se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. |
+| Entrega | **Un change, una PR.** El roadmap dice la verdad en el momento en que lo dice. |
+| Lane activo | **Lo dice el directorio.** `openspec/.lane` no se usa y `aisdd lane switch` se rechaza: se cambia de lane cambiando de repo. |
+| Barreras | **No hay.** `F0` y `FB-NN` serializan superficie compartida, y aquí no la hay. |
+| Auditoría | Cada repo la suya, y dentro un fichero por escritor. |
 
-**Lo que había que arreglar de verdad:** `close change` verificaba la independencia con un `git diff` desde la raíz. Los sub-repos no son submódulos, así que ese diff **no ve nada** de lo que pasa dentro y la comprobación pasaría siempre — una verificación que dice que sí sin haber mirado es peor que no tenerla. Ahora recorre `roadmap.repos` y saca el diff de cada uno, y si un repo declarado no está clonado lo dice en vez de dar la verificación por buena.
+**La apuesta, dicha en voz alta:** que los repos son de verdad independientes en código. Lo que compartan viaja como **artefacto versionado** —un contrato OpenAPI publicado, un paquete, un esquema de eventos— y cada repo consume la versión que elige, cuando la elige. Publicar la versión nueva de un contrato es una fase del lane que publica; adoptarla es otra fase del que consume, y ninguna para a nadie. Un repo que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta, y se registra como riesgo en la sección 13 de la arquitectura.
 
-`aisdd init` comprueba que cada repo declarado existe y es un repositorio git, y avisa —sin bloquear— del que falta, del que no es un repo, y del que está ahí sin estar declarado. **No los clona**: elegir remote, rama y credenciales es del humano.
+**Un `depends_on` que cruza repos avisa, no bloquea.** No se puede comprobar —esa fase se archiva en un `openspec/` que no está aquí— y bloquear con lo que no se puede ver sería bloquear a ciegas.
+
+**El coste conocido:** `docs/` va copiado entero en cada repo, y un cambio en cualquiera hay que replicarlo en todos. `aisdd init` lo dice explícitamente en su resumen, porque no se descubre solo.
+
+**Y los KPI globales, que es donde estaba el trabajo de verdad.** `compute_status.py --root` pasa a ser repetible. Dos cosas que parecían detalles y no lo son:
+
+- **Cada repo lleva el roadmap completo pero solo ejecuta las fases de su lane**, así que el informe de un repo filtra por su `roadmap.repo`. Sin ese filtro se quedaría clavado en un tercio para siempre, y no por ir retrasado.
+- **Se suman días de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 días que a uno de 4. El HTML añade «Avance por repositorio» con la columna **Peso**, que es la que distingue tres repos al 27 % de dos acabados con uno sin empezar. Los caminos críticos se dan por repo y **no se suman**: son cadenas paralelas, y el del proyecto es el más largo.

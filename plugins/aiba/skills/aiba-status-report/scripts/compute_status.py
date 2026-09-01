@@ -580,6 +580,20 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         avisos.append("sin fases en openspec/config.yaml no hay avance que calcular: "
                       "el informe sale con lo que haya y lo dice")
 
+    # Multirepo: cada repo lleva una copia del roadmap **completo** pero solo
+    # ejecuta las fases de su lane. Sin este filtro el informe de un repo se
+    # quedaria clavado en un tercio para siempre, y no por ir retrasado.
+    repo_id = str(roadmap.get("repo") or "") if roadmap.get("multirepo") else ""
+    if repo_id:
+        propias = [f for f in fases if str(f.get("lane") or "") == repo_id]
+        if propias:
+            fases = propias
+        else:
+            avisos.append(f"`roadmap.repo` es `{repo_id}` pero ninguna fase declara ese "
+                          f"lane: el config.yaml de este repo no cuadra con el roadmap. "
+                          f"Se calcula sobre todas las fases, asi que el avance de este "
+                          f"repo sale diluido. Lo arregla `aisdd roadmap`")
+
     pesos, origen_peso = {}, {}
     for f in fases:
         d, o = esfuerzo_fase(f, tallas)
@@ -633,6 +647,9 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "generado": hoy.isoformat(),
         "proyecto": roadmap.get("project") or roadmap.get("name") or "",
         "modo_faseado": roadmap.get("mode", "atomic"),
+        "multirepo": bool(roadmap.get("multirepo")),
+        "repo": repo_id or None,
+        "raiz": str(root),
         "parallel_developers": roadmap.get("parallel_developers"),
         "fuentes": fuentes,
         "avance": {
@@ -699,10 +716,109 @@ def comparar(actual: dict, anterior: dict) -> dict:
     }
 
 
+def agregar(estados: list[dict], hoy) -> dict:
+    """Junta el estado de varios repos en uno solo.
+
+    En multirepo cada repo tiene su `openspec/` y solo cierra las fases de su
+    lane, asi que el proyecto no esta en ningun sitio: hay que sumarlo. Se suman
+    **dias de esfuerzo**, no porcentajes -- la media de tres porcentajes le da el
+    mismo peso a un repo de 40 dias que a uno de 4, y eso no es el avance del
+    proyecto sino el de la media de los repos, que no es lo que se pregunta.
+
+    Lo que no se agrega tambien importa: el camino critico de tres repos
+    independientes no es una cadena sino tres, y presentarlo como una seria
+    inventar una dependencia que el modelo dice que no existe.
+    """
+    def num(d, *ruta, defecto=0.0):
+        for k in ruta:
+            d = (d or {}).get(k) or {}
+        return d if isinstance(d, (int, float)) else defecto
+
+    total_d = sum(num(e, "avance", "esfuerzo", "total_dias") for e in estados)
+    cerr_d = sum(num(e, "avance", "esfuerzo", "cerrado_dias") for e in estados)
+    act_d = sum(num(e, "avance", "esfuerzo", "activo_dias") for e in estados)
+    prev_d = sum(num(e, "previsto", "dias") for e in estados)
+
+    ch = {"total": 0, "cerrados": 0, "activos": 0, "pendientes": 0}
+    for e in estados:
+        c = (e.get("avance") or {}).get("changes") or {}
+        for k in ch:
+            ch[k] += int(c.get(k) or 0)
+
+    hus = {"total": 0, "ok": 0, "en_curso": 0, "sin_iniciar": 0}
+    for e in estados:
+        h = (e.get("avance") or {}).get("hus") or {}
+        for k in hus:
+            hus[k] += int(h.get(k) or 0)
+
+    real_pct = round(cerr_d / total_d * 100, 1) if total_d else None
+    prev_pct = round(prev_d / total_d * 100, 1) if total_d and prev_d else None
+    desv = {"puntos": None, "dias": None, "sentido": "no comparable",
+            "motivo": "ningun repo pudo calcular el avance previsto"}
+    if real_pct is not None and prev_pct is not None:
+        puntos = round(real_pct - prev_pct, 1)
+        desv = {"puntos": puntos, "dias": round(cerr_d - prev_d, 2),
+                "sentido": "adelantado" if puntos > 1 else
+                           "retrasado" if puntos < -1 else "en linea"}
+
+    por_repo = []
+    for e in estados:
+        esf = (e.get("avance") or {}).get("esfuerzo") or {}
+        d = num(e, "avance", "esfuerzo", "total_dias")
+        por_repo.append({
+            "repo": e.get("repo") or e.get("raiz"),
+            "raiz": e.get("raiz"),
+            "pct_cerrado": esf.get("pct_cerrado"),
+            "esfuerzo_dias": esf.get("total_dias"),
+            "peso_en_el_proyecto": round(d / total_d * 100, 1) if total_d else None,
+            "changes": (e.get("avance") or {}).get("changes", {}),
+            "desviacion": e.get("desviacion") or {},
+            "bloqueos": len(e.get("bloqueos") or []),
+            "camino_critico_dias": (e.get("camino_critico") or {}).get("dias"),
+        })
+
+    avisos = [f"[{e.get('repo') or e.get('raiz')}] {a}"
+              for e in estados for a in (e.get("avisos") or [])]
+    faltan = [r["repo"] for r in por_repo if r["pct_cerrado"] is None]
+    if faltan:
+        avisos.append(f"sin avance calculable en {', '.join(map(str, faltan))}: el total "
+                      f"del proyecto sale corto porque le falta ese trabajo, no porque "
+                      f"no se haya hecho")
+
+    return {
+        "generado": hoy.isoformat(),
+        "proyecto": next((e.get("proyecto") for e in estados if e.get("proyecto")), ""),
+        "multirepo": True,
+        "repos": [e.get("repo") or e.get("raiz") for e in estados],
+        "modo_faseado": "multilane",
+        "avance": {
+            "changes": dict(ch, pct_cerrado=round(ch["cerrados"] / ch["total"] * 100, 1)
+                            if ch["total"] else None),
+            "esfuerzo": {"total_dias": round(total_d, 2), "cerrado_dias": round(cerr_d, 2),
+                         "activo_dias": round(act_d, 2), "pct_cerrado": real_pct,
+                         "base": "suma de los dias de esfuerzo de cada repo"},
+            "hus": dict(hus, pct_ok=round(hus["ok"] / hus["total"] * 100, 1)
+                        if hus["total"] else None),
+        },
+        "previsto": {"pct": prev_pct, "dias": round(prev_d, 2)},
+        "desviacion": desv,
+        "por_repo": por_repo,
+        "bloqueos": [dict(b, repo=e.get("repo")) for e in estados
+                     for b in (e.get("bloqueos") or [])],
+        "caminos_criticos": [{"repo": e.get("repo"),
+                              **(e.get("camino_critico") or {})} for e in estados],
+        "detalle": estados,
+        "avisos": avisos,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Calcula el estado del proyecto para el informe de situacion.")
-    ap.add_argument("--root", default=".", help="raiz del proyecto (por defecto, cwd)")
+    ap.add_argument("--root", action="append", metavar="RUTA",
+                    help="raiz del proyecto (por defecto, cwd). **Repetible**: con "
+                         "varios repos, uno por repo, y el informe sale agregado "
+                         "con el desglose por repo en `por_repo`")
     ap.add_argument("--out", help="fichero JSON de salida; sin el, stdout")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema y sale")
     ap.add_argument("--anterior", metavar="RUTA",
@@ -715,8 +831,23 @@ def main() -> int:
         print(SCHEMA)
         return 0
 
-    estado = construir(Path(args.root), _ensure_yaml(not args.no_install),
-                       datetime.now(timezone.utc).date())
+    yaml_mod = _ensure_yaml(not args.no_install)
+    hoy = datetime.now(timezone.utc).date()
+    raices = [Path(r) for r in (args.root or ["."])]
+
+    faltan = [r for r in raices if not (r / "openspec").is_dir()]
+    if faltan:
+        for r in faltan:
+            sys.stderr.write(f"Aviso: {r} no tiene openspec/: no es una raiz de proyecto\n")
+        raices = [r for r in raices if r not in faltan]
+        if not raices:
+            sys.stderr.write("Error: ninguna raiz utilizable\n")
+            return 1
+
+    if len(raices) == 1:
+        estado = construir(raices[0], yaml_mod, hoy)
+    else:
+        estado = agregar([construir(r, yaml_mod, hoy) for r in raices], hoy)
     if args.anterior:
         p = Path(args.anterior)
         if p.is_file():

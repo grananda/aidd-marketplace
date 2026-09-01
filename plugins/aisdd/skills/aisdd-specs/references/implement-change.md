@@ -64,6 +64,8 @@ Reglas de aplicacion:
 
    Un nivel 4 **es** caro — cuesta parar a varias personas. Esa es la razon de que exista: si no fuera caro, el faseado permitiria que los lanes se contradijeran gratis.
 
+   > **En multirepo el nivel 4 existe pero no para a nadie.** No hay contrato compartido en el fuente ni barrera a la que remitir: lo que se desmiente es un **artefacto publicado** que otros repos consumen por version. Registra la entrada igual --con `Estado: pendiente de publicar contrato` en vez de `pendiente de barrera`--, di **que repos consumen esa version** segun `roadmap.lanes`, y deja claro que siguen trabajando contra la version antigua legitimamente: no estan equivocados, estan desactualizados, y la diferencia importa. La resolucion es publicar una version nueva desde el repo que la expone y que cada consumidor la adopte como fase suya.
+
 Formato de la entrada en `openspec/changes/<change>/decisions.md`:
 
 ```markdown

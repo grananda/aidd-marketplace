@@ -55,6 +55,7 @@ Es el que mas depende del estado. Resuelve **la siguiente fase abrible** con el 
 |---|---|
 | Hay siguiente fase y —en `multilane`— es del lane activo | `aisdd open change` nombrando la fase |
 | `multilane`, la siguiente es de **otro lane** | `aisdd lane switch <lane-id>` y despues `aisdd open change` |
+| **multirepo**, la siguiente fase de este repo | `aisdd open change` nombrandola. Si en este repo ya no quedan, **dilo y para ahi**: lo que falte se abre en su propio repositorio, y no es tuyo sugerirlo |
 | `multilane`, la siguiente es una **barrera** y ya no queda ningun change abierto | `aisdd open change` sobre la barrera — **di que se ha desbloqueado**, porque es el momento que el resto del equipo esperaba |
 | `multilane`, la siguiente es una **barrera** pero quedan changes abiertos | **No sugieras abrirla.** Lista que lanes faltan por cerrar: eso es lo accionable |
 | Roadmap agotado | Ya no hay fases. Sugiere `aiba metrics` para medir el ciclo completo, y cerrar |
@@ -68,7 +69,7 @@ Si existe `docs/sprint-plan.md` y este change completaba las HU comprometidas de
 
 ### `aisdd lane`
 
-Que se puede hacer en el lane activo: `aisdd open change` si esta libre, `aisdd implement`/`close change <change-slug>` si tiene uno vivo, o las barreras que lo bloquean.
+Que se puede hacer en el lane activo: `aisdd open change` si esta libre, `aisdd implement`/`close change <change-slug>` si tiene uno vivo, o las barreras que lo bloquean. **En multirepo no hay barreras** y el lane activo es siempre este repo.
 
 ### `aisdd prototype-ux` y `aisdd uml`
 

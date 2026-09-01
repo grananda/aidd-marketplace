@@ -2,6 +2,12 @@
 
 > Referencia del skill `aisdd-specs`. El indice y las reglas comunes estan en `SKILL.md`.
 
+## Cuando no se ejecuta
+
+**Con varios repositorios, saltate este pre-flight entero.** Si `docs/arquitectura-base.md` declara mas de un repo, el modo es `multilane` con un lane por repo y no hay caminos que comparar: la frontera de despliegue ya partio el trabajo, y ni `atomic` ni `waves` son alcanzables sin fusionar repos, que no es una decision de faseado. Dilo en una linea y sigue.
+
+Tampoco se ejecuta con un solo dev, por el mismo motivo: no hay alternativa que enfrentar.
+
 ## Que resuelve
 
 El modo de faseado y el numero de developers los elige el usuario, pero **elegirlos a ciegas es elegir mal**: la diferencia entre `waves` con 2 devs y `multilane` con 3 puede ser de semanas de calendario, y no se ve mirando una lista de fases.

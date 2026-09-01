@@ -76,7 +76,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    Actua con el rol de planificador experto de desarrollos de software.
    Analiza los requisitos y fasea el desarrollo en las fases que consideres necesarias para implementarlo con openspec. Ajusta la granularidad del roadmap al presupuesto de contexto del modelo: cuanto menor sea, mas fases y mas pequenas deben ser. Evita fases demasiado grandes que obliguen a arrastrar demasiado contexto en un unico change. Basate en la arquitectura del proyecto. Si existe una planificacion de entrega (docs/sprint-plan.md), alinea el faseado a los sprints: mismo orden, cortes de fase coincidiendo con fronteras de sprint y gates de validacion, y manten los changes de una misma HU dentro de la ventana del sprint donde esa HU esta planificada; el presupuesto de contexto sigue mandando el tamano del change, y donde choque con el sprint, marcalo como conflicto en vez de romper el plan. Si el roadmap es multilane, reparte las fases en las lineas de trabajo (lanes) acordadas: cada lane con rutas de codigo y specs disjuntas de los demas, todo lo compartido resuelto antes en F0 o en una fase barrera, y la nomenclatura F0 / F-<lane-id>-NN / FB-NN. Con ello genera docs/roadmap.md con la division por fases, que entra en cada fase, a que lane pertenece y a que sprint(s) corresponde. Ademas, crea docs/prompts-roadmap-native-ai.md con los prompts a ejecutar hasta finalizar el desarrollo usando los comandos del skill aisdd, agrupados por lane si el roadmap es multilane. No modifiques aun ningun documento de openspec. Si el usuario no ha pasado requisitos y/o arquitectura o no tienes clara donde esta, solicitaselo.
    ```
-11. **Pre-flight de optimizacion.** Con las fases ya disenadas, calcula el calendario de cada modo y cada numero de devs, genera la comparativa visual y **deja que el usuario decida con las dos cifras delante**. Sigue "Pre-flight de optimizacion del faseado" (`references/optimizer.md`). Es obligatorio salvo con un solo dev, donde no hay nada que comparar. El modo que salga de aqui es el definitivo: los pasos siguientes ya lo aplican.
+11. **Pre-flight de optimizacion.** Con las fases ya disenadas, calcula el calendario de cada modo y cada numero de devs, genera la comparativa visual y **deja que el usuario decida con las dos cifras delante**. Sigue "Pre-flight de optimizacion del faseado" (`references/optimizer.md`). Es obligatorio salvo en dos casos donde no hay nada que comparar: **con un solo dev**, y **con varios repositorios** —ahi el modo es `multilane` con un lane por repo y el corte ya viene dado por la arquitectura (ver paso 0.pre de "Decision de modo de faseado")—. El modo que salga de aqui es el definitivo: los pasos siguientes ya lo aplican.
 12. Crea el directorio `docs/` si no existe.
 13. Genera `docs/roadmap.md` con:
    - presupuesto de contexto asumido y justificacion
@@ -169,6 +169,14 @@ Procedimiento:
 
 Este paso decide entre los tres modos (`atomic`, `waves`, `multilane`) y fija `parallel_developers`. Lee antes la seccion "Modos de faseado (paralelismo)" (`references/parallelism.md`), que define el modelo; aqui esta el procedimiento.
 
+**0.pre. Mira cuantos repositorios hay. Si son varios, no hay nada que decidir.**
+
+Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara **mas de un repositorio**, el modo es **`multilane` con un lane por repo** y este apartado entero se salta: no preguntes el modo, no propongas alternativas y **no ejecutes el pre-flight de optimizacion del paso 11** --no hay caminos que comparar cuando el corte ya esta hecho--. `parallel_developers` es el numero de repos.
+
+Dilo al usuario en una linea, con el motivo: la frontera de repos ya partio el trabajo y el faseado la reconoce. Pasa directamente a "Construccion de los lanes por repositorio".
+
+**Con un solo repositorio no se fuerza nada** y sigue el procedimiento normal, salvo que el usuario pida explicitamente lanes.
+
 **0. Resuelve `parallel_developers` primero.** Es el dato del que dependen los otros dos modos, y se resuelve igual para ambos:
 
 - Si `openspec/config.yaml` ya trae `roadmap.parallel_developers` de una ejecucion anterior, proponlo como default.
@@ -195,15 +203,17 @@ Estas orientaciones valen para la **preferencia** del paso 9. La eleccion defini
 4. Repite hasta colocar todas las fases. Si una fase nunca es colocable, hay un **ciclo** en `depends_on`: corrigelo antes de escribir nada.
 5. Comprueba el ancho real de cada oleada. Si la media queda muy por debajo de `parallel_developers`, dilo: el faseado no es paralelizable y quiza `parallel_developers` esta sobreestimado, o las fases estan mal cortadas.
 
+**Construccion de los lanes por repositorio (multirepo).** Sustituye a los siete pasos de abajo, que no aplican: no hay numero de lanes que calcular ni corte que negociar. Ver "Lanes por repositorio" (`references/parallelism.md`).
+
+1. **Un lane por repo, y el `lane-id` es el `id` del repo.** Salen de la tabla de la seccion 3 de la arquitectura, tal cual. No los renombres ni los inventes: es la clave con la que cada repo reconoce sus fases y con la que se agregan los KPI.
+2. **Los `paths` de cada lane van relativos a la raiz de su repo**, no a ninguna carpeta comun. Sirven para documentar que hay dentro, no para separar: la separacion ya la da el repo.
+3. **Nombra las fases `F-<repo-id>-NN`.** Sin `F0` y **sin barreras `FB-NN`**: no hay superficie compartida que serializar. Si al fasear aparece una fase que tendria que parar a varios repos, **no la crees**: es senal de que los repos no son independientes, y eso se arregla en la arquitectura, no aqui. Registralo como conflicto y dilo.
+4. **Lo que un repo publica y otro consume son dos fases separadas, una en cada lane.** Publicar la version nueva del contrato es una fase del que publica; adoptarla es una fase del que consume. Puedes registrarlo como `depends_on` para que el orden quede escrito, pero **no bloquea**: el consumidor sigue trabajando contra la version que ya tiene.
+5. **El roadmap es un unico documento con todas las fases**, y se escribe **igual en los `docs/` de todos los repos**. Cada `openspec/` reconoce las suyas por el `lane-id` que le corresponde. Di al usuario, explicitamente, que **el resto de `docs/` tambien se copia a cada repo** y que un cambio en cualquiera de ellos hay que replicarlo en todos: es el coste conocido del modelo y no se descubre solo.
+
 **Construccion de los lanes (solo modo `multilane`).** Los siete pasos que siguen reemplazan a la construccion de oleadas de arriba; no la continuan.
 
 **1. Calcula el numero de lanes viable. No lo adivines ni lo preguntes en frio.**
-
-- **Repositorios.** Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara **varios repositorios**, copialos tal cual a `roadmap.repos` en `openspec/config.yaml` --mismo `id`, misma ruta--. Los `id` salen de la arquitectura y **no los inventes ni los renombres**: son la clave con la que se sabe donde ejecutar git.
-
-  > **Cuantos repos hay no dice cuantos lanes hay.** Son dos cosas distintas: el repo es una frontera de despliegue y el lane es una linea de trabajo en paralelo. Un roadmap `atomic` con tres repos es perfectamente normal --un dev, un change vivo, y ese change toca los tres--. La frontera entre repos **no obliga** a partir el trabajo, y partirlo por ella cuando el trabajo no se parte solo crea coordinacion donde no hacia falta.
-  >
-  > Cuando **si** coinciden, el corte sale barato: las rutas disjuntas dejan de ser un acuerdo entre personas y pasan a ser un hecho del sistema de ficheros. Pero es una coincidencia afortunada, no la regla.
 
 - **Modulos disjuntos**: lee `docs/arquitectura-base.md`, seccion "Descomposicion por modulos / dominios", y cuenta los modulos cuyas **rutas de codigo no se solapan**. Descarta los que compartan esquema de datos o migraciones (tipicamente `data` con `back`): esos son un solo lane.
 - **Devs disponibles**: lee la seccion de perfiles/equipo de `docs/planificacion-proyecto.md` y cuenta los perfiles **de implementacion** con dedicacion real (no cuentes Lead, Architect ni Outcome Validator: no conducen changes).
@@ -345,18 +355,19 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      context_budget: bajo | medio | alto
      complexity: baja | media | alta
      mode: atomic | waves | multilane  # ausente o `atomic` = comportamiento clasico
-     repos:                            # solo si el producto vive en varios repositorios.
-       - id: <repo-id>                 # Independiente del modo: los hay en atomic,
-         path: <ruta/relativa/al/workspace/>   # en waves y en multilane por igual.
-         remote: <url, opcional>       # `id` kebab-case y estable; sale de arquitectura-base.md seccion 3
+     multirepo: true                   # solo si el producto vive en varios repositorios:
+     repo: <repo-id>                   # los lanes son los repos. `repo` dice cual es ESTE,
+                                       # el que contiene este openspec/. Es lo unico que
+                                       # cambia entre las copias de config.yaml
      parallel_developers: <entero >= 1>   # devs que trabajan a la vez; 1 => secuencial
      contract_owner: <rol/persona>     # solo si mode: multilane
      lanes:                            # solo si mode: multilane
        - id: <lane-id>                 # kebab-case, estable; clave de union con sprint-plan y openspec/.lane
-         label: <nombre legible>
+         label: <nombre legible>       # en multirepo, el `id` es el del repo
+         remote: <url>                 # solo en multirepo: identidad del repo del lane
          paths: [<prefijo/de/ruta/>, ...]   # rutas propias; ningun prefijo puede serlo de otro lane.
-                                            # Con varios repos van **relativas al workspace**
-                                            # (`repo-front/src/`): el repo es un prefijo mas
+                                            # En multirepo van relativas a la raiz de SU repo
+                                            # y solo documentan: el repo ya separa
          profile: <perfil de planificacion-proyecto.md>
      docs:
        roadmap: docs/roadmap.md

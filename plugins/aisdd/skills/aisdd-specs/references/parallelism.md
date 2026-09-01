@@ -81,19 +81,42 @@ Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
 
-   > **Con varios repositorios, las rutas van relativas al workspace** (`repo-front/src/`): el repo es un prefijo mas, y la regla de "ningun prefijo puede serlo de otro lane" funciona igual.
-   >
-   > **Un repo no es un lane.** Son cosas distintas --el repo es una frontera de despliegue; el lane, una linea de trabajo en paralelo-- y la relacion es de muchos a muchos: un lane puede abarcar varios repos, un repo puede tener varios lanes, y un roadmap `atomic` con tres repos no tiene ningun lane. **Los repos existen en los tres modos**; los lanes solo en `multilane`.
-   >
-   > Cuando la frontera de repos **coincide** con el corte de trabajo, el lane sale barato: dos repos no comparten rutas por construccion. Cuando no coincide, forzarlo crea coordinacion donde no hacia falta.
-   >
-   > Y un cambio de contrato entre dos repos **es una barrera** `FB-NN`, no una dependencia cross-lane: detiene a todos porque el contrato es de todos.
+   > Con **un solo repositorio** las rutas van relativas a su raiz y el corte es un acuerdo entre personas que hay que verificar. Con **varios**, el corte ya existe y lo garantiza el sistema de ficheros: ver "Lanes por repositorio".
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
 
 Las condiciones 1 y 2 **no se negocian**: dos lanes que escriben los mismos ficheros o las mismas specs no son dos lanes, y ninguna declaracion los convierte en tales.
 
 La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo compartido se puede fijar de antemano — ver "Lanes con dependencias".
+
+### Lanes por repositorio (multirepo)
+
+Cuando `docs/arquitectura-base.md` declara **mas de un repositorio**, el modo es `multilane` y **hay un lane por repo, sin excepcion**. No se pregunta en el pre-flight ni se calcula: la frontera de repos ya partio el trabajo, y el faseado se limita a reconocerla.
+
+Es el caso normal en cliente, donde los repos vienen dados --uno por parte del proyecto-- y no hay repo raiz que los agrupe. **No hay repo padre, ni submodulos, ni nada que clonar de forma especial.**
+
+**Como se reparte todo:**
+
+| | Donde vive |
+|---|---|
+| `openspec/` | Uno **por repo**. Solo lleva los changes de ese repo. |
+| `docs/` | Una **copia completa por repo** --`arquitectura-base.md`, `guia-estilo.md`, `detalle-hu.md`, `roadmap.md`--. |
+| El roadmap | **El mismo documento** en los tres, con todas las fases. Cada repo ejecuta **solo las de su lane**, que reconoce por su `id`. |
+| Los KPI | Se agregan **fuera**, desde la carpeta que contiene los repos, leyendo sus `openspec/`. |
+
+Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos:
+
+1. **La independencia no se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. La comprobacion de rutas de `close change` se cumple sola.
+2. **Un change, una PR.** El change vive entero en un repo, se cierra con un merge y el roadmap dice la verdad en el momento en que lo dice.
+3. **El lane no se elige, lo dice el directorio.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--.
+4. **No hay barreras.** `F0` y `FB-NN` existen para serializar superficie compartida, y aqui no hay ninguna: ningun repo compila, testea ni despliega contra el fuente de otro. Un roadmap multirepo **no lleva fases barrera**.
+5. **La auditoria no colisiona.** Cada repo tiene su `openspec/audit/`, y dentro un fichero por escritor.
+
+> **El punto 4 es la apuesta del modelo, y hay que sostenerla.** Descansa en que los repos son de verdad independientes en codigo: lo que compartan viaja como **artefacto versionado** --un contrato OpenAPI publicado, un paquete, un esquema de eventos-- y cada repo consume la version que elige, cuando la elige. Publicar una version nueva de un contrato es una fase del lane que lo publica; adoptarla es otra fase del lane que lo consume. Ninguna de las dos para a nadie.
+>
+> Si aparece un repo que necesita el fuente de otro para funcionar, **eso no se arregla faseando**: la frontera esta mal puesta y hay que registrarlo en la seccion 13 de la arquitectura. El roadmap no puede reparar un acoplamiento de compilacion, solo esconderlo.
+
+**Fuera de multirepo, un repo no es un lane.** Con un solo repositorio el corte de lanes se hace por modulos y sigue los criterios de arriba: el lane es una linea de trabajo, no una frontera de despliegue.
 
 ### Lanes con dependencias (escalon intermedio)
 

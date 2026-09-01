@@ -1,9 +1,9 @@
 ---
 name: aiba-status-report
-description: AIBA (AI Business Analyst) — genera el informe de situacion del proyecto en HTML, ejecutivo y visual, mediante el comando `aiba status-report` (alias `aiba estado`, `aiba informe estado`). Actua como jefe de proyecto que mide el avance **por trabajo ejecutado y no por fechas**: cruza las fases de `openspec/config.yaml` con `openspec/changes/archive/` por `change_hint`, pesa cada fase con su esfuerzo (`effort_ai` o las tallas XS/S/M/L/XL de sus HU) y da dos metricas jerarquizadas — changes como principal, con tres estados (cerrado, activo, pendiente), e historias de usuario como secundaria. Lo contrasta con el avance previsto que se deriva de los sprints ya cerrados de `docs/sprint-plan.md` y expresa la desviacion en puntos y en dias. Anade bloqueos **medidos** (decisiones bloqueantes sin resolver en `openspec/audit/`), dependencias listas y bloqueadas del grafo `depends_on`, conflictos de faseado cross-lane, camino critico, ritmo real de entrega (lead time `open change` -> `close change` y su tendencia), riesgos y GAPs consolidados, analisis de desviaciones con responsable y plazo, y un resumen cualitativo con acciones de corto plazo. Los numeros los calcula un script y la narrativa la escribe el skill: cada cifra declara el documento del que sale, y lo que no se puede derivar aparece como hueco declarado, nunca como cifra plausible. Produce `docs/estado-proyecto.json` (el registro, versionable y comparable semana a semana) y `docs/html/estado-proyecto.html` (autocontenido, sin recursos externos). Degrada sin detenerse: con menos documentos da menos informe y lo dice. Usar cuando el usuario pida "informe de estado", "como va el proyecto", "reporte de situacion", "status del proyecto", "avance real vs previsto", o equivalentes.
+description: AIBA (AI Business Analyst) — genera el informe de situacion del proyecto en HTML, ejecutivo y visual, mediante el comando `aiba status-report` (alias `aiba estado`, `aiba informe estado`). Actua como jefe de proyecto que mide el avance **por trabajo ejecutado y no por fechas**: cruza las fases de `openspec/config.yaml` con `openspec/changes/archive/` por `change_hint`, pesa cada fase con su esfuerzo (`effort_ai` o las tallas XS/S/M/L/XL de sus HU) y da dos metricas jerarquizadas — changes como principal, con tres estados (cerrado, activo, pendiente), e historias de usuario como secundaria. Lo contrasta con el avance previsto que se deriva de los sprints ya cerrados de `docs/sprint-plan.md` y expresa la desviacion en puntos y en dias. Anade bloqueos **medidos** (decisiones bloqueantes sin resolver en `openspec/audit/`), dependencias listas y bloqueadas del grafo `depends_on`, conflictos de faseado cross-lane, camino critico, ritmo real de entrega (lead time `open change` -> `close change` y su tendencia), riesgos y GAPs consolidados, analisis de desviaciones con responsable y plazo, y un resumen cualitativo con acciones de corto plazo. Los numeros los calcula un script y la narrativa la escribe el skill: cada cifra declara el documento del que sale, y lo que no se puede derivar aparece como hueco declarado, nunca como cifra plausible. Produce `docs/estado-proyecto.json` (el registro, versionable y comparable semana a semana) y `docs/html/estado-proyecto.html` (autocontenido, sin recursos externos). Con el producto repartido en **varios repositorios** —cada uno con su propio `openspec/` y su lane— `--root` es repetible y el informe sale agregado: se suman dias de esfuerzo y no porcentajes, se anade el desglose `por_repo` con el peso real de cada uno, y los caminos criticos se dan por repo porque son cadenas paralelas que no se suman. Degrada sin detenerse: con menos documentos da menos informe y lo dice. Usar cuando el usuario pida "informe de estado", "como va el proyecto", "reporte de situacion", "status del proyecto", "avance real vs previsto", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # aiba-status-report (AIBA · Informe de situacion)
@@ -29,6 +29,8 @@ Responde y documenta en espanol. Conserva en ingles nombres de comandos, fichero
 | `docs/detalle-historias-usuario.md` | Tallas XS/S/M/L/XL para pesar cada fase |
 | `docs/sprint-plan.md` | Sprints y fechas, de donde sale el avance previsto |
 | `docs/planificacion-proyecto.md`, `docs/sprint-plan.md`, `docs/arquitectura-base.md` | Riesgos declarados, que tu consolidas |
+
+**Con varios repositorios cada uno tiene su copia de estos documentos** y su propio `openspec/`. El informe global se saca pasando un `--root` por repo (ver «Si el proyecto vive en varios repositorios»).
 
 Criterio de salida: existen `docs/estado-proyecto.json` y `docs/html/estado-proyecto.html`, cada cifra tiene su documento de origen, y las secciones que no se han podido rellenar aparecen como hueco declarado.
 
@@ -63,6 +65,26 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-status-report/scripts/compute_status.
 
 **El mismo fichero como entrada y como salida es correcto**: el script lee el
 anterior antes de escribir el nuevo. Si es el primer informe, lo dice y sigue.
+
+#### Si el proyecto vive en varios repositorios
+
+`--root` es **repetible**. Pasa uno por repo, desde la carpeta que los contiene:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-status-report/scripts/compute_status.py" \
+  --root repo-front --root repo-bff --root repo-datos \
+  --anterior estado-proyecto.json --out estado-proyecto.json
+```
+
+Cada repo tiene su propio `openspec/` y cierra solo las fases de su lane, asi que **el estado del proyecto no esta en ninguno de ellos**: hay que sumarlos. El JSON sale con el total, un bloque `por_repo` con el desglose y `detalle` con el estado completo de cada uno, y el HTML anade la seccion «Avance por repositorio».
+
+Tres cosas que hay que saber leer, y que el informe dice pero conviene entender:
+
+- **Se suman dias de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 dias que a uno de 4. La columna **Peso** es la que dice cuanto pesa cada uno de verdad, y sin ella un 27% global no distingue entre tres repos al 27% y dos acabados con uno sin empezar.
+- **Los caminos criticos no se suman.** Son cadenas paralelas: el del proyecto es el mas largo, no el total.
+- **Un repo que no calcula avance deja el total corto.** Sale como aviso, y no significa que ese trabajo no se haya hecho — significa que no se ha podido medir. No lo presentes como retraso.
+
+**Un `--root` por repo, siempre todos.** Si dejas uno fuera, el informe sale coherente y equivocado: las cifras cuadran entre si y le falta un tercio del proyecto. Comprueba la lista contra la seccion 3 de `docs/arquitectura-base.md` antes de ejecutar.
 
 **Lee los avisos que emite por stderr antes de seguir.** Dicen que no ha podido calcular y por que: fases sin `change_hint`, fases sin esfuerzo, changes abiertos que no estan en el roadmap. Cada uno de ellos cambia como hay que leer las cifras, y varios son hallazgos por si solos — un change fuera de plan es trabajo que nadie previo.
 
