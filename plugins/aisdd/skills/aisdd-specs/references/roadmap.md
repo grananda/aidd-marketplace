@@ -40,6 +40,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 0. **Si ya existe `docs/roadmap.md`, no lo sobrescribas sin preguntar.** Un roadmap ya faseado suele estar validado, repartido en sprints y, a veces, volcado a Jira: regenerarlo cambia nombres de fase y `change_hint`, y rompe esos enlaces. Ofrece dos caminos y espera respuesta (ver "Anotar un roadmap existente"):
    - **Anotar** — conserva el faseado tal cual y solo anade la capa de paralelismo. Disponible **solo para el modo `waves`**.
    - **Re-fasear** — regenera el roadmap completo (comportamiento clasico). Es obligatorio si el modo destino es `multilane`.
+   - **Adoptar** — **solo en multirepo**, y es el camino normal en todos los repos menos uno. El `docs/roadmap.md` que hay aqui **viene copiado del repo donde se faseo**: no se re-fasea, no se pregunta nada y no se toca el documento. Se lee, se escriben en `openspec/config.yaml` las fases de **este** lane, y se acaba. Ver "Multirepo: donde se ejecuta este comando".
    Si `docs/roadmap.md` no existe, sigue directamente en el paso 1.
 1. Revisa si el usuario ya ha pasado requisitos y arquitectura. Localiza documentacion existente en `docs/`, `config.yaml` (`project_context.design_docs` y `project_context.delivery_docs`), `README.md` o rutas indicadas por el usuario. **Lee tambien la capa de entrega si existe** (`docs/sprint-plan.md`, `docs/planificacion-proyecto.md`, `docs/plan-revision-hu.md`): condiciona el faseado (ver "Alineacion con la capa de entrega").
 2. Si faltan requisitos, arquitectura, o no esta claro donde estan, solicitalos antes de continuar. **`docs/detalle-historias-usuario.md` es requisito duro de este comando**: sus tallas XS/S/M/L/XL son la unica fuente de esfuerzo por fase, y sin esfuerzo el pre-flight de optimizacion (paso 11) no puede calcular ningun calendario. Si no existe, **detente** y remite a `aidd user-story-details`; no estimes tu las tallas. La capa de entrega es **opcional**: si no hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo.
@@ -143,6 +144,27 @@ Lo que este camino **no** hace, y conviene decirlo en el resumen: no re-evalua e
 
 Ventaja practica: como no cambia ningun `change_hint`, **no rompe el enlace con el sprint-plan ni con Jira**. Anotar es seguro sobre un proyecto en marcha; re-fasear no.
 
+### Multirepo: donde se ejecuta este comando
+
+**Ningun comando de AISDD escribe fuera de su repositorio.** Los repos no se ven entre si: no hay ruta desde uno a otro, y suponerla es suponer un layout que nadie garantiza. De ahi sale todo lo de abajo.
+
+El faseado, en cambio, **es uno solo** — un roadmap con todas las fases de todos los lanes—, asi que hay un reparto de trabajo entre el comando y el humano, y conviene decirlo entero:
+
+1. **Se fasea en un repo, una sola vez.** El que tenga los documentos de diseno: `arquitectura-base.md` con su tabla de repositorios y `detalle-historias-usuario.md` con las tallas. Ahi `aisdd roadmap` corre completo y produce `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md` con las fases de **los tres**.
+2. **El humano copia `docs/` a los demas repos.** No lo hagas tu: no ves esos repos, y escribir en ellos exigiria una ruta que no tienes. **Dilo explicitamente al terminar**, listando que ficheros y a que repos — es el paso que, si se olvida, deja a dos equipos trabajando sin roadmap y nadie se entera hasta el primer `open change`.
+3. **En cada uno de los demas se ejecuta `aisdd init` y despues `aisdd roadmap`.** El `init` reconoce cual es el repo por su remote; el `roadmap` encuentra el documento ya escrito y toma el camino **Adoptar** del paso 0.
+
+**Que hace exactamente "Adoptar":**
+
+- Lee `docs/roadmap.md` y saca de el las fases, sus `change_hint`, sus `depends_on` y su lane.
+- Escribe `openspec/config.yaml`: `mode: multilane`, `multirepo: true`, `repo: <id de este>`, la lista completa de `lanes` y las `phases` **de este lane**.
+- **No re-fasea, no pregunta, no ejecuta el pre-flight de optimizacion y no toca `docs/`.** El documento es el mismo en los tres repos y tiene que seguir siendolo: reescribirlo aqui lo haria divergir del de al lado, que es la unica forma real de romper este modelo.
+- Registra el bloque de paralelismo en `AGENTS.md` y escribe su entrada de auditoria, como cualquier otra ejecucion.
+
+**Si el roadmap vuelve a fasearse mas adelante**, el ciclo se repite igual: se re-fasea donde se faseo, el humano vuelve a copiar, y en los demas `aisdd roadmap` adopta otra vez. Al adoptar, **compara lo que trae el documento con lo que ya tenia `config.yaml`** y di que ha cambiado — fases nuevas, fases que desaparecen, `change_hint` que cambian. Una fase que se cae del roadmap teniendo un change vivo o archivado es un **conflicto**: nombrala y no la borres en silencio.
+
+> **Por que no se ejecuta el faseado completo en cada repo.** Lleva `AskUserQuestion` y decisiones de reparto: ejecutarlo tres veces daria tres roadmaps distintos para el mismo proyecto, y el que manda seria el del ultimo que lo corrio. El faseado se decide una vez; los demas repos lo adoptan.
+
 ### Cambiar de estrategia a mitad de proyecto
 
 El caso: el roadmap lleva fases cerradas y algo cambia — entra un developer, o el ritmo no da y hay que replantear el modo. **No es re-fasear desde cero**, porque hay trabajo entregado que no se toca y trabajo en vuelo que no se puede reasignar.
@@ -164,6 +186,21 @@ Procedimiento:
 5. **Lanza el pre-flight de optimizacion** (`references/optimizer.md`) con los estados marcados. Compara **calendario restante**, no total: lo entregado no vuelve.
 6. **Aplica el modo elegido solo a las pendientes.** Las hechas y las en curso mantienen su identificador. En `multilane`, asigna lane solo a las pendientes; las anteriores quedan sin `lane`, y eso es correcto: se ejecutaron bajo otra estrategia.
 7. **Registra el cambio de estrategia** en `docs/roadmap.md`: fecha, modo anterior, modo nuevo, motivo (dev nuevo, ritmo insuficiente) y calendario restante estimado. Sin esa linea, el roadmap resultante parece incoherente — mezcla nomenclaturas — y nadie sabra por que.
+
+**Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: aqui no se reparte un `openspec/` en lanes, se parte en tres `openspec/` distintos, y el trabajo ya archivado tiene que quedarse en el repo al que pertenece su codigo.
+
+Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronteras de repo que ningun comando atraviesa:
+
+1. **Actualiza la arquitectura primero** (`aidd architecture`): sin la tabla de repositorios de la seccion 3 no hay lanes que asignar, y es esa tabla la que fuerza el modo.
+2. **Re-fasea en el repo original** con el camino normal de arriba. Las fases **hechas** y **en curso** conservan su id: no las renombres a `F-<repo>-NN` aunque ahora pertenezcan a un lane, porque su `change_hint` es el enlace con lo ya archivado y con Jira. Solo las **pendientes** reciben nomenclatura de lane.
+3. **El humano crea los repos nuevos y mueve el codigo.** Tu no: es una operacion de git que no se deshace sola y que decide fronteras de despliegue.
+4. **Los changes archivados no se reparten: se quedan donde estan.** Mover un `openspec/changes/archive/<slug>/` a otro repo lo separa de la historia de git que lo produjo, que es lo unico que lo hace verificable. El repo original conserva el archivo historico completo; los repos nuevos arrancan con el suyo vacio.
+
+   Diselo tal cual, porque tiene una consecuencia visible: durante un tiempo el informe agregado ensena **todo lo entregado antes de la migracion en un solo repo** y los demas al 0 %. No es un error de calculo — es donde se hizo el trabajo—, pero si nadie lo avisa parece un fallo del informe.
+5. **`aisdd init` y `aisdd roadmap` en cada repo nuevo**, con `docs/` ya copiado, segun "Multirepo: donde se ejecuta este comando".
+6. **Registra la migracion** en `docs/roadmap.md` con fecha, que repos se crearon y donde quedo el archivo historico. Es la linea que explica, seis meses despues, por que un repo tiene cien changes archivados y los otros doce.
+
+**Lo que no se debe hacer:** re-abrir changes archivados para "moverlos" al repo nuevo, ni renumerar las fases ya cerradas. Las dos cosas rompen enlaces que ya no se pueden reconstruir a cambio de una coherencia estetica.
 
 **Lo que este camino no arregla.** Si el pre-flight dice que el calendario ya toca el camino critico, **el cuello es una cadena de dependencias y no la plantilla**: anadir gente no lo acorta. Dilo tal cual. Acortarlo exige romper esa cadena partiendo o reordenando fases pendientes, que es una decision de faseado, no de estrategia.
 
@@ -211,7 +248,7 @@ Estas orientaciones valen para la **preferencia** del paso 9. La eleccion defini
 2. **Los `paths` de cada lane van relativos a la raiz de su repo**, no a ninguna carpeta comun. Sirven para documentar que hay dentro, no para separar: la separacion ya la da el repo.
 3. **Nombra las fases `F-<repo-id>-NN`.** Sin `F0` y **sin barreras `FB-NN`**: no hay superficie compartida que serializar. Si al fasear aparece una fase que tendria que parar a varios repos, **no la crees**: es senal de que los repos no son independientes, y eso se arregla en la arquitectura, no aqui. Registralo como conflicto y dilo.
 4. **Lo que un repo publica y otro consume son dos fases separadas, una en cada lane.** Publicar la version nueva del contrato es una fase del que publica; adoptarla es una fase del que consume. Puedes registrarlo como `depends_on` para que el orden quede escrito, pero **no bloquea**: el consumidor sigue trabajando contra la version que ya tiene.
-5. **El roadmap es un unico documento con todas las fases**, y se escribe **igual en los `docs/` de todos los repos**. Cada `openspec/` reconoce las suyas por el `lane-id` que le corresponde. Di al usuario, explicitamente, que **el resto de `docs/` tambien se copia a cada repo** y que un cambio en cualquiera de ellos hay que replicarlo en todos: es el coste conocido del modelo y no se descubre solo.
+5. **El roadmap es un unico documento con todas las fases**, y acaba **igual en los `docs/` de todos los repos**. Cada `openspec/` reconoce las suyas por el `lane-id` que le corresponde. **Tu solo escribes el de este repo**: copiarlo a los demas es del humano y los demas lo adoptan — ver "Multirepo: donde se ejecuta este comando", que es lo que tienes que decirle al terminar. Advierte tambien de que **el resto de `docs/` se copia igual** y que un cambio en cualquiera hay que replicarlo en todos: es el coste conocido del modelo y no se descubre solo.
 
 **Construccion de los lanes (solo modo `multilane`).** Los siete pasos que siguen reemplazan a la construccion de oleadas de arriba; no la continuan.
 

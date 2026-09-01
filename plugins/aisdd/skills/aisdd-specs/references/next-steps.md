@@ -36,6 +36,8 @@ El roadmap es **insumo de la capa de entrega**, asi que aqui hay una bifurcacion
 | Hay plan de recursos, no hay `docs/sprint-plan.md` | `aiba sprint-planning` | Ya tiene sus dos insumos: roadmap y recursos |
 | Hay `sprint-plan.md` **anterior a este roadmap** | `aiba sprint-planning` otra vez | El faseado ha cambiado y el reparto en sprints quedo desalineado. **Dilo**: re-ejecutarlo es seguro, no recrea Stories |
 | Cualquiera | `booster-docs` sobre `docs/roadmap.md` | Vista HTML del roadmap, opcional |
+| **Multirepo, y este es el repo donde se faseo** | **Copiar `docs/` a los demas repos**, y despues `aisdd init` + `aisdd roadmap` en cada uno | Va **el primero de todos**, antes que la capa de entrega: hasta que no se copie, los otros dos equipos no tienen roadmap y no lo saben. Nombra los repos y los ficheros; el comando no puede copiarlos porque no ve esos repositorios |
+| **Multirepo, y este repo adopto el roadmap** | `aisdd open change` sobre la primera fase de este lane | Ya esta todo en su sitio. No sugieras copiar nada: aqui el documento llego, no salio |
 
 Y siempre, como paso de ejecucion: **`aisdd open change`** (en `multilane`, precedido de `aisdd lane switch <lane-id>` si el lane activo no es el de la primera fase; **en multirepo, sin `switch`** — el lane es este repo, y si la primera fase es de otro, di en cual se abre y para).
 

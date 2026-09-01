@@ -53,7 +53,9 @@ Inicializa AISDD (OpenSpec) en el proyecto.
 
     Recuerdale ademas, en el resumen, las dos cosas que no se deducen solas: que **`docs/` va copiado entero en cada repo** y hay que replicar ahi cualquier cambio, y que **este `openspec/` solo lleva los changes de este repo** --los KPI del proyecto completo se sacan agregando los de todos, desde la carpeta que los contiene--.
 
-    **No clones los demas repos.** Este comando no sale del repo en el que se ejecuta.
+    **No clones los demas repos.** Este comando no sale del repo en el que se ejecuta, y ninguno de AISDD lo hace: los repos no se ven entre si.
+
+    **El orden importa y conviene decirlo**: `docs/` tiene que estar ya copiado en este repo antes de ejecutar `init` — es de donde sale la tabla que dice cual es—. La secuencia completa es: disenar y fasear en un repo, que el humano copie `docs/` a los demas, y despues `aisdd init` y `aisdd roadmap` en cada uno. Ver "Multirepo: donde se ejecuta este comando" en `references/roadmap.md`.
 
 12. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIBA es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido" (`references/jira.md`)). Son avisos, no errores: continua igualmente.
 13. **Declara la auditoria como union en `.gitattributes`.** Asegura que el fichero contiene la linea `openspec/audit/**/*.jsonl merge=union`. Si no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques.
