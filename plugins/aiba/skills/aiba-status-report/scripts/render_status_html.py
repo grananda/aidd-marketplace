@@ -557,7 +557,12 @@ def construir(d: dict) -> str:
         (("+" if (desv.get("puntos") or 0) > 0 else "") +
          (f'{desv["puntos"]:.4g} pts' if desv.get("puntos") is not None else "—"),
          "Desviacion", {"adelantado": "verde", "retrasado": "rojo"}.get(desv.get("sentido"), "gris"),
-         e(desv.get("sentido", ""))),
+         # El `motivo` acompana al sentido, no lo sustituye: una desviacion
+         # calculada sobre dos tercios del proyecto y presentada a secas es la
+         # clase de cifra que se defiende en un comite y no se sostiene.
+         e(desv.get("sentido", "")) + (f' <span class="hueco">({e(desv["motivo"])})</span>'
+                                       if desv.get("motivo") and desv.get("puntos") is not None
+                                       else "")),
     ]
     tarjetas = "".join(
         f'<div class="kpi"><div class="v" style="color:var(--{c})">{e(v)}</div>'

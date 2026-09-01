@@ -97,7 +97,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - `aisdd open change [what-you-want-to-build]`
    - `aisdd implement change [change-slug]`
    - `aisdd close change [change-slug]`
-   - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane)
+   - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane). **En multirepo no lo pongas**: ahi ese comando se rechaza, y un prompt que empieza por un comando que falla es peor que no tener prompt.
 15. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
    - que documentos o secciones pasar al modelo
    - que partes del codigo son relevantes
@@ -109,6 +109,8 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - el prompt exacto para cerrar con `aisdd close change [change-slug]`
 16. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
 17. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
+
+    **En multirepo el bloque de cada lane se encabeza con el repositorio, no con un `switch`**: su `remote` y la instruccion de clonarlo y trabajar dentro. Sin `F0` y sin barreras, porque no las hay. Y como cada repo lleva **su propia copia** de este fichero, di al principio de cada bloque **cual de ellos es el tuyo**: un dev que abre el suyo tiene que ver de un vistazo que bloque le toca y que el resto es contexto de los demas.
 18. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
 19. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
 20. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
@@ -271,6 +273,13 @@ Marca `[RIESGO]` cualquier dependencia declarada cuyo lane destino **no tenga ot
 
 Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fases) para que el desajuste se vea de un vistazo y `aiba sprint-planning` pueda secuenciarlo.
 
+**En multirepo las dos secciones cambian de contenido**, porque la mitad de lo que piden no existe:
+
+- En **"Lanes"**, sustituye el numero de lanes y su calculo (`min(modulos, devs)`) por **la tabla de repositorios de la arquitectura**: no hubo calculo, hubo una frontera dada. Anade el `remote` de cada uno --es su identidad-- y **omite el dueno del contrato compartido**: no hay contrato en el fuente. Si algun repo publica un artefacto que otros consumen, di **quien lo publica y en que fase**, que es lo que aqui hace ese papel.
+- La justificacion del corte es la misma para todos y cabe en una linea: **son repositorios distintos**.
+- En **"Dependencias cross-lane"**, el punto 2 de la regla de lectura --resuelta por barrera-- **no aplica**: no hay barreras. Quedan tres lecturas: sin dependencias (el objetivo y lo normal), dependencia declarada de **artefacto publicado** —legitima, no bloquea, y el consumidor sigue con la version que ya tiene— y dependencia **de codigo fuente**, que aqui no es un error de faseado sino de arquitectura: no la declares, registrala como riesgo en la seccion 13 de `arquitectura-base.md` y dilo.
+- Marca `[RIESGO]` igual al repo que se queda **sin fases que ejecutar** mientras espera: es un dev parado, y es lo mismo que el modo pretende evitar.
+
 ### Seccion de oleadas en `docs/roadmap.md`
 
 En modo `waves`, `docs/roadmap.md` incluye una seccion **"Oleadas"** con:
@@ -422,6 +431,7 @@ El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como
    - **`atomic`**: solo esas dos lineas. Anade una tercera: `> Sin aislamiento garantizado: dos changes abiertos a la vez pueden producir decisiones contradictorias.`
    - **`waves`**: anade el numero de oleadas y una linea recordando que **las oleadas no las verifica ningun comando**; el reparto real entre developers es del equipo.
    - **`multilane`**: anade una tabla de lanes (`lane-id`, rutas, perfil), el dueno del contrato compartido, y una linea operativa: `Selecciona tu linea con` `aisdd lane switch <lane-id>`; `un change abierto por lane.`
+   - **`multilane` en multirepo**: la linea operativa de arriba **es falsa aqui** y no se escribe --`aisdd lane switch` se rechaza en este modo--. Escribe en su lugar: que repo es este (`roadmap.repo`), la tabla de los demas con su `remote`, y estas dos lineas: `Tu linea de trabajo es este repositorio; se cambia clonando otro.` y `docs/ va copiado en cada repo: un cambio en cualquiera hay que replicarlo en todos.` Anade tambien que **el informe de estado del proyecto no sale de aqui**, sino de `aiba status-report` con un `--root` por repo desde la carpeta que los contiene. Es lo que un agente que abre este repo no puede deducir mirando alrededor.
 
 3. **Registra el bloque con `agents_block.py`** (marker `roadmap`) — ver "Scripts del skill" (`references/scripts.md`). A mano: si ya existe un bloque entre `<!-- BEGIN aisdd-specs roadmap ... -->` y `<!-- END aisdd-specs roadmap -->`, **reemplazalo integramente**; si no existe, anadelo al final precedido de una linea en blanco.
 4. **No toques nada mas del fichero.** En particular, no reordenes ni reescribas el bloque `<!-- BEGIN aisdd-specs commands -->`: son bloques distintos con ciclos de vida distintos (uno lo gestiona `init`, este lo gestiona `roadmap`).

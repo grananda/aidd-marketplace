@@ -174,6 +174,8 @@ Implementa el código a partir de los specs **ya abiertos y validados por el AI 
 
 > En modo **multilane**, cada Dev trabaja sobre el lane que tenga activo (`aisdd lane switch`) y solo escribe dentro de las **rutas de ese lane** — `aisdd close change` lo verifica. Si durante la implementación descubre que el **contrato compartido** es insuficiente, eso no se arregla sobre la marcha: es una corrección de **nivel 4**, se detiene y se escala al dueño del contrato, porque otros lanes están construyendo sobre ese mismo supuesto.
 
+> **Si el producto vive en varios repositorios**, el lane de cada Dev es su repositorio y no hay `switch` que hacer. Tampoco hay contrato compartido en el fuente: lo que se comparte se publica como **artefacto versionado**, y cada repo consume la versión que elige. Un nivel 4 aquí no para a nadie — avisa de que la versión publicada queda desmentida, y los demás repos siguen legítimamente con la que ya tienen.
+
 | Responsabilidad | Comandos / Detalle |
 |---|---|
 | **Recibe los specs validados del change** | El AI Lead le entrega el change ya abierto con sus artefactos validados (`proposal.md`, `design.md`, `spec.md`, `decisions.md`). El Developer **no** ejecuta `aisdd open change` |
@@ -270,6 +272,12 @@ Con `multilane`, cinco cosas:
 - **`aisdd close change`** comprueba que el change no escribió fuera de las rutas de su lane. Es donde la independencia deja de ser una promesa del faseado.
 - **Correcciones nivel 4**: una corrección que toca el contrato compartido **no es local**. Es una **parada coordinada** de los lanes hermanos y una revisión del contrato por su dueño. Cuesta caro a propósito: si fuera barato, los lanes podrían contradecirse gratis.
 - **`aiba sprint-planning`** deja de calcular una única cadena crítica: el calendario pasa a ser el `max` de las cadenas de cada lane entre barreras, y **cada sprint contiene unidades de varios lanes a la vez**.
+
+**Y un caso que cambia el reparto entero: el producto repartido en varios repositorios.** Es lo normal en cliente, donde los repos vienen dados —uno por parte del proyecto— y no hay repo raíz que los agrupe. Declararlos en `docs/arquitectura-base.md` §3 **obliga** a `multilane` con **un lane por repo**, y cada repo es autónomo: su propio `openspec/` y su copia completa de `docs/`. Sin repo padre, sin submódulos.
+
+De ese 1:1 sale todo lo demás. La independencia **no se verifica porque es estructural** — un change no puede salirse de su lane porque no puede salirse de su repo—; cada change se cierra con **una sola PR**; el lane **lo dice el directorio**, así que `aisdd lane switch` se rechaza; y **no hay barreras**, porque no hay superficie compartida que serializar. La apuesta es que los repos son de verdad independientes en código: uno que necesita el fuente de otro no se arregla faseando, es una frontera mal puesta.
+
+El coste, dicho sin adornos: `docs/` va copiado en cada repo y un cambio hay que replicarlo en todos. Y el estado del proyecto no está en ningún repo — se saca agregando los `openspec/` de todos con `aiba status-report --root <repo>` repetido, sumando **días de esfuerzo y no porcentajes**.
 
 ### Lanes con dependencias
 

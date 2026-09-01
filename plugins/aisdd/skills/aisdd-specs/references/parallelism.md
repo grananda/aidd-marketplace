@@ -85,6 +85,8 @@ Un corte de lanes es valido cuando se cumplen las tres condiciones:
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
 
+   > **En multirepo esta condicion se cumple de otra forma**, y hay que saberlo porque aqui no hay `F0` ni barreras: lo compartido no se fija en una fase, se **publica como artefacto versionado** y cada repo consume la version que elige. El equivalente de "fijado antes de arrancar" es "publicado y con version".
+
 Las condiciones 1 y 2 **no se negocian**: dos lanes que escriben los mismos ficheros o las mismas specs no son dos lanes, y ninguna declaracion los convierte en tales.
 
 La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo compartido se puede fijar de antemano — ver "Lanes con dependencias".
@@ -164,7 +166,7 @@ Advertencia frecuente: **`data` rara vez es un lane independiente de `back`** �
 
 El lane sobre el que trabaja un dev es **estado local suyo**, equivalente a la rama de Git:
 
-- Vive en `openspec/.lane` (una linea con el `lane-id`).
+- Vive en `openspec/.lane` (una linea con el `lane-id`). **En multirepo no existe**: el lane lo fija el repositorio, via `roadmap.repo`, y nada lo puede mover — ver "Lanes por repositorio".
 - **Nunca** en `openspec/config.yaml`: ese fichero se versiona y dos devs se pisarian el puntero en cada commit.
 - `aisdd init` lo anade a `.gitignore`.
 - Se consulta y cambia con `aisdd lane` (ver su seccion).

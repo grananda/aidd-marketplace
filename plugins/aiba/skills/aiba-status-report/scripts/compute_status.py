@@ -584,6 +584,10 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
     # ejecuta las fases de su lane. Sin este filtro el informe de un repo se
     # quedaria clavado en un tercio para siempre, y no por ir retrasado.
     repo_id = str(roadmap.get("repo") or "") if roadmap.get("multirepo") else ""
+    if roadmap.get("multirepo") and not repo_id:
+        avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`: no se sabe "
+                      "cual de los repos es este, asi que se cuentan las fases de todos y el "
+                      "avance sale diluido. Lo escribe `aisdd init`")
     if repo_id:
         propias = [f for f in fases if str(f.get("lane") or "") == repo_id]
         if propias:
@@ -737,7 +741,6 @@ def agregar(estados: list[dict], hoy) -> dict:
     total_d = sum(num(e, "avance", "esfuerzo", "total_dias") for e in estados)
     cerr_d = sum(num(e, "avance", "esfuerzo", "cerrado_dias") for e in estados)
     act_d = sum(num(e, "avance", "esfuerzo", "activo_dias") for e in estados)
-    prev_d = sum(num(e, "previsto", "dias") for e in estados)
 
     ch = {"total": 0, "cerrados": 0, "activos": 0, "pendientes": 0}
     for e in estados:
@@ -752,14 +755,34 @@ def agregar(estados: list[dict], hoy) -> dict:
             hus[k] += int(h.get(k) or 0)
 
     real_pct = round(cerr_d / total_d * 100, 1) if total_d else None
-    prev_pct = round(prev_d / total_d * 100, 1) if total_d and prev_d else None
+
+    # La desviacion se compara **sobre la misma base**. Un repo sin sprint-plan no
+    # aporta previsto; meterlo en el denominador del previsto y no en el del real
+    # hunde el previsto y el proyecto sale "adelantado" por no tener plan, que es
+    # justo al reves. Se compara solo sobre los repos que pueden, y se dice cuales.
+    con_plan = [e for e in estados
+                if ((e.get("previsto") or {}).get("pct")) is not None]
+    base_d = sum(num(e, "avance", "esfuerzo", "total_dias") for e in con_plan)
+    base_cerr = sum(num(e, "avance", "esfuerzo", "cerrado_dias") for e in con_plan)
+    base_prev = sum(num(e, "previsto", "dias") for e in con_plan)
+
+    prev_pct = round(base_prev / base_d * 100, 1) if base_d else None
     desv = {"puntos": None, "dias": None, "sentido": "no comparable",
-            "motivo": "ningun repo pudo calcular el avance previsto"}
-    if real_pct is not None and prev_pct is not None:
-        puntos = round(real_pct - prev_pct, 1)
-        desv = {"puntos": puntos, "dias": round(cerr_d - prev_d, 2),
+            "motivo": "ningun repo tiene sprint-plan del que derivar el avance previsto"}
+    if prev_pct is not None:
+        real_base = round(base_cerr / base_d * 100, 1)
+        puntos = round(real_base - prev_pct, 1)
+        desv = {"puntos": puntos, "dias": round(base_cerr - base_prev, 2),
                 "sentido": "adelantado" if puntos > 1 else
-                           "retrasado" if puntos < -1 else "en linea"}
+                           "retrasado" if puntos < -1 else "en linea",
+                "base": [e.get("repo") for e in con_plan],
+                "base_dias": round(base_d, 2),
+                "real_en_la_base": real_base}
+        if len(con_plan) < len(estados):
+            sin = [e.get("repo") for e in estados if e not in con_plan]
+            desv["motivo"] = (f"comparado solo sobre {round(base_d, 2)} de "
+                              f"{round(total_d, 2)} dias: sin sprint-plan en "
+                              f"{', '.join(map(str, sin))}")
 
     por_repo = []
     for e in estados:
@@ -800,7 +823,8 @@ def agregar(estados: list[dict], hoy) -> dict:
             "hus": dict(hus, pct_ok=round(hus["ok"] / hus["total"] * 100, 1)
                         if hus["total"] else None),
         },
-        "previsto": {"pct": prev_pct, "dias": round(prev_d, 2)},
+        "previsto": {"pct": prev_pct, "dias": round(base_prev, 2),
+                     "base_repos": [e.get("repo") for e in con_plan]},
         "desviacion": desv,
         "por_repo": por_repo,
         "bloqueos": [dict(b, repo=e.get("repo")) for e in estados
@@ -844,10 +868,18 @@ def main() -> int:
             sys.stderr.write("Error: ninguna raiz utilizable\n")
             return 1
 
-    if len(raices) == 1:
-        estado = construir(raices[0], yaml_mod, hoy)
-    else:
+    # Si el usuario pidio varias raices, el informe sale agregado aunque solo
+    # sobreviva una: cambiar la forma del JSON por un repo que falta convertiria
+    # un problema visible en un informe de aspecto normal al que le falta un tercio.
+    pedidas = len(args.root or [])
+    if pedidas > 1 or len(raices) > 1:
         estado = agregar([construir(r, yaml_mod, hoy) for r in raices], hoy)
+        if len(raices) < pedidas:
+            estado["avisos"].insert(0, f"se pidieron {pedidas} repositorios y solo "
+                                       f"{len(raices)} son utilizables: el total del "
+                                       f"proyecto esta incompleto")
+    else:
+        estado = construir(raices[0], yaml_mod, hoy)
     if args.anterior:
         p = Path(args.anterior)
         if p.is_file():

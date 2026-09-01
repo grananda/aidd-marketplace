@@ -163,6 +163,8 @@ Selecciona la **linea de trabajo activa** del dev, igual que `git switch` selecc
 
 El puntero `openspec/.lane` es **estado local de cada dev** y va en `.gitignore` (lo anade `aisdd init`): dos personas trabajando lanes distintos no deben pisarse el puntero en cada commit. Si el roadmap es `atomic`, el comando avisa de que el proyecto no usa lanes y no crea nada.
 
+**Con el producto en varios repositorios el puntero no se usa**: cada repo es un lane, `roadmap.repo` dice cual, y `aisdd lane switch` se rechaza porque se cambia de lane cambiando de repositorio. Cada repo lleva su propio `openspec/` y su copia de `docs/`; los KPI del proyecto completo salen de `aiba status-report` con un `--root` por repo.
+
 ### `aisdd close change [change-slug]`
 
 Archiva un cambio:
