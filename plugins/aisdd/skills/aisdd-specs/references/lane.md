@@ -28,7 +28,7 @@ Lista los lanes de `roadmap.lanes` y, por cada uno:
 
 Anade al final las **barreras pendientes** (`FB-NN` no archivadas): bloquean a todos los lanes, asi que condicionan lo que cualquier dev puede abrir.
 
-**En multirepo** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --su nombre y sus fases--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
+**En topologia `fraccionado`** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --su nombre y sus fases--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
 
 ### `switch <lane-id>`
 
@@ -44,7 +44,7 @@ Anade al final las **barreras pendientes** (`FB-NN` no archivadas): bloquean a t
 
 Informa de:
 
-- lane activo (contenido de `openspec/.lane`, o `roadmap.repo` **en multirepo**), o aviso de que no hay ninguno seleccionado
+- lane activo (contenido de `openspec/.lane`, o `roadmap.repo` **en topologia `fraccionado`**), o aviso de que no hay ninguno seleccionado
 - change abierto en ese lane, si lo hay, y en que estado
 - fase siguiente del lane
 - barreras pendientes que lo bloqueen
@@ -52,7 +52,7 @@ Informa de:
 
 Si `openspec/.lane` no existe y el modo es `multilane`, no falles: informa de que no hay lane activo y lista los disponibles.
 
-**En multirepo siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Resuelvelo segun "Resolver el lane activo en multirepo" (`references/parallelism.md`), que es tambien donde esta que hacer si `roadmap.repo` falta o no corresponde a ningun `lane-id`. Di ademas **como lo has resuelto** --declarado o inferido del nombre--: no es lo mismo para quien lee.
+**En topologia `fraccionado` siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Resuelvelo segun "Resolver el lane activo en multirepo" (`references/parallelism.md`), que es tambien donde esta que hacer si `roadmap.repo` falta o no corresponde a ningun `lane-id`. Di ademas **como lo has resuelto** --declarado o inferido del nombre--: no es lo mismo para quien lee.
 
 ### Proximos pasos
 

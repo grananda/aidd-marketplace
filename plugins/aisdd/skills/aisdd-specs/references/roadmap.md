@@ -40,7 +40,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 0. **Si ya existe `docs/roadmap.md`, no lo sobrescribas sin preguntar.** Un roadmap ya faseado suele estar validado, repartido en sprints y, a veces, volcado a Jira: regenerarlo cambia nombres de fase y `change_hint`, y rompe esos enlaces. Ofrece dos caminos y espera respuesta (ver "Anotar un roadmap existente"):
    - **Anotar** — conserva el faseado tal cual y solo anade la capa de paralelismo. Disponible **solo para el modo `waves`**.
    - **Re-fasear** — regenera el roadmap completo (comportamiento clasico). Es obligatorio si el modo destino es `multilane`.
-   - **Adoptar** — **solo en multirepo**, y es el camino normal en todos los repos menos uno. El `docs/roadmap.md` que hay aqui **viene copiado del repo donde se faseo**: no se re-fasea, no se pregunta nada y no se toca el documento. Se lee, se escriben en `openspec/config.yaml` las fases de **este** lane, y se acaba. Ver "Multirepo: donde se ejecuta este comando".
+   - **Adoptar** — **solo en topologia `fraccionado`**, y es el camino normal en todos los repos menos uno. El `docs/roadmap.md` que hay aqui **viene copiado del repo donde se faseo**: no se re-fasea, no se pregunta nada y no se toca el documento. Se lee, se escriben en `openspec/config.yaml` las fases de **este** lane, y se acaba. Ver "Multirepo: donde se ejecuta este comando".
    Si `docs/roadmap.md` no existe, sigue directamente en el paso 1.
 1. Revisa si el usuario ya ha pasado requisitos y arquitectura. Localiza documentacion existente en `docs/`, `config.yaml` (`project_context.design_docs` y `project_context.delivery_docs`), `README.md` o rutas indicadas por el usuario. **Lee tambien la capa de entrega si existe** (`docs/sprint-plan.md`, `docs/planificacion-proyecto.md`, `docs/plan-revision-hu.md`): condiciona el faseado (ver "Alineacion con la capa de entrega").
 2. Si faltan requisitos, arquitectura, o no esta claro donde estan, solicitalos antes de continuar. **`docs/detalle-historias-usuario.md` es requisito duro de este comando**: sus tallas XS/S/M/L/XL son la unica fuente de esfuerzo por fase, y sin esfuerzo el pre-flight de optimizacion (paso 11) no puede calcular ningun calendario. Si no existe, **detente** y remite a `aidd user-story-details`; no estimes tu las tallas. La capa de entrega es **opcional**: si no hay `sprint-plan.md`, fasea solo por presupuesto de contexto y dilo.
@@ -98,7 +98,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
    - `aisdd open change [what-you-want-to-build]`
    - `aisdd implement change [change-slug]`
    - `aisdd close change [change-slug]`
-   - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane). **En multirepo no lo pongas**: ahi ese comando se rechaza, y un prompt que empieza por un comando que falla es peor que no tener prompt.
+   - `aisdd lane switch <lane-id>` (solo en modo `multilane`, como paso previo de cada bloque de lane). **En topologia `fraccionado` no lo pongas**: ahi ese comando se rechaza, y un prompt que empieza por un comando que falla es peor que no tener prompt.
 15. En `docs/prompts-roadmap-native-ai.md`, para cada fase indica explicitamente:
    - que documentos o secciones pasar al modelo
    - que partes del codigo son relevantes
@@ -111,7 +111,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 16. **En modo `waves`, agrupa los prompts por oleada**: un bloque por oleada, y dentro de el las fases que pueden ejecutarse a la vez, indicando explicitamente que **se pueden lanzar en paralelo** y que la oleada siguiente no arranca hasta que la actual cierra. Si una oleada lleva una sola fase, di por que (dependencias, no falta de trabajo).
 17. **En modo `multilane`, agrupa los prompts por lane, no en una unica secuencia lineal.** Un bloque por lane, cada uno encabezado por su `aisdd lane switch <lane-id>` y con sus fases en orden; `F0` va antes de todos los bloques y cada barrera `FB-NN` va en su propio bloque, con una nota explicita de que **detiene todos los lanes** hasta cerrarse. El documento debe poder leerse de arriba abajo por un dev que solo trabaja un lane, sin tener que filtrar mentalmente fases ajenas.
 
-    **En multirepo el bloque de cada lane se encabeza con el repositorio, no con un `switch`**: su nombre y la instruccion de trabajar dentro de el. Sin `F0` y sin barreras, porque no las hay. Y como cada repo lleva **su propia copia** de este fichero, di al principio de cada bloque **cual de ellos es el tuyo**: un dev que abre el suyo tiene que ver de un vistazo que bloque le toca y que el resto es contexto de los demas.
+    **En topologia `fraccionado` el bloque de cada lane se encabeza con el repositorio, no con un `switch`**: su nombre y la instruccion de trabajar dentro de el. Sin `F0` y sin barreras, porque no las hay. Y como cada repo lleva **su propia copia** de este fichero, di al principio de cada bloque **cual de ellos es el tuyo**: un dev que abre el suyo tiene que ver de un vistazo que bloque le toca y que el resto es contexto de los demas.
 18. Los prompts de `docs/prompts-roadmap-native-ai.md` deben estar redactados para un usuario final o para otro agente, en espanol, e incluir el contexto minimo necesario para ejecutar cada fase sin arrastrar informacion irrelevante de fases futuras.
 19. No uses en ese fichero comandos OpenSpec directos como `openspec new change`, `openspec instructions apply` u `openspec archive`, salvo de forma explicativa excepcional fuera de los prompts operativos.
 20. Tras generar `docs/roadmap.md` y `docs/prompts-roadmap-native-ai.md`, actualiza `openspec/config.yaml` con el resumen del roadmap segun la seccion siguiente, y registra la configuracion de paralelismo en `AGENTS.md` segun "Registro del paralelismo en `AGENTS.md`".
@@ -283,7 +283,7 @@ Estas orientaciones valen para la **preferencia** del paso 9. La eleccion defini
 4. Repite hasta colocar todas las fases. Si una fase nunca es colocable, hay un **ciclo** en `depends_on`: corrigelo antes de escribir nada.
 5. Comprueba el ancho real de cada oleada. Si la media queda muy por debajo de `parallel_developers`, dilo: el faseado no es paralelizable y quiza `parallel_developers` esta sobreestimado, o las fases estan mal cortadas.
 
-**Construccion de los lanes por repositorio (multirepo).** Sustituye a los siete pasos de abajo, que no aplican: no hay numero de lanes que calcular ni corte que negociar. Ver "Lanes por repositorio" (`references/parallelism.md`).
+**Construccion de los lanes por repositorio (topologia `fraccionado`).** Sustituye a los siete pasos de abajo, que no aplican: no hay numero de lanes que calcular ni corte que negociar. Ver "Lanes por repositorio" (`references/parallelism.md`).
 
 1. **Un lane por repo, y el `lane-id` es el `id` del repo.** Salen de la tabla de la seccion 3 de la arquitectura, tal cual. No los renombres ni los inventes: es la clave con la que cada repo reconoce sus fases y con la que se agregan los KPI.
 2. **Los `paths` de cada lane van relativos a la raiz de su repo**, no a ninguna carpeta comun. Sirven para documentar que hay dentro, no para separar: la separacion ya la da el repo.
@@ -351,7 +351,7 @@ Marca `[RIESGO]` cualquier dependencia declarada cuyo lane destino **no tenga ot
 
 Cierra la seccion con el **grafo resumido** (que lane espera a cual, y en que fases) para que el desajuste se vea de un vistazo y `aiba sprint-planning` pueda secuenciarlo.
 
-**En multirepo las dos secciones cambian de contenido**, porque la mitad de lo que piden no existe:
+**En topologia `fraccionado` las dos secciones cambian de contenido**, porque la mitad de lo que piden no existe:
 
 - En **"Lanes"**, sustituye el numero de lanes y su calculo (`min(modulos, devs)`) por **la tabla de repositorios de la arquitectura**: no hubo calculo, hubo una frontera dada. **Omite el dueno del contrato compartido**: no hay contrato en el fuente. Si algun repo publica un artefacto que otros consumen, di **quien lo publica y en que fase**, que es lo que aqui hace ese papel.
 - La justificacion del corte es la misma para todos y cabe en una linea: **son repositorios distintos**.

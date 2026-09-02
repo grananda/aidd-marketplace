@@ -58,7 +58,7 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 
 ## Reglas generales
 
-- Trabaja desde la raiz del proyecto del usuario.
+- **Trabaja desde donde esta el usuario, y no le pidas que cambie de carpeta.** Normalmente esa es la raiz del proyecto. En topologia `externalizado` es su repo de codigo, y las specs estan mas arriba: se resuelven subiendo hasta `openspec/config.yaml` (ver `references/governance-repo.md`). Mover al usuario de carpeta es la ultima salida, no la primera.
 - **Anota la hora UTC al empezar el comando**, antes de leer nada, y pasala como `started_at` en la entrada de auditoria. Es lo unico que permite saber cuanto duro: con solo la marca de fin, el hueco hasta la entrada anterior mide la comida de por medio y no el trabajo. Un comando que empieza a las 18:50 y acaba a las 09:10 duro minutos, no catorce horas.
 - Antes de ejecutar comandos, confirma el estado relevante con comandos no destructivos (`Get-Command`, `npm list -g`, `openspec list`, busqueda de ficheros).
 - Si un argumento opcional no llega, intenta resolverlo desde OpenSpec. Pregunta solo si hay ambiguedad real.

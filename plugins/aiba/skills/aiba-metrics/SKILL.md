@@ -125,7 +125,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
 
 - **`--activity` por cada repo donde se haya trabajado.** El script los concatena. Si alguno no existe **avisa y sigue**: no es un error, pero las cifras salen cortas en esa parte y hay que decirlo al presentar.
 - **`--repo` por cada repositorio.** Commits, lineas y autores salen **sumados**. Un repo sin commits en la ventana, o que no es un repo, sale como aviso — churn y volumen quedan cortos.
-- **En topologia `externalizado`, `--activity` no esta donde estan las specs.** El `openspec/` vive fuera de los repos, pero el hook sigue escribiendo dentro de cada repo, junto al codigo. Buscalos ahi, no al lado del `openspec/`.
+- **En topologia `externalizado`, `--activity` no esta donde estan las specs.** El `openspec/` vive en el repo de gobierno, pero el hook escribe dentro de cada repo de codigo, junto al proyecto. Buscalos ahi, no al lado del `openspec/`. Si el proyecto los excluye con `.git/info/exclude` --lo habitual cuando se externaliza para que el repo de codigo quede limpio--, **el fichero existe pero no esta versionado**: solo tienes la actividad de la maquina desde la que ejecutas. Dilo al presentar.
 
 **El baseline y el worklog no se repiten**: son del proyecto entero, no de un repo.
 

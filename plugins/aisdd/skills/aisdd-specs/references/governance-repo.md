@@ -106,7 +106,9 @@ Si la razon de externalizar es que **los artefactos de especificacion no deben a
 
 - **`AGENTS.md` y `CLAUDE.md`** en la raiz.
 - **`.claude/`**, con sus settings y hooks.
-- **`docs/aidd-activity.md`**, que el hook escribe dentro del repo de codigo --ahi es donde tiene que estar para `aiba metrics`, asi que la decision es entre ignorarlo o asumirlo, y es del usuario--.
+- **`docs/aidd-activity.md`**, que el hook escribe **dentro del repo de codigo**: es donde trabaja el dev y el hook anota relativo a ahi. Y ahi hace falta, porque es la unica fuente de `aiba metrics`.
+
+  La salida limpia es **`.git/info/exclude`** del repo de codigo, no su `.gitignore`: excluye igual, es local a cada clon y **no se versiona**, asi que el fichero existe para el hook y no aparece ni en el arbol del cliente ni en un `.gitignore` que alguien se pregunte por que tiene esa linea. Proponlo; la decision es del usuario.
 - **Los mensajes de commit**, si llevan trailers de co-autoria. Ese rastro esta en la historia y **no se quita sin reescribirla**: dilo, no lo arregles tu.
 
 **Enumera lo que encuentres y deja decidir.** No borres nada ni anadas nada a `.gitignore` por tu cuenta: son ficheros del repo del cliente y esa decision no es tuya.
