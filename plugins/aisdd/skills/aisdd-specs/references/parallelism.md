@@ -93,41 +93,51 @@ La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo
 
 ### Las tres topologias
 
-Antes del modo de faseado hay una decision anterior: **donde viven `openspec/` y `docs/`**. Se llama **topologia**, se guarda en `roadmap.topology` y **se pregunta en el pre-flight de `aisdd roadmap`** — no se deduce del numero de repos, porque con varios hay dos respuestas validas y la eleccion es del equipo.
+Antes del modo de faseado hay una decision anterior: **donde viven `openspec/` y `docs/`**. Se llama **topologia**, se guarda en `roadmap.topology` y **se pregunta**: no se deduce de nada, porque el motivo para elegir una u otra suele estar fuera del codigo.
 
-| Topologia | Repos | Donde vive `openspec/` | Donde vive `docs/` |
-|---|---|---|---|
-| **`mono`** | 1 | En el repo | En el repo |
-| **`fraccionado`** | N | **Uno por repo** | Una copia completa por repo |
-| **`externalizado`** | N | **Uno solo, fuera de los repos** | Uno solo, al lado |
+| Topologia | Repos de codigo | Donde viven `openspec/` y `docs/` |
+|---|---|---|
+| **`mono`** | 1 | En el propio repo |
+| **`fraccionado`** | N | **Uno por repo**, cada uno con su copia completa de `docs/` |
+| **`externalizado`** | **1 o N** | En un **repositorio git aparte**, que gobierna a los de codigo |
 
-Lo que cambia de verdad no son las rutas, es **si un change puede cruzar repos**:
+**`externalizado` no depende de cuantos repos de codigo haya.** Un proyecto de un solo repo tambien puede tener su `openspec/` fuera, y es el caso que motiva la topologia mas a menudo que el multirepo: **cuando los artefactos de especificacion no deben estar en el repo que ve el cliente**. Ver "El repositorio de gobierno".
+
+Lo que cambia de verdad:
 
 | | `mono` | `fraccionado` | `externalizado` |
 |---|---|---|---|
 | Modo de faseado | Los tres | **`multilane` forzado** | Los tres |
-| Lane y repo | No aplica | **Son lo mismo, 1:1** | **Cosas distintas**, muchos a muchos |
-| Un change cruza repos | No aplica | **No puede** | **Puede** |
-| PR por change | Una | **Una** | **Una por repo que toque** |
+| Lane y repo | No aplica | **Son lo mismo, 1:1** | **Cosas distintas** |
+| Un change cruza repos | No aplica | **No puede** | Puede, si un dev alcanza varios |
+| PR por change | Una | **Una** | Una por repo que toque |
 | Barreras `F0` / `FB-NN` | Si | **No hay** | Si |
-| Independencia de lane | Verificada | **Estructural** | Verificada, repo a repo |
-| Auditoria | Una | Una por repo | **Una sola** |
-| Informe de estado | `--root .` | Un `--root` por repo | `--root` a la carpeta externa |
-| Lo que duele | Nada | **`docs/` copiado en cada repo** | **La carpeta externa hay que versionarla** |
+| Auditoria | Una | Una por repo | **Una sola**, con el repo anotado en cada entrada |
+| Informe de estado | `--root .` | Un `--root` por repo | `--root` al repo de gobierno |
+| Lo que cuesta | Nada | **`docs/` copiado en cada repo** | **Dos repos que clonar y que mantener en paso** |
 
-**Como eligen los equipos, y por que las dos son legitimas:**
+**Cuando elegir cada una:**
 
-- **`fraccionado`** cuando cada repo es un producto casi independiente y los equipos quieren autonomia: clonas un repo y tienes todo lo que necesitas, sin depender de una ubicacion que alguien tiene que tener montada. Se paga replicando `docs/`.
-- **`externalizado`** cuando el equipo quiere **un solo registro y un solo roadmap** y le pesa mas la duplicacion que la coordinacion. No hay documentos que sincronizar, la auditoria es una y el informe de estado no tiene que agregar nada.
+- **`mono`** por defecto. Un repo, todo dentro.
+- **`fraccionado`** cuando cada repo es casi un producto aparte y los equipos quieren autonomia: clonas uno y tienes todo. Se paga replicando `docs/`.
+- **`externalizado`** cuando las specs **no pueden vivir en el repo de codigo**. Puede ser por politica del cliente, por contrato o porque ese repo es un entregable y estos son documentos de trabajo internos.
 
-#### La carpeta externa, y lo que hay que decir de ella
+#### El repositorio de gobierno
 
-En `externalizado`, `openspec/` y `docs/` viven **fuera de los repos** y cada repo la referencia desde su `AGENTS.md`. Tres cosas que hay que dejar claras al usuario, porque no se descubren solas:
+En `externalizado`, `openspec/` y `docs/` viven en **un repositorio git propio**. No en una carpeta compartida, no en un disco de red: **un repo**.
 
-1. **Esa carpeta hay que versionarla.** La auditoria es obligatoria y **una auditoria sin historia no vale como registro**: sin control de versiones no hay quien diga cuando se escribio cada entrada ni quien puede demostrar que no se toco despues. Si el equipo la deja en un disco compartido sin versionar, **dilo como riesgo** y registralo; no lo des por bueno en silencio.
-2. **Un repo clonado solo no arranca.** Su `AGENTS.md` apunta a una ubicacion que puede no existir en esa maquina. Es el precio de no duplicar, y quien reciba el repo tiene que saberlo.
-3. **El registro de actividad sigue dentro de los repos.** El hook de `aidd-activity.md` escribe **relativo al directorio donde se trabaja**, y en `externalizado` eso son los repos, no la carpeta externa. Asi que el `openspec/` esta fuera y los registros de actividad dentro, repartidos. `aiba metrics` lo resuelve con `--activity` repetido, pero **hay que saberlo**: medir uno solo publica la actividad de una parte del equipo sin senal de que falta el resto.
-4. **La ruta es local y varia por dev.** Lo que se declara en `arquitectura-base.md` es el **nombre** de cada repo y **su ruta relativa a la carpeta externa**; la ruta absoluta de esa carpeta es de cada maquina y no se versiona.
+**Y esa exigencia no es de estilo.** La auditoria es obligatoria y tiene que poder sostenerse como registro. En una carpeta sincronizada, la fecha de un fichero la cambia cualquiera --y OneDrive la cambia solo, al sincronizar--, dos personas que escriben a la vez producen una escritura perdida en vez de un conflicto visible, y un borrado no se deshace. Con un repo, las tres cosas se resuelven de golpe: la fecha va dentro del commit, un choque es un conflicto que hay que resolver, y cualquier estado anterior se recupera.
+
+**Los repos de codigo no saben nada de el; es el de gobierno el que los alcanza.** Declara donde estan en `roadmap.repos[].path`, relativo a su propia raiz, y desde ahi salen los `git -C <repo> diff` de la verificacion de `close change`. Con un solo repo de codigo es lo mismo con una sola entrada.
+
+**Que anotar y donde:**
+
+- **La auditoria es una sola**, en `openspec/audit/YYYY-MM/<quien>.jsonl` como siempre. **Cada entrada lleva el campo `repo`** con el `id` del repo de codigo sobre el que se trabajo. Eso permite filtrar por repo sin partir el directorio: el fichero ya se separa por escritor y mes, y con un dev por repo eso ya separa por repo de hecho.
+- **El registro de actividad no.** El hook de `aidd-activity.md` escribe **relativo al directorio donde se trabaja**, o sea dentro del repo de codigo. Ahi se queda; `aiba metrics` lo recoge con `--activity` repetido.
+
+**Commit y push van por comando, no por sesion.** Cada comando de AISDD escribe una entrada de auditoria, y una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit en el repo de gobierno" (`references/governance-repo.md`).
+
+**Y el orden respecto al repo de codigo importa**: `open change` se commitea **antes** de escribir codigo --la spec existe antes que lo que especifica-- y `close change` **despues** de que la PR del repo de codigo este mergeada. Archivar antes deja el roadmap diciendo que la fase esta hecha con el codigo sin integrar, y el informe de estado lo cuenta como avance real.
 
 ### Lanes por repositorio (topologia `fraccionado`)
 

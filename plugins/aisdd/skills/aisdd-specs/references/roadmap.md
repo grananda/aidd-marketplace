@@ -118,7 +118,7 @@ Fasea el desarrollo antes de modificar documentos OpenSpec.
 21. No ejecutes `openspec new change`, no archives cambios y no edites ningun otro artefacto de `openspec/` (changes, specs) durante este comando. La unica escritura permitida en `openspec/` es la actualizacion de `openspec/config.yaml` descrita en "Actualizacion de `openspec/config.yaml` tras el roadmap". Fuera de `openspec/`, este comando solo toca su **propio** bloque de `AGENTS.md`: nunca el bloque de comandos de `aisdd init`.
 
 22. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `docs/roadmap.md`, `docs/prompts-roadmap-native-ai.md`, `openspec/config.yaml` y `AGENTS.md`. **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.
-23. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:roadmap`. Reporta despues su ruta y su `id` en la verificacion final.
+23. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:roadmap`. Reporta despues su ruta y su `id` en la verificacion final. **Y si `roadmap.topology` es `externalizado`, commitea y sube el repo de gobierno** antes de dar el comando por terminado: una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit y push" (`references/governance-repo.md`).
 24. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Anotar un roadmap existente (solo modo `waves`)
@@ -205,7 +205,7 @@ Cambiar `roadmap.topology` con el proyecto en marcha **no es un ajuste de fasead
 **De `fraccionado` a `externalizado`** --el equipo se cansa de replicar `docs/`--:
 
 1. Elige **cual de los N `openspec/` es el bueno**. No se fusionan sin mas: cada uno tiene sus changes archivados y su auditoria, y concatenarlos a ciegas duplica lo que se copio en la migracion anterior. Si vienen de un repo unico que se partio, las **fases sin lane** estan repetidas en todos y solo debe quedar una copia.
-2. El humano crea la carpeta externa, mueve ahi `docs/` y el `openspec/` elegido, y **anade a los demas** los changes archivados que solo ellos tengan.
+2. El humano crea el **repositorio de gobierno** --un repo git, no una carpeta suelta--, mueve ahi `docs/` y el `openspec/` elegido, y **anade a los demas** los changes archivados que solo ellos tengan.
 3. `roadmap.topology: externalizado`, la tabla `roadmap.repos` con sus rutas, y el `AGENTS.md` de cada repo apuntando a la carpeta.
 4. Los `paths` de los lanes pasan a ir **prefijados con la ruta del repo**; antes eran relativos a su raiz.
 5. Borra los `openspec/` que quedan dentro de los repos, **pero solo cuando el externo este completo y versionado**. Dos registros vivos a la vez es peor que cualquiera de los dos.
@@ -245,29 +245,17 @@ Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronter
 
 Este paso decide entre los tres modos (`atomic`, `waves`, `multilane`) y fija `parallel_developers`. Lee antes la seccion "Modos de faseado (paralelismo)" (`references/parallelism.md`), que define el modelo; aqui esta el procedimiento.
 
-**0.pre. Resuelve primero la topologia, y con varios repositorios PREGUNTALA.**
+**0.pre. La topologia ya esta decidida: respetala, no la preguntes otra vez.**
 
-Antes del modo hay una decision anterior: **donde viven `openspec/` y `docs/`**. Condiciona todo lo que viene despues --si un change puede cruzar repos, cuantas PR lo cierran, si hay documentos que copiar-- y **no se deduce del numero de repos**. Ver "Las tres topologias" (`references/parallelism.md`).
+`roadmap.topology` lo fija `aisdd init`, que es quien crea `openspec/` y por tanto quien decide donde vive. Aqui solo se lee. Ver "Las tres topologias" (`references/parallelism.md`).
 
-Lee la seccion 3 de `docs/arquitectura-base.md` y actua segun lo que declare:
+- **`mono`**: el modo se decide con el procedimiento normal de abajo.
+- **`fraccionado`**: el modo es **`multilane` con un lane por repo**, no se pregunta y **no se ejecuta el pre-flight de optimizacion del paso 11** --no hay caminos que comparar cuando el corte ya esta hecho--. `parallel_developers` es el numero de repos. Pasa directamente a "Construccion de los lanes por repositorio".
+- **`externalizado`**: el modo **si se decide** con el procedimiento normal, y los tres siguen disponibles. Lane y repo son cosas distintas: un lane puede abarcar varios repos y un repo tener varios lanes.
 
-- **Un solo repositorio** -> topologia `mono`. No preguntes nada: `openspec/` y `docs/` viven en el repo y el modo se decide con el procedimiento normal de abajo.
-- **Varios repositorios** -> **pregunta con `AskUserQuestion`** cual de las dos, con la recomendacion puesta y el intercambio dicho:
+**Si `roadmap.topology` no esta**, es que `init` es anterior a esta version o no se ejecuto: asumela `mono` si hay un solo repo, y si `docs/arquitectura-base.md` declara varios, **preguntala** con las tres opciones antes de seguir. No la deduzcas del numero de repos: `externalizado` vale igual con uno que con varios.
 
-  | Opcion | Que implica |
-  |---|---|
-  | **`fraccionado` (Recomendada)** | Un `openspec/` y una copia de `docs/` **por repo**. Un lane por repo, un change no cruza repos, una PR por change, sin barreras. El precio: `docs/` va copiado y un cambio hay que replicarlo en todos |
-  | **`externalizado`** | Un `openspec/` y un `docs/` **unicos, fuera de los repos**, referenciados desde el `AGENTS.md` de cada uno. Nada que copiar y un solo registro. El precio: un change puede cruzar repos y entonces se cierra con **N PR**, y esa carpeta hay que versionarla en algun sitio o la auditoria se queda sin historia |
-
-  **Presenta el intercambio, no solo los nombres.** La eleccion es del equipo y las dos son legitimas; lo que no vale es elegir sin saber que `externalizado` reintroduce el cierre con varias PR y que `fraccionado` obliga a replicar documentos.
-
-**Si `openspec/config.yaml` ya trae `roadmap.topology`, proponlo como default**: el proyecto ya eligio. Cambiarla a mitad **no es un ajuste de faseado, es una migracion** — ver "Cambiar de topologia".
-
-**Consecuencias inmediatas de la respuesta:**
-
-- **`fraccionado`**: el modo es `multilane` con **un lane por repo**, no se pregunta y **no se ejecuta el pre-flight de optimizacion del paso 11** --no hay caminos que comparar cuando el corte ya esta hecho--. `parallel_developers` es el numero de repos. Pasa directamente a "Construccion de los lanes por repositorio".
-- **`externalizado`**: el modo **si se decide** con el procedimiento normal de abajo, y los tres siguen disponibles. Aqui **lane y repo vuelven a ser cosas distintas**: un lane puede abarcar varios repos y un repo tener varios lanes. Sigue en el paso 0.
-- **`mono`**: nada cambia respecto a siempre.
+**Cambiarla desde aqui no es un ajuste de faseado, es una migracion** — ver "Cambiar de topologia".
 
 **0. Resuelve `parallel_developers` primero.** Es el dato del que dependen los otros dos modos, y se resuelve igual para ambos:
 
@@ -460,9 +448,10 @@ El objetivo es que `openspec/config.yaml` quede como indice navegable del roadma
      repo: <repo-id>                   # SOLO en `fraccionado`: cual de los repos es ESTE,
                                        # el que contiene este openspec/. Es lo unico que
                                        # cambia entre las copias de config.yaml
-     repos:                            # SOLO en `externalizado`: hay un openspec para
-       - id: <repo-id>                 # todos, asi que tiene que saber donde estan
-         path: <ruta/relativa/a/esta/carpeta/>
+     repos:                            # SOLO en `externalizado`: este repo gobierna a
+       - id: <repo-id>                 # los de codigo, asi que tiene que saber donde
+         path: <ruta/relativa/a/este/repo/>   # estan. Uno o varios: `externalizado`
+                                       # vale igual con un solo repo de codigo
      parallel_developers: <entero >= 1>   # devs que trabajan a la vez; 1 => secuencial
      contract_owner: <rol/persona>     # solo si mode: multilane
      lanes:                            # solo si mode: multilane

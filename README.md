@@ -92,7 +92,7 @@ Sin repo padre y sin submódulos. Lo que sí hay son **dos formas de repartir la
 | Topología | `openspec/` y `docs/` | El precio |
 |---|---|---|
 | **`fraccionado`** | Uno **por repo**, autónomos | `docs/` va copiado y un cambio hay que replicarlo en todos |
-| **`externalizado`** | **Unos solos, fuera de los repos**, referenciados desde el `AGENTS.md` de cada uno | Un change puede cruzar repos y entonces se cierra con **N PR**, y esa carpeta hay que versionarla |
+| **`externalizado`** | En un **repositorio git aparte** que gobierna a los de código. Vale con **uno o varios** repos de código | Dos repos que clonar y mantener en paso: commit y push del de gobierno en cada comando |
 
 Con **`fraccionado`**, de ese 1:1 entre lane y repo sale todo lo demás:
 
@@ -104,7 +104,7 @@ Con **`fraccionado`**, de ese 1:1 entre lane y repo sale todo lo demás:
 | Barreras | **No hay.** No existe superficie compartida que serializar |
 | Estado del proyecto | No está en ningún repo: `aiba status-report` con un `--root` por repo |
 
-Con **`externalizado`** nada de eso aplica: el modo se decide con normalidad, **lane y repo vuelven a ser cosas distintas**, hay barreras, y el informe de estado sale de un solo `--root` a la carpeta externa.
+Con **`externalizado`** nada de eso aplica: el modo se decide con normalidad, **lane y repo vuelven a ser cosas distintas**, hay barreras, y el informe de estado sale de un solo `--root` al repo de gobierno.
 
 La apuesta es que los repos son de verdad **independientes en código**: lo que compartan viaja como artefacto versionado —un contrato OpenAPI publicado, un paquete— y cada repo consume la versión que elige. Uno que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta.
 

@@ -385,25 +385,25 @@ El umbral es el ±25 %: un change de 3 días que tarda 3,5 no es un hallazgo, y 
 
 **Estado:** implementada · **Versión:** `aidd` 2.5.0, `aisdd` 3.6.0, `aiba` 1.9.0 · **Añadida:** 2026-09-01
 
-F-20 asumió que varios repos implican un `openspec/` por repo. Es una de las dos formas de trabajar, no la única: un equipo puede querer **un solo registro y un solo roadmap** y preferir el coste de coordinar al de replicar documentos.
+F-20 asumió que varios repos implican un `openspec/` por repo. Es una de las formas de trabajar, no la única, y el número de repos no la determina.
 
-Ahora hay una decisión anterior al modo de faseado —la **topología**, en `roadmap.topology`— y **se pregunta**:
+Hay ahora una decisión anterior al modo de faseado —la **topología**, en `roadmap.topology`— y **la pregunta `aisdd init`**, que es quien crea `openspec/` y por tanto quien decide dónde vive. `aisdd roadmap` la lee; cambiarla desde ahí es una migración, no un ajuste.
 
-| Topología | `openspec/` y `docs/` | Lane y repo | PR por change | Barreras |
-|---|---|---|---|---|
-| **`mono`** | En el repo | No aplica | Una | Sí |
-| **`fraccionado`** | Uno **por repo** | **Son lo mismo, 1:1** | **Una** | **No hay** |
-| **`externalizado`** | **Unos solos, fuera** | **Cosas distintas** | **Una por repo que toque** | Sí |
+| Topología | Repos de código | Dónde viven `openspec/` y `docs/` |
+|---|---|---|
+| **`mono`** | 1 | En el propio repo |
+| **`fraccionado`** | N | Uno **por repo**, cada uno con su copia de `docs/` |
+| **`externalizado`** | **1 o N** | En un **repositorio git aparte** que gobierna a los de código |
 
-Lo que cambia de verdad no son las rutas: es **si un change puede cruzar repos**. En `fraccionado` no puede —el lane es el repo— y por eso la independencia es estructural y una PR basta. En `externalizado` sí puede, y con ello vuelve la regla de N repos → N PR y el diff repo a repo que F-20 había retirado.
+**`externalizado` no depende de cuántos repos de código haya.** Un proyecto de un solo repo también puede tener su `openspec/` fuera, y ese es el caso que más veces la motiva: cuando los artefactos de especificación **no pueden estar en el repo de código** — por política del cliente, por contrato, o porque ese repo es un entregable y estos son documentos de trabajo internos.
 
-**No se deduce del número de repos.** Con varios hay dos respuestas válidas y la elección es del equipo, así que `aisdd roadmap` la pregunta con el intercambio delante: `fraccionado` obliga a replicar `docs/`; `externalizado` no duplica nada pero reintroduce el cierre con varias PR.
+**Y tiene que ser un repo git, no una carpeta compartida.** No es una preferencia de estilo. En una carpeta sincronizada la fecha de un fichero la cambia cualquiera —y OneDrive la cambia sola al sincronizar—, dos personas escribiendo a la vez producen una escritura perdida en vez de un conflicto visible, y un borrado no se deshace. Con un repo, las tres cosas se resuelven de golpe: la fecha va dentro del commit, un choque es un conflicto que hay que resolver, y cualquier estado anterior vuelve con un `checkout`. `aisdd init` **se detiene** si la ubicación no es un repositorio git.
 
-**Y de `externalizado` hay que decir tres cosas que no se descubren solas:**
+**La auditoría es una sola, con el repo anotado en cada entrada.** El fichero ya se parte por escritor y mes (`audit/YYYY-MM/<quien>.jsonl`), y con un dev por repo eso separa por repo de hecho: un nivel más de directorio no evitaría ninguna colisión que no esté evitada, y obligaría al lector a manejar tres disposiciones. Un campo `repo` da el mismo filtrado sin tocar el layout.
 
-1. **Esa carpeta hay que versionarla.** La auditoría es obligatoria y una auditoría sin historia no vale como registro: sin control de versiones nadie puede demostrar cuándo se escribió cada entrada. Si el equipo la deja en un disco compartido, se registra como riesgo.
-2. **Un repo clonado suelto no arranca**, porque su `AGENTS.md` apunta a una ubicación que puede no existir en esa máquina.
-3. **La ruta absoluta es de cada dev** y no se versiona; lo que se declara son las rutas de los repos **relativas a la carpeta**.
+**Commit y push van por comando, no por sesión.** Todos los comandos escriben una entrada de auditoría, y una entrada que solo existe en un portátil no es un registro. Y el orden respecto al repo de código es lo que hace que el roadmap diga la verdad: `open change` se commitea antes de escribir código, y `close change` **después** de que la PR esté mergeada.
+
+**Los rastros no son solo esas dos carpetas.** Si la razón de externalizar es que no aparezcan en el repo de código, `aisdd init` enumera también `AGENTS.md`, `CLAUDE.md`, `.claude/`, `docs/aidd-activity.md` —que el hook escribe dentro del repo de código— y los trailers de co-autoría en los mensajes de commit, que están en la historia y no se quitan sin reescribirla. **Los enumera; no borra nada ni toca el `.gitignore`**: son ficheros del repo del cliente.
 
 **Y al repasar la externalización aparecieron dos cosas que sí rompía**, ninguna en el sitio donde las buscaba:
 

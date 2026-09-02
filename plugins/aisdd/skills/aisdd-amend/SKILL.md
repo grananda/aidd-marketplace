@@ -241,6 +241,8 @@ Obligatoria, con el mismo formato y reglas que el resto de comandos AISDD (ver `
 
 **Incluye el bloque `verification`** con lo que dieron el build y los tests del delta: este comando toma baseline antes de tocar nada y verifica despues, asi que el dato ya lo tienes. Omite los campos que no ejecutaste en vez de ponerlos a cero.
 
+**Si `roadmap.topology` es `externalizado`, commitea y sube el repo de gobierno** despues de escribir la entrada, como el resto de comandos: ver "Ritmo de commit y push" en `aisdd-specs`.
+
 **Usa el script**, igual que el resto de comandos AISDD: `audit.py` de `aisdd-specs` compone la entrada, calcula los hashes y aplica la purga de forma determinista (ver `${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/references/scripts.md`). Componerla a mano es la via de respaldo si Python no esta disponible.
 
 ```bash

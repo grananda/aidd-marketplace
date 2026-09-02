@@ -128,7 +128,7 @@ Documentacion: `fraccionado` (un `openspec/` y una copia de `docs/` por repo)
 | `datos` | Batch y modelo de datos |
 ```
 
-Con `externalizado`, anade a la tabla una columna **`Ruta`** con la ubicacion de cada repo **relativa a la carpeta externa**: ahi hay un solo `openspec/` para todos y tiene que saber donde estan. Con `fraccionado` esa columna sobra --ningun comando sale de su repo--.
+Con `externalizado`, anade a la tabla una columna **`Ruta`** con la ubicacion de cada repo **relativa al repositorio de gobierno**: ahi hay un solo `openspec/` y tiene que saber donde estan. Con `fraccionado` esa columna sobra --ningun comando sale de su repo--.
 
 Reglas:
 

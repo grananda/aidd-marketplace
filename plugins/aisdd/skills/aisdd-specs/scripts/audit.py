@@ -28,7 +28,7 @@ Uso:
     python audit.py --entry <entry.json> [--root <dir>]
     echo '<json>' | python audit.py [--root <dir>]
 
-Campos admitidos en el JSON de entrada: command, change_id, skill_version,
+Campos admitidos en el JSON de entrada: command, change_id, repo, skill_version,
 prompt_version, model, platform, user, input_files[], output_files[],
 decisions[], status, errors[], correction_of, id, timestamp, **started_at**,
 **preflight_rounds**, **turns**, **interventions**, **verification{}**.
@@ -363,6 +363,11 @@ def main() -> int:
         "timestamp": entry.get("timestamp") or now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "command": entry["command"],
         "change_id": entry.get("change_id"),
+        # `repo` solo tiene sentido con la auditoria compartida de la topologia
+        # `externalizado`, donde un mismo registro recoge varios repos de codigo.
+        # En `mono` queda a null; el campo esta siempre para que la entrada se
+        # lea igual venga de donde venga.
+        "repo": entry.get("repo"),
         "skill_version": entry.get("skill_version", "desconocido"),
         "prompt_version": entry.get("prompt_version", "desconocido"),
         "model": entry.get("model", "desconocido"),

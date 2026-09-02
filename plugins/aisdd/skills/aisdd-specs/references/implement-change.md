@@ -26,7 +26,7 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 
    **Y el bloque `verification`** con lo que dieron el build, los tests y las puertas de calidad que hayas pasado: `{build, tests_run, passed, failed, added, modified, gates[]}`. Este comando **ya los ejecuta**; lo unico nuevo es dejar constancia. Si no ejecutaste alguno, omite ese campo en vez de poner cero: un cero se lee como cero fallos.
 
-   > No pases `first_run_green`: lo deriva el script de que sea el primer intento y de que no falle nada. Es el mejor indicador de si las specs iban bien, y por eso no puede depender de que te acuerdes de marcarlo. Reporta despues su ruta y su `id` en la verificacion final.
+   > No pases `first_run_green`: lo deriva el script de que sea el primer intento y de que no falle nada. Es el mejor indicador de si las specs iban bien, y por eso no puede depender de que te acuerdes de marcarlo. Reporta despues su ruta y su `id` en la verificacion final. **Y si `roadmap.topology` es `externalizado`, commitea y sube el repo de gobierno** antes de dar el comando por terminado: una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit y push" (`references/governance-repo.md`).
 9. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Correcciones durante la implementacion
