@@ -64,12 +64,13 @@ Inicializa AISDD (OpenSpec) en el proyecto.
 
     **En `fraccionado`, `aisdd init` se ejecuta una vez por repo**, dentro de cada uno, y cada ejecucion crea el `openspec/` de ese repo. Identifica cual es, en este orden: (a) si el config ya trae `roadmap.repo`, ese es; (b) si el nombre de la carpeta o el ultimo segmento de `git remote get-url origin` coincide con un `id` de la tabla de la seccion 3 de `docs/arquitectura-base.md`, proponlo; (c) **si no, preguntaselo** con la lista de `id` disponibles. **No lo decidas por parecido ni por descarte**: elegir mal hace que este `openspec/` ejecute las fases de otro lane, y no se ve hasta que alguien abre un change que no le tocaba. Escribe `roadmap.topology: fraccionado` y `roadmap.repo: <id>`, y recuerda que **`docs/` va copiado entero en cada repo**.
 
-    **En `externalizado`, `aisdd init` se ejecuta en el repo de gobierno**, no dentro de ningun repo de codigo. Ahi:
+    **En `externalizado`, `aisdd init` se ejecuta en el repo de gobierno**, no dentro de ningun repo de codigo --es la unica vez, junto con `aisdd roadmap`, que alguien tiene que estar ahi: los comandos del dia a dia se lanzan desde el repo de codigo--. Ahi:
 
     - **Comprueba que es un repositorio git** (`git rev-parse --git-dir`). Si no lo es, **detente**: la trazabilidad de la auditoria y la recuperacion de estados anteriores dependen de eso, y sin ello la topologia no se sostiene. Ofrece `git init` y espera respuesta; no lo hagas por tu cuenta.
     - Escribe `roadmap.topology: externalizado` y la lista `roadmap.repos` con el `id` y la **ruta relativa a este repo** de cada repo de codigo --uno o varios--. Verifica que cada ruta existe y es un repositorio git, y **avisa sin bloquear** de lo que no cuadre.
+    - **Escribe el `.gitignore` del repo de gobierno con el `path` de cada repo de codigo.** Es obligatorio y va aqui: sin el, un `git add -A` en el repo de gobierno se traga los repos de codigo enteros. Comprueba ademas que cada `path` es una **subcarpeta** de este repo; si alguno esta fuera del arbol, el layout esta mal montado y **el resto no va a funcionar** --el CLI de openspec no encuentra su carpeta subiendo--: dilo y no sigas como si nada.
     - **Revisa los rastros en cada repo de codigo** y enumeralos en el resumen, sin tocar nada. Ver "Rastros en el repo de codigo" (`references/governance-repo.md`).
-    - Di el **ritmo de trabajo**: commit y push de este repo al final de cada comando, y `close change` siempre despues de que la PR del repo de codigo este mergeada (`references/governance-repo.md`).
+    - Di el **ritmo de trabajo** y, sobre todo, **donde se ejecuta cada cosa**: `init` y `roadmap` aqui; `open`, `implement`, `amend` y `close` **desde el repo de codigo**, sin cambiar de carpeta. Mas el commit y push de este repo al final de cada comando, y `close change` siempre despues de que la PR del repo de codigo este mergeada (`references/governance-repo.md`).
 
     **No clones ningun repo.** Elegir remote, rama y credenciales es del humano.
 

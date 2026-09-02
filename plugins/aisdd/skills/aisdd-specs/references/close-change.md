@@ -8,6 +8,8 @@
 
 Archiva un cambio OpenSpec.
 
+> **Si `roadmap.topology` es `externalizado`, empieza resolviendo la raiz de gobierno**: sube desde el directorio actual hasta encontrar `openspec/config.yaml`. Ese es el sitio donde estan las specs y la auditoria, y la carpeta que dejaste atras al subir dice **en que repo de codigo estas**. El CLI de `openspec` se ejecuta desde esa raiz (`cd <raiz> && openspec ...`) y los commits con `git -C <raiz>`; build y tests, donde estas. **No pidas al usuario que cambie de carpeta.** Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
+
 1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional. **En modo `multilane`** el filtro por lane activo va primero: si ese lane tiene exactamente un change abierto, usalo sin preguntar. Si tras filtrar sigue habiendo varios, presentalos con su contexto y deja elegir. El lane activo sale de `openspec/.lane`, salvo en topologia **`fraccionado`**, donde se resuelve segun "Resolver el lane activo en `fraccionado`" (`references/parallelism.md`) y ese fichero no se usa. En `externalizado` se usa con normalidad.
 2. **Verificacion de independencia (solo si `roadmap.mode` es `multilane`).** Antes de archivar, comprueba que el change respeto las fronteras de su lane. Es el punto donde la independencia deja de ser una promesa del faseado y pasa a estar verificada:
    - **Rutas**: obten los ficheros que el change toco (`git diff --name-only` contra el punto de partida del change, o el equivalente disponible) y comprueba que **todos** caen bajo los `paths` de su lane (`roadmap.lanes[].paths` en `config.yaml`).

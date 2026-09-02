@@ -8,6 +8,8 @@
 
 Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver dudas con el usuario antes de tocar codigo.
 
+> **Si `roadmap.topology` es `externalizado`, empieza resolviendo la raiz de gobierno**: sube desde el directorio actual hasta encontrar `openspec/config.yaml`. Ese es el sitio donde estan las specs y la auditoria, y la carpeta que dejaste atras al subir dice **en que repo de codigo estas**. El CLI de `openspec` se ejecuta desde esa raiz (`cd <raiz> && openspec ...`) y los commits con `git -C <raiz>`; build y tests, donde estas. **No pidas al usuario que cambie de carpeta.** Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
+
 1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional; si no llega y hay varios changes abiertos —lo normal en `waves` y `multilane`— presenta los candidatos con su lane u oleada y deja elegir. No escojas tu.
 2. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
 3. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:

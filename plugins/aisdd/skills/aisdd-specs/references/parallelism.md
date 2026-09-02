@@ -128,7 +128,9 @@ En `externalizado`, `openspec/` y `docs/` viven en **un repositorio git propio**
 
 **Y esa exigencia no es de estilo.** La auditoria es obligatoria y tiene que poder sostenerse como registro. En una carpeta sincronizada, la fecha de un fichero la cambia cualquiera --y OneDrive la cambia solo, al sincronizar--, dos personas que escriben a la vez producen una escritura perdida en vez de un conflicto visible, y un borrado no se deshace. Con un repo, las tres cosas se resuelven de golpe: la fecha va dentro del commit, un choque es un conflicto que hay que resolver, y cualquier estado anterior se recupera.
 
-**Los repos de codigo no saben nada de el; es el de gobierno el que los alcanza.** Declara donde estan en `roadmap.repos[].path`, relativo a su propia raiz, y desde ahi salen los `git -C <repo> diff` de la verificacion de `close change`. Con un solo repo de codigo es lo mismo con una sola entrada.
+**Los repos de codigo van clonados dentro del arbol del de gobierno**, ignorados por el, y no saben nada de el: no llevan ninguna referencia que mantener --ni en su `AGENTS.md` ni en ningun sitio--. La raiz se encuentra **subiendo** hasta dar con `openspec/config.yaml`.
+
+Eso es lo que permite que **un dev no tenga que cambiar de carpeta nunca**: trabaja en su repo y el skill resuelve el resto. Solo `aisdd init` y `aisdd roadmap` se lanzan desde la raiz, y son cosa del Lead. Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
 
 **Que anotar y donde:**
 

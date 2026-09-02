@@ -4,6 +4,58 @@
 
 Aplica solo cuando `roadmap.topology` es `externalizado`: `openspec/` y `docs/` viven en un repositorio git propio, aparte de los repos de codigo. El modelo esta en "Las tres topologias" (`references/parallelism.md`); aqui esta como se opera.
 
+## El layout, que es obligatorio
+
+Los repos de codigo van **clonados dentro del arbol del repo de gobierno**, e ignorados por el:
+
+```
+proyecto/                 <- repo de gobierno (su .git)
+  openspec/
+  docs/
+  .gitignore              <- contiene repo-front/ y repo-bff/
+  repo-front/             <- repo de codigo (su propio .git)
+  repo-bff/
+```
+
+**No es una convencion, es lo que hace que todo lo demas funcione.** El CLI de `openspec` --`list`, `archive`, `instructions apply`-- no admite ninguna opcion de raiz: espera `openspec/` en el directorio desde el que corre. Con este arbol, ese directorio existe siempre subiendo, y una ruta como `repo-front/src/x.ts` cae donde tiene que caer.
+
+Los `path` de `roadmap.repos[]` van relativos a la raiz de gobierno, que es exactamente el nombre de esas subcarpetas.
+
+> **El `.gitignore` no es opcional.** Sin el, un `git add -A` en el repo de gobierno se traga los repos de codigo enteros. `aisdd init` lo escribe; si al ejecutar un comando ves que falta una entrada, **anadela y dilo**.
+
+## Donde se ejecuta cada comando
+
+**Un dev nunca cambia de carpeta.** Trabaja en su repo de codigo y ahi ejecuta todo. Que el `openspec/` este mas arriba es problema del skill, no suyo.
+
+| Comando | Desde donde | Quien |
+|---|---|---|
+| `aisdd init`, `aisdd roadmap` | La **raiz de gobierno** | Lead / Architect |
+| `aisdd open change` | El **repo de codigo** | Dev |
+| `aisdd implement change` | El **repo de codigo** | Dev |
+| `aisdd amend change` | El **repo de codigo** | Dev |
+| `aisdd close change` | El **repo de codigo** | Dev |
+
+`init` y `roadmap` van en la raiz por dos motivos distintos: `init` porque **crea** la estructura y todavia no hay nada que encontrar subiendo, y `roadmap` porque fasea el proyecto entero y no tiene un repo de referencia.
+
+### Como se resuelve la raiz
+
+Desde el directorio actual, **sube hasta encontrar un `openspec/config.yaml`**. El primero que aparezca es la raiz de gobierno. Con el layout de arriba es deterministico y no hace falta configurar ninguna ruta ni mantener ninguna referencia.
+
+**Si no aparece ninguno**, no supongas donde esta: detente y dilo. Puede ser que el repo de codigo no este dentro del arbol de gobierno --el layout esta mal montado-- o que el usuario este en otro sitio.
+
+### Como se sabe en que repo estas
+
+De la **primera carpeta que dejaste atras al subir**, cruzada con los `path` de `roadmap.repos[]`. Si estas en `proyecto/repo-front/src/`, subes hasta `proyecto/` y la carpeta es `repo-front/`, que es el `path` del repo `front`.
+
+Eso es lo que hace que `implement change` sepa donde escribe y `close change` sepa que diff mirar, **sin preguntar**. Si la carpeta no coincide con ningun `path` declarado, preguntalo con la lista; no lo deduzcas por parecido.
+
+### Que se ejecuta donde
+
+- **El CLI de `openspec`**, siempre desde la raiz: `cd <raiz> && openspec archive <slug>`. Nunca desde el repo de codigo, donde no encuentra su carpeta.
+- **Los artefactos de specs y la auditoria**, por ruta absoluta bajo la raiz. No hace falta moverse.
+- **Build, tests y linters**, en el repo de codigo, que es donde esta el proyecto y donde estas tu.
+- **Los commits del repo de gobierno**, con `git -C <raiz>`. Los del codigo, donde estas.
+
 ## Ritmo de commit y push
 
 **Por comando, no por sesion ni por dia.** Todos los comandos de AISDD escriben una entrada de auditoria al terminar, y una entrada que solo existe en un portatil no es un registro: no la ve nadie mas y desaparece con el disco.

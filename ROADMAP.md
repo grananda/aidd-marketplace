@@ -401,6 +401,12 @@ Hay ahora una decisión anterior al modo de faseado —la **topología**, en `ro
 
 **La auditoría es una sola, con el repo anotado en cada entrada.** El fichero ya se parte por escritor y mes (`audit/YYYY-MM/<quien>.jsonl`), y con un dev por repo eso separa por repo de hecho: un nivel más de directorio no evitaría ninguna colisión que no esté evitada, y obligaría al lector a manejar tres disposiciones. Un campo `repo` da el mismo filtrado sin tocar el layout.
 
+**Los repos de código van dentro del árbol del de gobierno**, ignorados por él —`init` escribe ese `.gitignore`, y sin él un `git add -A` se traga el código del cliente—. No es una convención: el CLI de `openspec` no admite opción de raíz y espera `openspec/` en el directorio desde el que corre, así que ese árbol es lo que hace que todo lo demás funcione.
+
+**Y un dev no cambia de carpeta nunca.** Trabaja en su repo de código y lanza ahí `open`, `implement`, `amend` y `close`; el skill sube hasta `openspec/config.yaml` para encontrar las specs, ejecuta el CLI desde esa raíz y commitea con `git -C`. Build y tests se quedan donde está el dev. Solo `init` y `roadmap` se lanzan desde la raíz, y son del Lead.
+
+Eso hace además que **el repo de código no lleve ninguna referencia** al de gobierno: subir es suficiente. Una cosa menos que mantener, y un rastro menos en el repo del cliente.
+
 **Commit y push van por comando, no por sesión.** Todos los comandos escriben una entrada de auditoría, y una entrada que solo existe en un portátil no es un registro. Y el orden respecto al repo de código es lo que hace que el roadmap diga la verdad: `open change` se commitea antes de escribir código, y `close change` **después** de que la PR esté mergeada.
 
 **Los rastros no son solo esas dos carpetas.** Si la razón de externalizar es que no aparezcan en el repo de código, `aisdd init` enumera también `AGENTS.md`, `CLAUDE.md`, `.claude/`, `docs/aidd-activity.md` —que el hook escribe dentro del repo de código— y los trailers de co-autoría en los mensajes de commit, que están en la historia y no se quitan sin reescribirla. **Los enumera; no borra nada ni toca el `.gitignore`**: son ficheros del repo del cliente.

@@ -92,7 +92,7 @@ Sin repo padre y sin submódulos. Lo que sí hay son **dos formas de repartir la
 | Topología | `openspec/` y `docs/` | El precio |
 |---|---|---|
 | **`fraccionado`** | Uno **por repo**, autónomos | `docs/` va copiado y un cambio hay que replicarlo en todos |
-| **`externalizado`** | En un **repositorio git aparte** que gobierna a los de código. Vale con **uno o varios** repos de código | Dos repos que clonar y mantener en paso: commit y push del de gobierno en cada comando |
+| **`externalizado`** | En un **repositorio git aparte** que gobierna a los de código, que cuelgan de él ignorados. Vale con **uno o varios** | Commit y push del de gobierno en cada comando. Los devs no cambian de carpeta: trabajan en su repo y el skill sube a buscar las specs |
 
 Con **`fraccionado`**, de ese 1:1 entre lane y repo sale todo lo demás:
 

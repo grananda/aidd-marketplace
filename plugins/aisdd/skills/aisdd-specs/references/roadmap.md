@@ -206,7 +206,7 @@ Cambiar `roadmap.topology` con el proyecto en marcha **no es un ajuste de fasead
 
 1. Elige **cual de los N `openspec/` es el bueno**. No se fusionan sin mas: cada uno tiene sus changes archivados y su auditoria, y concatenarlos a ciegas duplica lo que se copio en la migracion anterior. Si vienen de un repo unico que se partio, las **fases sin lane** estan repetidas en todos y solo debe quedar una copia.
 2. El humano crea el **repositorio de gobierno** --un repo git, no una carpeta suelta--, mueve ahi `docs/` y el `openspec/` elegido, y **anade a los demas** los changes archivados que solo ellos tengan.
-3. `roadmap.topology: externalizado`, la tabla `roadmap.repos` con sus rutas, y el `AGENTS.md` de cada repo apuntando a la carpeta.
+3. `roadmap.topology: externalizado` y la tabla `roadmap.repos` con la ruta de cada repo de codigo, que ahora son subcarpetas de este. Anade esas rutas al `.gitignore` del repo de gobierno.
 4. Los `paths` de los lanes pasan a ir **prefijados con la ruta del repo**; antes eran relativos a su raiz.
 5. Borra los `openspec/` que quedan dentro de los repos, **pero solo cuando el externo este completo y versionado**. Dos registros vivos a la vez es peor que cualquiera de los dos.
 
@@ -513,7 +513,7 @@ El objetivo es que cualquier agente (o persona) que abra el proyecto sepa **como
    <!-- END aisdd-specs roadmap -->
    ```
 
-   - **Topologia `externalizado`, en cualquier modo**: la primera linea del bloque dice **donde estan `openspec/` y `docs/`**, porque el `AGENTS.md` esta en un repo que no los contiene y sin eso un agente que abra ese repo no tiene forma de encontrarlos. Anade la lista de repos con su ruta relativa a esa carpeta, y una linea recordando que **un change que toca varios repos se cierra con varias PR**.
+   - **Topologia `externalizado`, en cualquier modo**: este bloque se escribe en el `AGENTS.md` **del repo de gobierno**, no en el de los repos de codigo --ahi no se toca nada--. Anade la lista de repos con su ruta, y dos lineas operativas: que los comandos del dia a dia se lanzan **desde el repo de codigo** sin cambiar de carpeta, y que **un change que toca varios repos se cierra con varias PR**.
    - **`atomic`**: solo esas dos lineas. Anade una tercera: `> Sin aislamiento garantizado: dos changes abiertos a la vez pueden producir decisiones contradictorias.`
    - **`waves`**: anade el numero de oleadas y una linea recordando que **las oleadas no las verifica ningun comando**; el reparto real entre developers es del equipo.
    - **`multilane`**: anade una tabla de lanes (`lane-id`, rutas, perfil), el dueno del contrato compartido, y una linea operativa: `Selecciona tu linea con` `aisdd lane switch <lane-id>`; `un change abierto por lane.`

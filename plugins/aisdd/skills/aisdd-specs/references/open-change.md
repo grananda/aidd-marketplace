@@ -12,6 +12,8 @@ Crea un cambio OpenSpec a partir del contexto del usuario, ejecutando una fase p
 >
 > **En modo `multilane`, el lane tambien es normativo.** Un change pertenece al lane de su fase y no se salta de lane "de paso". Cambiar de linea de trabajo es un acto explicito del usuario (`aisdd lane switch`), nunca una decision tuya durante un `open change`.
 
+> **Si `roadmap.topology` es `externalizado`, empieza resolviendo la raiz de gobierno**: sube desde el directorio actual hasta encontrar `openspec/config.yaml`. Ese es el sitio donde estan las specs y la auditoria, y la carpeta que dejaste atras al subir dice **en que repo de codigo estas**. El CLI de `openspec` se ejecuta desde esa raiz (`cd <raiz> && openspec ...`) y los commits con `git -C <raiz>`; build y tests, donde estas. **No pidas al usuario que cambie de carpeta.** Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
+
 0. **Contexto de apertura.** Lee `openspec/config.yaml` (modo, `lanes`, `phases` con sus `depends_on`), ejecuta `openspec list` para saber que changes estan vivos y —en `multilane`— a que lane pertenece cada uno, y lee `openspec/.lane` si existe. **Este paso no rechaza nada**: reune lo que los pasos 1 y 2 necesitan para decidir.
 1. **Resuelve que fase se abre.**
    - Si el usuario **aporta el argumento**, usalo literalmente como descripcion o identificador del cambio, y localiza la fase que le corresponde en `phases[]` (por `change_hint`) si existe alguna.
