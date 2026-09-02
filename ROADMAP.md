@@ -28,6 +28,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
 | F-21 | Esfuerzo humano del worklog de Jira, y desviaciones atribuidas a la auditoría | aiba | **implementada** | 2026-09-01 |
 | F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
+| F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
 
 ---
 
@@ -419,3 +420,26 @@ Eso hace además que **el repo de código no lleve ninguna referencia** al de go
 Lo que **no** rompe, comprobado: `audit.py` funciona fuera de un repo git —cae a la identidad global— y las métricas de git degradan a `available: false` sin romper el informe.
 
 `multirepo: true` sigue valiendo como `fraccionado` — migración aditiva, sin romper los `config.yaml` ya escritos. Y cambiar de topología a mitad de proyecto tiene procedimiento propio: **es una migración**, no un ajuste, y en la dirección `externalizado → fraccionado` hay un caso incómodo que hay que decir antes de empezar — los changes archivados que tocaron varios repos no tienen un sitio único.
+
+## F-23 — Migrar de topología lo hace el skill
+
+**Estado:** implementada · **Versión:** `aisdd` 3.7.0 · **Añadida:** 2026-09-02
+
+F-22 dejó las tres topologías descritas y la migración entre ellas contada como una lista de pasos para que la hiciera el humano. Sacar `openspec/` de un repo a mano son siete pasos, dos ficheros de exclusión distintos que van en sitios distintos, y una decisión sobre la historia de git. Es justo el tipo de cosa que un skill debería hacer.
+
+**`aisdd roadmap` la ejecuta.** Detecta la petición —«saca `openspec/` del repo», «el cliente no puede ver estas carpetas», «vamos a partir esto en tres repos»— y también el caso de un proyecto a medio migrar, donde `roadmap.topology` no cuadra con lo que hay en disco.
+
+**El destino se resuelve con dos preguntas, no con un menú de tres nombres.** Cuántos repos tiene el código, y si el registro vive dentro o en un repo aparte. De ahí sale la topología:
+
+| Código | Registro dentro | Registro aparte |
+|---|---|---|
+| 1 repo | `mono` | `externalizado` |
+| N repos | `fraccionado` | `externalizado` |
+
+**Y pregunta el porqué**, que no es curiosidad: si la razón es que los artefactos no deben verse en el repo de código, el paso de la historia deja de ser opcional.
+
+**Lo que el skill hace**: el inventario previo —cuántos changes, cuánta auditoría, si hay algo abierto—, mover las carpetas con `git rm --cached` para no borrarlas del disco, los dos ficheros de exclusión (`.gitignore` del gobierno, `.git/info/exclude` del código, que **no se versiona** y por eso no deja rastro), el `config.yaml`, el prefijo de los `paths` de los lanes, y el registro de la migración.
+
+**Lo que no hace nunca**: reescribir la historia de un repo —da el comando y explica que cambia todos los hashes, pero lo ejecuta el humano—, borrar el `openspec/` de origen antes de que el destino esté subido, migrar con un change abierto, y tocar el `.gitignore` versionado del repo de código para esconder cosas.
+
+**El caso incómodo, dicho antes y no después:** volviendo de `externalizado`, los changes archivados que tocaron varios repos no tienen un sitio único.

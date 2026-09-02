@@ -200,19 +200,11 @@ Procedimiento:
 
 ### Cambiar de topologia
 
-Cambiar `roadmap.topology` con el proyecto en marcha **no es un ajuste de faseado, es una migracion**: mueve carpetas entre repos y cambia donde vive el registro. Preguntalo siempre antes de tocar nada, y **no la hagas tu**: las operaciones de git y de ficheros son del humano.
+Cambiar `roadmap.topology` con el proyecto en marcha **no es un ajuste de faseado, es una migracion**: mueve carpetas entre repos y cambia donde vive el registro.
 
-**De `fraccionado` a `externalizado`** --el equipo se cansa de replicar `docs/`--:
+**Y la ejecutas tu**, no se la dictas al usuario en una lista de pasos. El procedimiento completo --las dos preguntas que resuelven el destino, el inventario previo, lo que se mueve en cada direccion y las cuatro cosas que no debes hacer nunca-- esta en "Migrar de topologia" (`references/migrate-topology.md`). Leelo antes de tocar nada.
 
-1. Elige **cual de los N `openspec/` es el bueno**. No se fusionan sin mas: cada uno tiene sus changes archivados y su auditoria, y concatenarlos a ciegas duplica lo que se copio en la migracion anterior. Si vienen de un repo unico que se partio, las **fases sin lane** estan repetidas en todos y solo debe quedar una copia.
-2. El humano crea el **repositorio de gobierno** --un repo git, no una carpeta suelta--, mueve ahi `docs/` y el `openspec/` elegido, y **anade a los demas** los changes archivados que solo ellos tengan.
-3. `roadmap.topology: externalizado` y la tabla `roadmap.repos` con la ruta de cada repo de codigo, que ahora son subcarpetas de este. Anade esas rutas al `.gitignore` del repo de gobierno.
-4. Los `paths` de los lanes pasan a ir **prefijados con la ruta del repo**; antes eran relativos a su raiz.
-5. Borra los `openspec/` que quedan dentro de los repos, **pero solo cuando el externo este completo y versionado**. Dos registros vivos a la vez es peor que cualquiera de los dos.
-
-**De `externalizado` a `fraccionado`** --el equipo quiere repos autonomos--: se copia `docs/` a cada repo, se reparte el `openspec/` por lane, y **los changes archivados que tocaron varios repos no tienen un sitio unico**: dejalos en el repo del lane que los abrio y registra la decision. Es el caso incomodo de esta direccion y hay que decirlo antes de empezar, no despues.
-
-**En las dos direcciones, registralo** en `docs/roadmap.md` con fecha, topologia anterior, nueva y motivo. Sin esa linea, seis meses despues nadie sabe por que el registro esta donde esta.
+**Entra ahi** cuando el usuario pida sacar `openspec/` del repo, partir el proyecto en varios, volver a meterlo, o migrar a una topologia concreta. Tambien si `roadmap.topology` no cuadra con lo que hay en disco.
 
 **Caso aparte: pasar de un repositorio a varios.** No es un cambio de estrategia, es una **migracion**, y el procedimiento de arriba no la cubre: no se reparte un `openspec/` en lanes, se **replica** en N repos que a partir de ahi siguen caminos separados.
 
@@ -244,6 +236,10 @@ Se hace en este orden, y **casi todo lo ejecuta el humano** porque cruza fronter
 ### Decision de modo de faseado
 
 Este paso decide entre los tres modos (`atomic`, `waves`, `multilane`) y fija `parallel_developers`. Lee antes la seccion "Modos de faseado (paralelismo)" (`references/parallelism.md`), que define el modelo; aqui esta el procedimiento.
+
+**0.pre.bis. Si lo que piden es cambiar donde vive el registro, esto es una migracion.** Antes de nada, mira si el usuario esta pidiendo eso: "saca `openspec/` del repo", "el cliente no puede ver estas carpetas", "vamos a partir esto en tres repos", "migrar a externalizado". Si es asi, **no sigas con el faseado**: ve a "Migrar de topologia" (`references/migrate-topology.md`), que empieza resolviendo el destino con dos preguntas --cuantos repos y donde vive el registro-- y ejecuta la migracion. El faseado se retoma despues, si hace falta.
+
+Lo mismo si **`roadmap.topology` no cuadra con lo que hay en disco** --dice `mono` y hay `roadmap.repos`, o dice `externalizado` y `openspec/` esta dentro del repo de codigo--: es un proyecto a medio migrar, y arreglarlo va antes que fasear.
 
 **0.pre. La topologia ya esta decidida: respetala, no la preguntes otra vez.**
 
