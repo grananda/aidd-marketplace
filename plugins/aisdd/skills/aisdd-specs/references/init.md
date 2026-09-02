@@ -47,30 +47,43 @@ Inicializa AISDD (OpenSpec) en el proyecto.
      confirmaciones: all    # all | entero >= 0
    ```
    Regula **cuantas dudas no bloqueantes** plantean `open change` e `implement change` (ver "Configuracion del pre-flight" (`references/preflight.md`)). **No toca las bloqueantes**, que se preguntan siempre. Si la seccion ya existe, **no la sobrescribas**: es una preferencia del equipo. Menciona en el resumen que se puede ajustar.
-11. **Si el producto vive en varios repositorios, di cual es este.** Lee la seccion 3 de `docs/arquitectura-base.md`. Si declara mas de un repositorio, **`aisdd init` se ejecuta una vez por repo**, dentro de cada uno, y cada ejecucion crea el `openspec/` **de ese repo**.
+11. **Resuelve la topologia antes de nada, porque este comando es el que crea `openspec/`.** Son tres y **no se deducen**: ver "Las tres topologias" (`references/parallelism.md`).
 
-    Identifica cual es, en este orden: (a) si `openspec/config.yaml` ya trae `roadmap.repo`, ese es y no se toca; (b) si el nombre de la carpeta o el ultimo segmento de `git remote get-url origin` coincide con un `id` de la tabla, proponlo; (c) **si no, preguntaselo al usuario** con la lista de `id` disponibles.
+    - Si `openspec/config.yaml` ya trae `roadmap.topology`, respetala.
+    - Si no, **preguntala** con `AskUserQuestion`, con `mono` como recomendada y el intercambio dicho:
 
-    **No lo decidas por parecido ni por descarte.** Elegir mal el `repo` hace que este `openspec/` ejecute las fases de otro lane, y el error no se ve hasta que alguien abre un change que no le tocaba. Preguntar cuesta una linea.
+    | Topologia | Cuando |
+    |---|---|
+    | **`mono` (Recomendada)** | Un repo. `openspec/` y `docs/` dentro. Es el caso normal |
+    | **`fraccionado`** | Varios repos, cada uno con su `openspec/` y su copia de `docs/`. Un lane por repo. Se paga replicando `docs/` |
+    | **`externalizado`** | Uno o varios repos de codigo, y `openspec/` + `docs/` en un **repositorio git aparte**. Se elige cuando las specs no pueden vivir en el repo de codigo |
 
-    Escribe despues `roadmap.multirepo: true` y `roadmap.repo: <id>` en `openspec/config.yaml`: es lo unico que distingue esta copia de las demas.
+    **La pregunta va aqui y no en `aisdd roadmap`**: para cuando se fasea, `openspec/` ya existe y ya esta en un sitio. `roadmap` la respeta y solo puede cambiarla como migracion.
 
-    Recuerdale ademas, en el resumen, las dos cosas que no se deducen solas: que **`docs/` va copiado entero en cada repo** y hay que replicar ahi cualquier cambio, y que **este `openspec/` solo lleva los changes de este repo** --los KPI del proyecto completo se sacan agregando los de todos, desde la carpeta que los contiene--.
+    **En `mono`** no hay nada mas que hacer: sigue.
 
-    **No clones los demas repos.** Este comando no sale del repo en el que se ejecuta, y ninguno de AISDD lo hace: los repos no se ven entre si.
+    **En `fraccionado`, `aisdd init` se ejecuta una vez por repo**, dentro de cada uno, y cada ejecucion crea el `openspec/` de ese repo. Identifica cual es, en este orden: (a) si el config ya trae `roadmap.repo`, ese es; (b) si el nombre de la carpeta o el ultimo segmento de `git remote get-url origin` coincide con un `id` de la tabla de la seccion 3 de `docs/arquitectura-base.md`, proponlo; (c) **si no, preguntaselo** con la lista de `id` disponibles. **No lo decidas por parecido ni por descarte**: elegir mal hace que este `openspec/` ejecute las fases de otro lane, y no se ve hasta que alguien abre un change que no le tocaba. Escribe `roadmap.topology: fraccionado` y `roadmap.repo: <id>`, y recuerda que **`docs/` va copiado entero en cada repo**.
 
-    **El orden importa y conviene decirlo**: `docs/` tiene que estar ya copiado en este repo antes de ejecutar `init` — es de donde sale la tabla que dice cual es—. La secuencia completa es: disenar y fasear en un repo, que el humano copie `docs/` a los demas, y despues `aisdd init` y `aisdd roadmap` en cada uno. Ver "Multirepo: donde se ejecuta este comando" en `references/roadmap.md`.
+    **En `externalizado`, `aisdd init` se ejecuta en el repo de gobierno**, no dentro de ningun repo de codigo --es la unica vez, junto con `aisdd roadmap`, que alguien tiene que estar ahi: los comandos del dia a dia se lanzan desde el repo de codigo--. Ahi:
+
+    - **Comprueba que es un repositorio git** (`git rev-parse --git-dir`). Si no lo es, **detente**: la trazabilidad de la auditoria y la recuperacion de estados anteriores dependen de eso, y sin ello la topologia no se sostiene. Ofrece `git init` y espera respuesta; no lo hagas por tu cuenta.
+    - Escribe `roadmap.topology: externalizado` y la lista `roadmap.repos` con el `id` y la **ruta relativa a este repo** de cada repo de codigo --uno o varios--. Verifica que cada ruta existe y es un repositorio git, y **avisa sin bloquear** de lo que no cuadre.
+    - **Escribe el `.gitignore` del repo de gobierno con el `path` de cada repo de codigo.** Es obligatorio y va aqui: sin el, un `git add -A` en el repo de gobierno se traga los repos de codigo enteros. Comprueba ademas que cada `path` es una **subcarpeta** de este repo; si alguno esta fuera del arbol, el layout esta mal montado y **el resto no va a funcionar** --el CLI de openspec no encuentra su carpeta subiendo--: dilo y no sigas como si nada.
+    - **Revisa los rastros en cada repo de codigo** y enumeralos en el resumen, sin tocar nada. Ver "Rastros en el repo de codigo" (`references/governance-repo.md`).
+    - Di el **ritmo de trabajo** y, sobre todo, **donde se ejecuta cada cosa**: `init` y `roadmap` aqui; `open`, `implement`, `amend` y `close` **desde el repo de codigo**, sin cambiar de carpeta. Mas el commit y push de este repo al final de cada comando, y `close change` siempre despues de que la PR del repo de codigo este mergeada (`references/governance-repo.md`).
+
+    **No clones ningun repo.** Elegir remote, rama y credenciales es del humano.
 
 12. **Check ligero (no bloqueante).** AISDD **asume** que la planificacion de AIBA es correcta; no la re-valides a fondo. Limitate a avisar en el resumen si: (a) alguna ruta indicada no existe; (b) hay `sprint-plan.md`/`planificacion-proyecto.md` pero falta el detalle de HU que los sustenta; (c) **no** hay capa de entrega (ni `sprint-plan.md` ni `planificacion-proyecto.md`) — en ese caso informa de que `aisdd roadmap` faseara sin alinear a sprints; o (d) `sprint-plan.md` menciona un **volcado a Jira** (Stories/claves creadas) pero falta `docs/jira-sync.md` o la seccion `jira:` — **enlace perdido**: avisa de que la integracion Jira de los changes se omitira y ofrece reconstruirlo (ver "Reconstruccion del enlace perdido" (`references/jira.md`)). Son avisos, no errores: continua igualmente.
-13. **Declara la auditoria como union en `.gitattributes`.** Asegura que el fichero contiene la linea `openspec/audit/**/*.jsonl merge=union`. Si no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques.
+13. **Declara la auditoria como union en `.gitattributes`.** Asegura que el fichero **de este repo** --el que contiene `openspec/`, o sea el de gobierno en `externalizado`-- contiene la linea `openspec/audit/**/*.jsonl merge=union`. Si no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques.
 
     El registro es append-only y **un fichero por escritor** ya evita el conflicto normal; esta linea cubre el que queda: la misma persona trabajando dos ramas. Sin ella, git para el merge por dos lineas que solo hay que concatenar. Hazlo siempre, tambien en `atomic`: es idempotente y evita tener que acordarse el dia que entra un segundo dev.
 
-14. **Ignora el puntero de lane.** Asegura que `.gitignore` contiene una linea `openspec/.lane`. (En multirepo ese puntero no se usa —el lane es el repo—, pero anadela igual: es idempotente y no cuesta nada.) Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
+14. **Ignora el puntero de lane.** Asegura que el `.gitignore` **de este repo** --el que contiene `openspec/`-- lleva una linea `openspec/.lane`. (En topologia `fraccionado` ese puntero no se usa —el lane es el repo—, pero anadela igual: es idempotente y no cuesta nada.) Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
 15. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 16. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `openspec/config.yaml`, `AGENTS.md` y las specs base **si las sembraste** (en proyecto nuevo no hay). **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.
-17. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:init`. Reporta despues su ruta y su `id` en la verificacion final.
+17. **Escribe la entrada de auditoria.** Es obligatoria y **no es opcional para ningun comando salvo `aisdd lane`**. Componla con `audit.py` segun "Scripts del skill" (`references/scripts.md`), con el esquema y las reglas de "Auditoria y trazabilidad" (`references/audit.md`), y `prompt_version` = `<skill_version>:init`. Reporta despues su ruta y su `id` en la verificacion final. **Y si `roadmap.topology` es `externalizado`, commitea y sube el repo de gobierno** antes de dar el comando por terminado: una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit y push" (`references/governance-repo.md`).
 18. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Onboarding de proyecto existente: specs base
@@ -100,6 +113,8 @@ A partir de aqui el proyecto sigue el flujo normal: `aisdd roadmap` para fasear 
 El objetivo es que cualquier agente que lea el `AGENTS.md` del proyecto conozca los comandos disponibles del skill `aisdd-specs`.
 
 1. Localiza `AGENTS.md` en la raiz del proyecto. Si no existe, crealo con una cabecera minima (`# AGENTS.md`) seguida del bloque de comandos.
+
+   > **En topologia `externalizado`, "la raiz del proyecto" es el repo de gobierno, que es donde se ejecuta `init`. No escribas ni toques `AGENTS.md` en ningun repo de codigo.** Si la razon de externalizar es que ahi no aparezcan artefactos del metodo, crear ese fichero seria producir justo lo que se quiere evitar --y con el nombre mas reconocible de todos--. Que los devs trabajen sin el es el efecto buscado, no una carencia.
 2. Si existe, conserva integro el resto del contenido. No reescribas ni reordenes secciones ajenas al skill.
 3. Gestiona los comandos dentro de un bloque delimitado por marcadores HTML, para poder actualizarlo de forma idempotente en futuras ejecuciones:
 

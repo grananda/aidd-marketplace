@@ -54,6 +54,16 @@ Cada repo tiene su propio `openspec/` y cierra solo las fases de su lane, así q
 
 **Si el proyecto migró de un repo a varios hay datos repetidos**, y el script lo sabe. Al partir, el `openspec/` anterior se copia entero a cada repo para no perder el registro de lo entregado, así que los changes ya cerrados están duplicados en los N. Se distinguen porque **sus fases no llevan `lane`** —se fasearon cuando no había repos— y se cuentan **una sola vez**. Por eso la suma de las columnas por repo no cuadra con el total: lo heredado no se atribuye a ninguno porque fue de todos.
 
+## Por qué se desvió cada change
+
+El informe ya sabía **cuánto** duró cada change. Esta sección dice **por qué**, que es lo que lo hace accionable: «vamos tres días tarde» no distingue entre contratar, desbloquear y rehacer specs.
+
+Cruza el lead time en **días laborables** contra el esfuerzo estimado de la fase y adjunta la señal de la auditoría que lo explica — ratio de atención, bloqueos sin resolver, reintentos, `first_run_green`, correcciones, intervenciones.
+
+- **Nada se inventa.** Un change desviado sin señal registrada sale como **hueco**, no recibe la causa más probable. Sobre una causa inventada se toman decisiones reales.
+- **Los adelantos llevan el mismo detalle.** Es la parte que todo el mundo se salta y la única que dice **qué hay que repetir**.
+- **Umbral del ±25 %.** Lo que no aparece está en línea, no sin mirar.
+
 ## Números y narrativa, separados
 
 **Los números los calcula `compute_status.py`; la narrativa la escribe el skill.** Esa separación es la que impide que el resumen cualitativo diga una cosa y la barra de progreso otra.

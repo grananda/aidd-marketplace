@@ -1,9 +1,9 @@
 ---
 name: aiba-metrics
-description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Si existe `docs/aiad-journal.md` anade la seccion de **autoria real** --el unico dato de autoria que no es una estimacion--, separando lo que capturo el hook de lo que declaro el humano; sin bitacora esa seccion no aparece. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
+description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Si existe `docs/aiad-journal.md` anade la seccion de **autoria real** --el unico dato de autoria que no es una estimacion--, separando lo que capturo el hook de lo que declaro el humano; sin bitacora esa seccion no aparece. El **esfuerzo humano real** sale del worklog de Jira --leido via MCP siguiendo el mapa de `docs/jira-sync.md`, nunca por REST ni gestionando credenciales-- y se pasa al script con `--worklog`, que ademas **declara la cobertura**: un worklog a medias da pocas horas y una relacion baseline/real inflada, asi que el porcentaje de issues del alcance sin imputar va pegado a la cifra. Sin Jira sigue valiendo `--real-days`, y sin ninguno de los dos la calibracion no aparece. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 # aiba-metrics (AIBA · medicion · KPIs de uso de IA)
@@ -52,7 +52,8 @@ Por tanto:
 
 - **Tiempo atendido es una cota inferior** del trabajo asistido, nunca el coste real del proyecto.
 - Restar el tiempo atendido al baseline da aceleraciones absurdas (x50, x100). Si te sale algo asi, no lo publiques: es un error de metodo, no un exito.
-- La calibracion **solo** se calcula contra el **esfuerzo real declarado** por el equipo en la misma ventana: partes de horas, worklogs de Jira o, en su defecto, una estimacion honesta de los implicados. Se pasa al script con `--real-days N`.
+- La calibracion **solo** se calcula contra el **esfuerzo humano real** de la misma ventana. La fuente buena es el **worklog de Jira** --horas imputadas, no recordadas--, que se lee via MCP y se pasa con `--worklog`. En su defecto, partes de horas o una estimacion honesta de los implicados con `--real-days N`.
+- **Un worklog a medias es peor que ninguno si no se dice.** Pocas horas imputadas dan una relacion baseline/real alta, y esa cifra viaja sola a las diapositivas. Por eso el worklog se pasa **con su desglose por issue**, para que el informe declare la cobertura junto al numero.
 - Si el equipo no puede o no quiere declararlo, el informe sale igual, pero **sin** calibracion: con actividad medida, tiempo de ciclo y retrabajo, que ya valen para gestionar. Dilo con naturalidad; no es un fallo del informe.
 
 ## Flujo del comando `aiba metrics`
@@ -66,11 +67,67 @@ Por tanto:
 
 Pregunta **solo** si aporta al informe, y en una sola tanda:
 
-- **Esfuerzo real dedicado** en la ventana medida, en jornadas-persona (o horas). Es la unica pregunta que de verdad importa: sin ella no hay ahorro. Ofrece las fuentes tipicas (partes, worklogs de Jira, estimacion del equipo).
+- **Esfuerzo real dedicado** en la ventana medida. Es la unica pregunta que de verdad importa: sin ella no hay calibracion. **Pero preguntala solo si no puedes sacarla de Jira**: si el proyecto tiene la integracion activa, el dato ya esta imputado y no hay que pedirlo (ver "Esfuerzo humano desde el worklog de Jira").
 - **Coste por jornada-persona**, si quieren el ahorro tambien en dinero. Opcional.
 - **Ventana de interes**, si solo quieren medir un periodo (un sprint, un mes) en vez de todo el historico.
 
 Si el usuario no sabe el esfuerzo real, no insistas ni lo estimes tu: sigue sin ahorro.
+
+### 2.bis Esfuerzo humano desde el worklog de Jira
+
+Es el dato que faltaba, y ya existe: el equipo lo imputa en Jira. Sacarlo de ahi convierte la unica cifra tecleada del informe en una medida.
+
+**El script no habla con Jira, y no puede.** `compute_kpis.py` es Python sin dependencias de red, y las tools del MCP viven aqui, en el modelo, no en un proceso hijo. Asi que el reparto es: **tu consultas, el script suma**.
+
+**Precondiciones.** Las mismas que `aisdd-specs`: `docs/jira-sync.md` con el mapa de issues, y tools del MCP de Atlassian disponibles (localizalas por funcion; los nombres varian entre versiones, no los asumas). Si falta cualquiera de las dos, **omite este paso sin error** y sigue por `--real-days`. Nunca caigas a llamadas REST ni gestiones credenciales: la regla de `jira.md` vale igual aqui.
+
+**Que issues leer: los del mapa, no una clave suelta.** `docs/jira-sync.md` ya relaciona HU -> Story -> change, que es exactamente el alcance del informe. Recorre ese mapa y pide el worklog de cada Story **y de sus sub-tareas** — imputar en la sub-tarea es lo normal, y quedarse en la Story dejaria fuera casi todo. Si el usuario acota una ventana, filtra los worklogs por su fecha, no los issues por su creacion: una tarea abierta en junio puede tener horas imputadas en agosto.
+
+**Escribe el resultado en un JSON** y pasalo con `--worklog`. Un total suelto no vale: sin el desglose no se puede declarar la cobertura, y sin cobertura la tabla miente hacia arriba.
+
+```json
+{
+  "issues": [
+    {"key": "PROJ-10", "hours": 22.0, "change": "hu-01-login"},
+    {"key": "PROJ-11", "hours": 14.0, "change": "hu-02-catalogo"}
+  ],
+  "sin_worklog": ["PROJ-12", "PROJ-13"],
+  "fuente": "Jira via MCP",
+  "consultado": "<ISO 8601 UTC>"
+}
+```
+
+- `issues[]`: uno por issue **con horas imputadas**. `change` es opcional y sale del mapa de `jira-sync.md`; sirve para cruzar con la auditoria.
+- `sin_worklog[]`: issues **del alcance** que no tienen ni una hora. **No lo omitas ni lo dejes vacio por comodidad**: es lo que hace que la cobertura sea real. Un worklog al 40 % presentado como completo da una relacion baseline/real inflada, y esa cifra acaba en una diapositiva sin la tabla que la enmarca.
+- Las horas se convierten a jornadas a **8 h**. Si el proyecto usa otra jornada, dilo en el informe.
+
+**Que hacer con lo que devuelve Jira, antes de escribirlo:**
+
+- **Suma los `timeSpentSeconds`**, no leas `timespent` agregados del issue: el agregado incluye a veces las sub-tareas y las contarias dos veces.
+- **Si un issue del mapa ya no existe en Jira** (borrado, movido de proyecto), no lo cuentes como `sin_worklog` sin decirlo: es un mapa desactualizado, no una falta de imputacion, y son dos problemas distintos.
+- **No inventes horas** para los que no tienen. El hueco es el dato.
+
+**Diselo al usuario en el resumen**: cuantas horas, de cuantos issues, y que cobertura. Si la cobertura esta por debajo del 100 %, esa frase va **antes** que la relacion baseline/real, no despues.
+
+### 2.ter Con el producto en varios repositorios
+
+**El registro de actividad lo escribe un hook, y el hook escribe donde se trabaja.** Eso vale para las dos topologias de varios repos y es la trampa de esta seccion: si mides un solo registro, publicas la actividad de un tercio del equipo **sin ninguna senal de que falta el resto**.
+
+Por eso `--activity` y `--repo` son **repetibles**:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
+  --activity repo-front/docs/aidd-activity.md \
+  --activity repo-bff/docs/aidd-activity.md \
+  --repo repo-front --repo repo-bff \
+  --worklog worklog-jira.json
+```
+
+- **`--activity` por cada repo donde se haya trabajado.** El script los concatena. Si alguno no existe **avisa y sigue**: no es un error, pero las cifras salen cortas en esa parte y hay que decirlo al presentar.
+- **`--repo` por cada repositorio.** Commits, lineas y autores salen **sumados**. Un repo sin commits en la ventana, o que no es un repo, sale como aviso — churn y volumen quedan cortos.
+- **En topologia `externalizado`, `--activity` no esta donde estan las specs.** El `openspec/` vive en el repo de gobierno, pero el hook escribe dentro de cada repo de codigo, junto al proyecto. Buscalos ahi, no al lado del `openspec/`. Si el proyecto los excluye con `.git/info/exclude` --lo habitual cuando se externaliza para que el repo de codigo quede limpio--, **el fichero existe pero no esta versionado**: solo tienes la actividad de la maquina desde la que ejecutas. Dilo al presentar.
+
+**El baseline y el worklog no se repiten**: son del proyecto entero, no de un repo.
 
 ### 3. Calculo (el script hace los numeros)
 
@@ -79,7 +136,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
   --activity docs/aidd-activity.md \
   --details docs/detalle-historias-usuario.md \
   --audit openspec/audit \
-  --real-days <jornadas-reales> \
+  --worklog <worklog-jira.json> \
   --cost-per-day <coste-jornada>
 ```
 
@@ -87,7 +144,8 @@ Flags:
 
 - `--activity <path>`: registro de actividad. Por defecto `docs/aidd-activity.md`.
 - `--details <path>`: documento con las tallas para el baseline. Por defecto `docs/detalle-historias-usuario.md`.
-- `--real-days N`: esfuerzo humano real en la ventana, en jornadas-persona. **Sin este flag no se calcula ahorro.**
+- `--worklog <path>`: JSON con las horas imputadas por issue, que **tu** obtienes de Jira via MCP (ver la seccion siguiente). **Manda sobre `--real-days`** y ademas declara la cobertura del alcance. Es la fuente preferida.
+- `--real-days N`: esfuerzo humano real en la ventana, en jornadas-persona. Salida cuando no hay Jira. **Sin `--worklog` ni este flag no se calcula calibracion.**
 - `--cost-per-day N`: coste de una jornada-persona, para traducir el ahorro a dinero. Opcional.
 - `--baseline-days N`: fuerza el baseline en vez de derivarlo de las tallas (util si el alcance medido no es el de todo el backlog).
 - `--repo <path>`: raiz del repositorio git. Por defecto el directorio actual.

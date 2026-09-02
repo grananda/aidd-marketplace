@@ -31,6 +31,7 @@ Cada linea es un objeto JSON con estos campos:
   "timestamp": "<ISO 8601 UTC del final, p.ej. 2026-05-25T14:30:00Z>",
   "command": "aisdd <subcomando>",
   "change_id": "<id-del-cambio-o-null>",
+  "repo": "<id del repo de codigo, o null si la topologia es `mono`>",
   "skill_version": "<version del skill, p.ej. 1.2.0>",
   "prompt_version": "<skill_version>:<command-slug>[@variante]",
   "model": "<id del modelo, p.ej. claude-opus-4-7[1m] o desconocido>",
@@ -74,6 +75,7 @@ Cada linea es un objeto JSON con estos campos:
 Reglas para los campos:
 
 - `id`: generador propio del agente (UUID v4 o ULID). Debe ser unico.
+- `repo`: sobre que repositorio de codigo se trabajo, con el `id` de `roadmap.repos`. **Solo en topologia `externalizado`**, donde la auditoria es una sola para todos: es lo que permite filtrar por repo sin partir el directorio. En `mono` va a `null`; en `fraccionado` sobra, porque el registro entero ya es de un repo --si lo pones, que sea `roadmap.repo`--.
 - `started_at`: hora UTC del **inicio** del comando, en ISO 8601 con sufijo `Z`. **Anotala antes de leer nada** y pasala en la entrada; el script no puede deducirla, porque corre al final.
 
   > **Por que dos marcas y no una.** Con solo el final, la duracion de un comando no existe: lo unico calculable es el hueco hasta la entrada anterior, que mide la reunion de por medio y no el trabajo. Un comando que empieza a las 18:50 y acaba a las 09:10 duro minutos, no catorce horas. De `started_at` salen el tiempo atendido, el ratio atencion/calendario y el coste de la duda, y ninguno depende de que haya hook: funcionan igual en Codex.

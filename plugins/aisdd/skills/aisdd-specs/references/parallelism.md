@@ -81,19 +81,71 @@ Un corte de lanes es valido cuando se cumplen las tres condiciones:
 
 1. **Rutas disjuntas.** Cada lane declara las rutas de codigo que le pertenecen (`paths`). Dos lanes no comparten ninguna ruta. Es verificable mecanicamente en `close change`.
 
-   > Con **un solo repositorio** las rutas van relativas a su raiz y el corte es un acuerdo entre personas que hay que verificar. Con **varios**, el corte ya existe y lo garantiza el sistema de ficheros: ver "Lanes por repositorio".
+   > En `mono` y en `externalizado` las rutas son un acuerdo entre personas que hay que verificar --en `externalizado`, prefijadas con la ruta de su repo--. En **`fraccionado`** el corte ya existe y lo garantiza el sistema de ficheros: ver "Lanes por repositorio".
 2. **Specs disjuntas.** Ningun `spec.md` es escrito por dos lanes.
 3. **Contrato previo.** Todo lo que los lanes comparten esta fijado antes de que arranquen, en `F0` o en una barrera.
 
-   > **En multirepo esta condicion se cumple de otra forma**, y hay que saberlo porque aqui no hay `F0` ni barreras: lo compartido no se fija en una fase, se **publica como artefacto versionado** y cada repo consume la version que elige. El equivalente de "fijado antes de arrancar" es "publicado y con version".
+   > **En topologia `fraccionado` esta condicion se cumple de otra forma**, y hay que saberlo porque alli no hay `F0` ni barreras: lo compartido no se fija en una fase, se **publica como artefacto versionado** y cada repo consume la version que elige. El equivalente de "fijado antes de arrancar" es "publicado y con version".
 
 Las condiciones 1 y 2 **no se negocian**: dos lanes que escriben los mismos ficheros o las mismas specs no son dos lanes, y ninguna declaracion los convierte en tales.
 
 La 3 admite un escalon intermedio, porque en proyectos reales no siempre todo lo compartido se puede fijar de antemano — ver "Lanes con dependencias".
 
-### Lanes por repositorio (multirepo)
+### Las tres topologias
 
-Cuando `docs/arquitectura-base.md` declara **mas de un repositorio**, el modo es `multilane` y **hay un lane por repo, sin excepcion**. No se pregunta en el pre-flight ni se calcula: la frontera de repos ya partio el trabajo, y el faseado se limita a reconocerla.
+Antes del modo de faseado hay una decision anterior: **donde viven `openspec/` y `docs/`**. Se llama **topologia**, se guarda en `roadmap.topology` y **se pregunta**: no se deduce de nada, porque el motivo para elegir una u otra suele estar fuera del codigo.
+
+| Topologia | Repos de codigo | Donde viven `openspec/` y `docs/` |
+|---|---|---|
+| **`mono`** | 1 | En el propio repo |
+| **`fraccionado`** | N | **Uno por repo**, cada uno con su copia completa de `docs/` |
+| **`externalizado`** | **1 o N** | En un **repositorio git aparte**, que gobierna a los de codigo |
+
+**`externalizado` no depende de cuantos repos de codigo haya.** Un proyecto de un solo repo tambien puede tener su `openspec/` fuera, y es el caso que motiva la topologia mas a menudo que el multirepo: **cuando los artefactos de especificacion no deben estar en el repo que ve el cliente**. Ver "El repositorio de gobierno".
+
+Lo que cambia de verdad:
+
+| | `mono` | `fraccionado` | `externalizado` |
+|---|---|---|---|
+| Modo de faseado | Los tres | **`multilane` forzado** | Los tres |
+| Lane y repo | No aplica | **Son lo mismo, 1:1** | **Cosas distintas** |
+| Un change cruza repos | No aplica | **No puede** | Puede, si un dev alcanza varios |
+| PR por change | Una | **Una** | Una por repo que toque |
+| Barreras `F0` / `FB-NN` | Si | **No hay** | Si |
+| Auditoria | Una | Una por repo | **Una sola**, con el repo anotado en cada entrada |
+| Informe de estado | `--root .` | Un `--root` por repo | `--root` al repo de gobierno |
+| Lo que cuesta | Nada | **`docs/` copiado en cada repo** | **Dos repos que clonar y que mantener en paso** |
+
+**Cuando elegir cada una:**
+
+- **`mono`** por defecto. Un repo, todo dentro.
+- **`fraccionado`** cuando cada repo es casi un producto aparte y los equipos quieren autonomia: clonas uno y tienes todo. Se paga replicando `docs/`.
+- **`externalizado`** cuando las specs **no pueden vivir en el repo de codigo**. Puede ser por politica del cliente, por contrato o porque ese repo es un entregable y estos son documentos de trabajo internos.
+
+#### El repositorio de gobierno
+
+En `externalizado`, `openspec/` y `docs/` viven en **un repositorio git propio**. No en una carpeta compartida, no en un disco de red: **un repo**.
+
+**Y esa exigencia no es de estilo.** La auditoria es obligatoria y tiene que poder sostenerse como registro. En una carpeta sincronizada, la fecha de un fichero la cambia cualquiera --y OneDrive la cambia solo, al sincronizar--, dos personas que escriben a la vez producen una escritura perdida en vez de un conflicto visible, y un borrado no se deshace. Con un repo, las tres cosas se resuelven de golpe: la fecha va dentro del commit, un choque es un conflicto que hay que resolver, y cualquier estado anterior se recupera.
+
+**Los repos de codigo van clonados dentro del arbol del de gobierno**, ignorados por el, y no saben nada de el: no llevan ninguna referencia que mantener --ni en su `AGENTS.md` ni en ningun sitio--. La raiz se encuentra **subiendo** hasta dar con `openspec/config.yaml`.
+
+Eso es lo que permite que **un dev no tenga que cambiar de carpeta nunca**: trabaja en su repo y el skill resuelve el resto. Solo `aisdd init` y `aisdd roadmap` se lanzan desde la raiz, y son cosa del Lead. Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
+
+**Que anotar y donde:**
+
+- **La auditoria es una sola**, en `openspec/audit/YYYY-MM/<quien>.jsonl` como siempre. **Cada entrada lleva el campo `repo`** con el `id` del repo de codigo sobre el que se trabajo. Eso permite filtrar por repo sin partir el directorio: el fichero ya se separa por escritor y mes, y con un dev por repo eso ya separa por repo de hecho.
+- **El registro de actividad no.** El hook de `aidd-activity.md` escribe **relativo al directorio donde se trabaja**, o sea dentro del repo de codigo. Ahi se queda; `aiba metrics` lo recoge con `--activity` repetido.
+
+**Commit y push van por comando, no por sesion.** Cada comando de AISDD escribe una entrada de auditoria, y una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit en el repo de gobierno" (`references/governance-repo.md`).
+
+**Y el orden respecto al repo de codigo importa**: `open change` se commitea **antes** de escribir codigo --la spec existe antes que lo que especifica-- y `close change` **despues** de que la PR del repo de codigo este mergeada. Archivar antes deja el roadmap diciendo que la fase esta hecha con el codigo sin integrar, y el informe de estado lo cuenta como avance real.
+
+### Lanes por repositorio (topologia `fraccionado`)
+
+Cuando hay **varios repositorios** y el equipo elige la topologia **`fraccionado`** en el pre-flight, el modo es `multilane` y **hay un lane por repo, sin excepcion**: no se calcula ni se negocia, porque la frontera de repos ya partio el trabajo y el faseado se limita a reconocerla.
+
+> Si el equipo elige **`externalizado`**, nada de esta seccion aplica: hay un solo `openspec/` fuera de los repos, el modo se decide con el procedimiento normal y lane y repo vuelven a ser cosas distintas. Ver "Las tres topologias".
 
 Es el caso normal en cliente, donde los repos vienen dados --uno por parte del proyecto-- y no hay repo raiz que los agrupe. **No hay repo padre, ni submodulos, ni nada que clonar de forma especial.**
 
@@ -110,7 +162,7 @@ Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos
 
 1. **La independencia no se verifica: es estructural.** Un change no puede salirse de su lane porque no puede salirse de su repo. La comprobacion de rutas de `close change` se cumple sola.
 2. **Un change, una PR.** El change vive entero en un repo, se cierra con un merge y el roadmap dice la verdad en el momento en que lo dice.
-3. **El lane no se elige, se infiere.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--. Ver "Resolver el lane activo en multirepo".
+3. **El lane no se elige, se infiere.** No hay puntero que mover ni que se pueda mover mal: `openspec/.lane` no se usa, y `aisdd lane switch` no tiene sentido --se cambia de lane cambiando de repo--. Ver "Resolver el lane activo en `fraccionado`".
 4. **No hay barreras.** `F0` y `FB-NN` existen para serializar superficie compartida, y aqui no hay ninguna: ningun repo compila, testea ni despliega contra el fuente de otro. Un roadmap multirepo **no lleva fases barrera**.
 5. **La auditoria no colisiona.** Cada repo tiene su `openspec/audit/`, y dentro un fichero por escritor.
 
@@ -118,9 +170,9 @@ Cinco consecuencias, y son la razon de que este corte sea el mas comodo de todos
 >
 > Si aparece un repo que necesita el fuente de otro para funcionar, **eso no se arregla faseando**: la frontera esta mal puesta y hay que registrarlo en la seccion 13 de la arquitectura. El roadmap no puede reparar un acoplamiento de compilacion, solo esconderlo.
 
-#### Resolver el lane activo en multirepo
+#### Resolver el lane activo en `fraccionado`
 
-Lo aplican `open change`, `close change` y `aisdd lane status`. **Nunca se pregunta por un `switch`**, y nunca se escribe `openspec/.lane`.
+Lo aplican `open change`, `close change` y `aisdd lane status` **en la topologia `fraccionado`**. Nunca se pregunta por un `switch` y nunca se escribe `openspec/.lane`. En `externalizado` no aplica: ahi el lane se elige como siempre, con `aisdd lane switch`.
 
 Por este orden, y parando en el primero que resuelva:
 
@@ -130,7 +182,7 @@ Por este orden, y parando en el primero que resuelva:
 
 **No sigas por descarte ni por parecido**, y no elijas "el mas probable". Trabajar con el lane equivocado abre changes de otro repo, escribe specs que no son de aqui y no se nota hasta mucho despues; preguntar cuesta una linea. Es el mismo criterio que `aisdd init` aplica al identificar el repo.
 
-**Fuera de multirepo, un repo no es un lane.** Con un solo repositorio el corte de lanes se hace por modulos y sigue los criterios de arriba: el lane es una linea de trabajo, no una frontera de despliegue.
+**Fuera de `fraccionado`, un repo no es un lane.** Ni en `mono` ni en `externalizado`: ahi el corte de lanes se hace por modulos y sigue los criterios de arriba. El lane es una linea de trabajo; el repo, una frontera de despliegue.
 
 ### Lanes con dependencias (escalon intermedio)
 
@@ -178,7 +230,7 @@ Advertencia frecuente: **`data` rara vez es un lane independiente de `back`** �
 
 El lane sobre el que trabaja un dev es **estado local suyo**, equivalente a la rama de Git:
 
-- Vive en `openspec/.lane` (una linea con el `lane-id`). **En multirepo no existe**: el lane lo fija el repositorio, via `roadmap.repo`, y nada lo puede mover — ver "Lanes por repositorio".
+- Vive en `openspec/.lane` (una linea con el `lane-id`). **En topologia `fraccionado` no existe**: el lane lo fija el repositorio, via `roadmap.repo`, y nada lo puede mover — ver "Lanes por repositorio". En `mono` y en `externalizado` funciona igual que siempre.
 - **Nunca** en `openspec/config.yaml`: ese fichero se versiona y dos devs se pisarian el puntero en cada commit.
 - `aisdd init` lo anade a `.gitignore`.
 - Se consulta y cambia con `aisdd lane` (ver su seccion).

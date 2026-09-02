@@ -12,7 +12,7 @@ Consulta y cambia la **linea de trabajo activa** del dev. Es el equivalente de `
 - **`waves`**: el proyecto paraleliza por **oleadas**, no por lanes. No hay linea que seleccionar: cada dev toma una fase libre de la oleada en curso. Remite a la seccion "Oleadas" de `docs/roadmap.md` para ver que fases pueden ir a la vez.
 - **`atomic`** o sin modo declarado: el proyecto no paraleliza. El modo se decide en `aisdd roadmap`.
 
-**En multirepo (`roadmap.multirepo: true`) el lane no se elige: es el repo.** `roadmap.repo` dice cual, `openspec/.lane` no se usa y **`switch` se rechaza** --explica que se cambia de lane cambiando de repositorio, y nombra el repo destino--. `list` y `status` si funcionan, y son utiles: dicen que lanes hay, cual es este y donde estan los demas.
+**En topologia `fraccionado` el lane no se elige: es el repo.** `roadmap.repo` dice cual, `openspec/.lane` no se usa y **`switch` se rechaza** --explica que se cambia de lane cambiando de repositorio, y nombra el repo destino--. `list` y `status` si funcionan, y son utiles: dicen que lanes hay, cual es este y donde estan los demas.
 
 **Sin subcomando**, equivale a `status`.
 
@@ -28,11 +28,11 @@ Lista los lanes de `roadmap.lanes` y, por cada uno:
 
 Anade al final las **barreras pendientes** (`FB-NN` no archivadas): bloquean a todos los lanes, asi que condicionan lo que cualquier dev puede abrir.
 
-**En multirepo** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --su nombre y sus fases--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
+**En topologia `fraccionado`** la lista se lee distinto y hay que decirlo: de los otros lanes **solo conoces lo que el roadmap declara** --su nombre y sus fases--, no si tienen un change abierto, porque eso vive en su `openspec/` y no esta aqui. Marca cual es este repo, di el resto como lo que es --otros repositorios, con su propio registro-- y **no inventes su estado**. Barreras no hay: un roadmap multirepo no las lleva.
 
 ### `switch <lane-id>`
 
-0. **Si `roadmap.multirepo` es `true`, rechaza el `switch`** y para. El lane de este `openspec/` es `roadmap.repo` y no se puede cambiar desde aqui: el trabajo del lane pedido se hace en su propio repositorio. Di cual es por su nombre, para que el usuario sepa donde ir. **No escribas `openspec/.lane`**: en este modo nadie lo lee, y dejarlo escrito es una pista falsa para el siguiente que mire.
+0. **Si `roadmap.topology` es `fraccionado`, rechaza el `switch`** y para. (En `externalizado` **si** se hace `switch` con normalidad: ahi lane y repo son cosas distintas.) El lane de este `openspec/` es `roadmap.repo` y no se puede cambiar desde aqui: el trabajo del lane pedido se hace en su propio repositorio. Di cual es por su nombre, para que el usuario sepa donde ir. **No escribas `openspec/.lane`**: en este modo nadie lo lee, y dejarlo escrito es una pista falsa para el siguiente que mire.
 1. Valida que `<lane-id>` existe en `roadmap.lanes`. Si no, lista los validos y detente. **No lo crees**: los lanes nacen en `aisdd roadmap`, no aqui.
 2. Escribe el `lane-id` en `openspec/.lane` (una linea, sin espacios). Crea el fichero si no existe.
 3. Comprueba que `.gitignore` contiene `openspec/.lane`; si falta, anadela y dilo (`aisdd init` deberia haberlo hecho).
@@ -44,7 +44,7 @@ Anade al final las **barreras pendientes** (`FB-NN` no archivadas): bloquean a t
 
 Informa de:
 
-- lane activo (contenido de `openspec/.lane`, o `roadmap.repo` **en multirepo**), o aviso de que no hay ninguno seleccionado
+- lane activo (contenido de `openspec/.lane`, o `roadmap.repo` **en topologia `fraccionado`**), o aviso de que no hay ninguno seleccionado
 - change abierto en ese lane, si lo hay, y en que estado
 - fase siguiente del lane
 - barreras pendientes que lo bloqueen
@@ -52,7 +52,7 @@ Informa de:
 
 Si `openspec/.lane` no existe y el modo es `multilane`, no falles: informa de que no hay lane activo y lista los disponibles.
 
-**En multirepo siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Resuelvelo segun "Resolver el lane activo en multirepo" (`references/parallelism.md`), que es tambien donde esta que hacer si `roadmap.repo` falta o no corresponde a ningun `lane-id`. Di ademas **como lo has resuelto** --declarado o inferido del nombre--: no es lo mismo para quien lee.
+**En topologia `fraccionado` siempre hay lane activo** --lo fija el repo-- asi que ese aviso no aplica, y tampoco el del puntero caduco. Resuelvelo segun "Resolver el lane activo en multirepo" (`references/parallelism.md`), que es tambien donde esta que hacer si `roadmap.repo` falta o no corresponde a ningun `lane-id`. Di ademas **como lo has resuelto** --declarado o inferido del nombre--: no es lo mismo para quien lee.
 
 ### Proximos pasos
 

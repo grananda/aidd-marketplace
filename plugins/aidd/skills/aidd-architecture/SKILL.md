@@ -1,9 +1,9 @@
 ---
 name: aidd-architecture
-description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--: cada repo es autonomo —su propio `openspec/` y su propia copia de `docs/`—, sin repo padre ni submodulos, y declararlos **obliga a `aisdd roadmap` al modo `multilane` con un lane por repo**. Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--: sin repo padre ni submodulos, y declararlos hace que `aisdd roadmap` **pregunte la topologia**: `fraccionado` (un `openspec/` y una copia de `docs/` por repo, con un lane por repo) o `externalizado` (unos solos fuera de los repos, referenciados desde su `AGENTS.md`). Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)
@@ -103,15 +103,23 @@ Genera (o actualiza) `docs/arquitectura-base.md`. Incluye **obligatoriamente** e
 
 Un producto puede vivir en varios repos --frontal, servicios, datos-- y **eso es una decision de arquitectura**, no de faseado: decide fronteras de despliegue, de equipo y de contrato. Por eso se declara aqui y no en el roadmap, que la consume.
 
-Lo habitual no es elegirlo: el cliente crea un repo por parte del proyecto y no hay repo raiz que los agrupe. El modelo lo asume. **Cada repo es autonomo**: lleva su propio `openspec/` y su propia copia de `docs/`. No hay repo padre, no hay submodulos y no hay nada que clonar de forma especial.
+Lo habitual no es elegirlo: el cliente crea un repo por parte del proyecto y no hay repo raiz que los agrupe. El modelo lo asume, y **no hay repo padre ni submodulos**.
+
+Lo que si hay es **dos formas de repartir la documentacion**, y la eleccion es del equipo:
+
+- **`fraccionado`** — cada repo es autonomo: su propio `openspec/` y su propia copia completa de `docs/`. Clonas un repo y tienes todo.
+- **`externalizado`** — un solo `openspec/` y un solo `docs/`, **fuera de los repos**, y cada repo los referencia desde su `AGENTS.md`. Nada que copiar y un solo registro.
+
+**No la decidas tu aqui.** La pregunta la hace `aisdd roadmap` en su pre-flight, porque condiciona el faseado. Lo que si haces es **dejar constancia de cual eligio el equipo** si ya esta decidida, en una linea bajo la tabla.
 
 Si es el caso, la seccion 3 lleva la tabla de repositorios:
 
 ```markdown
 ### Repositorios
 
-El producto vive en <N> repositorios **independientes**. Cada uno tiene su propio
-`docs/` y su propio `openspec/`, y se desarrolla como una linea de trabajo separada.
+El producto vive en <N> repositorios **independientes**.
+Documentacion: `fraccionado` (un `openspec/` y una copia de `docs/` por repo)
+| `externalizado` (unos solos, fuera de los repos, referenciados desde su `AGENTS.md`).
 
 | id | Contiene |
 |---|---|
@@ -119,6 +127,8 @@ El producto vive en <N> repositorios **independientes**. Cada uno tiene su propi
 | `bff` | BFF y agregacion |
 | `datos` | Batch y modelo de datos |
 ```
+
+Con `externalizado`, anade a la tabla una columna **`Ruta`** con la ubicacion de cada repo **relativa al repositorio de gobierno**: ahi hay un solo `openspec/` y tiene que saber donde estan. Con `fraccionado` esa columna sobra --ningun comando sale de su repo--.
 
 Reglas:
 
@@ -131,9 +141,9 @@ Reglas:
   Si al describir la arquitectura aparece un repo que necesita el codigo de otro para funcionar, **la frontera esta mal puesta y hay que decirlo en la seccion 13**. No lo resuelvas moviendo la coordinacion al roadmap: el faseado no puede arreglar un acoplamiento de compilacion.
 - **No inventes repos.** Si el usuario no ha dicho cuantos hay, es uno. Preguntalo en el paso de recopilacion, no lo deduzcas de que la arquitectura "pide" separacion. Y **no partas en repos para paralelizar**: partir cuesta un despliegue, un pipeline y una copia de la documentacion.
 
-> **Por que importa aguas abajo.** Declarar mas de un repo aqui **obliga al modo `multilane`** en `aisdd roadmap`, con **un lane por repo**. No es una recomendacion ni una pregunta del pre-flight: la frontera de repos ya partio el trabajo, y el faseado solo la reconoce. Con un solo repo no se fuerza nada y los tres modos siguen disponibles.
+> **Por que importa aguas abajo.** Declarar mas de un repo aqui hace que `aisdd roadmap` **pregunte la topologia** en su pre-flight, y de esa respuesta sale casi todo: con `fraccionado` el modo es `multilane` forzado con un lane por repo, cada change vive entero en uno y se cierra con **una PR**; con `externalizado` el modo se decide con normalidad, un change **puede** cruzar repos y entonces se cierra con **una PR por repo que toque**. Con un solo repo no se pregunta nada.
 >
-> Cada repo ejecuta **solo las fases de su lane**, y todo lo demas ocurre dentro de sus propios muros: su `git`, su `openspec/`, un change abierto a la vez, **una PR por change**. Los KPI globales se sacan aparte, agregando los `openspec/` de todos los repos desde la carpeta que los contiene.
+> Lo que **no** cambia entre las dos: los repos tienen que ser independientes en codigo. Lo que compartan viaja como artefacto versionado.
 
 Reglas de contenido:
 

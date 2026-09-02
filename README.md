@@ -87,7 +87,14 @@ Los dos llegan al **mismo calendario**; lo que cambia es si hay red debajo. En `
 
 Lo normal en cliente: los repos vienen dados —uno por parte del proyecto— y no hay repo raíz que los agrupe. Declararlos en la sección 3 de `docs/arquitectura-base.md`, **solo con el nombre** —ni URL ni ruta, no las necesita nadie—, **obliga** al modo `multilane` con **un lane por repo**. Con un solo repo no se fuerza nada.
 
-**Cada repo es autónomo**: su propio `openspec/` y su copia completa de `docs/`. Sin repo padre, sin submódulos, sin nada que clonar de forma especial. De ese 1:1 sale todo lo demás:
+Sin repo padre y sin submódulos. Lo que sí hay son **dos formas de repartir la documentación**, y `aisdd roadmap` **pregunta cuál** — no se deduce del número de repos:
+
+| Topología | `openspec/` y `docs/` | El precio |
+|---|---|---|
+| **`fraccionado`** | Uno **por repo**, autónomos | `docs/` va copiado y un cambio hay que replicarlo en todos |
+| **`externalizado`** | En un **repositorio git aparte** que gobierna a los de código, que cuelgan de él ignorados. Vale con **uno o varios** | Commit y push del de gobierno en cada comando. Los devs no cambian de carpeta: trabajan en su repo y el skill sube a buscar las specs |
+
+Con **`fraccionado`**, de ese 1:1 entre lane y repo sale todo lo demás:
 
 | | En multirepo |
 |---|---|
@@ -96,6 +103,8 @@ Lo normal en cliente: los repos vienen dados —uno por parte del proyecto— y 
 | Lane activo | **Se infiere del repo.** `aisdd lane switch` se rechaza; si no está claro cuál es, se pregunta |
 | Barreras | **No hay.** No existe superficie compartida que serializar |
 | Estado del proyecto | No está en ningún repo: `aiba status-report` con un `--root` por repo |
+
+Con **`externalizado`** nada de eso aplica: el modo se decide con normalidad, **lane y repo vuelven a ser cosas distintas**, hay barreras, y el informe de estado sale de un solo `--root` al repo de gobierno.
 
 La apuesta es que los repos son de verdad **independientes en código**: lo que compartan viaja como artefacto versionado —un contrato OpenAPI publicado, un paquete— y cada repo consume la versión que elige. Uno que necesita el fuente de otro no se arregla faseando: es una frontera mal puesta.
 
@@ -208,8 +217,8 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | 1 (post) | `aiba test-plan [HU-XX]` | `aiba-test-plan` | Por historia, el **plan de pruebas** en `docs/pruebas/`: un `.xlsx` con el inventario de casos (`PS.FU.CU01.01`, criticidad, pasos, resultado esperado, traza al requisito y al change, marca manual/automatizable) y un `.docx` de evidencias con un bloque por caso. **Genera el plan; no ejecuta las pruebas** |
 | 3.5.1 | `aiba project-plan` | `aiba-project-plan` | `docs/planificacion-proyecto.md` (recursos + estimación humano vs IA con KPIs de la diferencia) |
 | 3.5.2 | `aiba sprint-planning` | `aiba-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
-| transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo. Con **varios repositorios**, `--root` repetido agrega los `openspec/` de todos y añade el desglose por repo |
-| transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA) |
+| transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo, y **por qué se desvió cada change** atribuido a las señales de la auditoría —retrasos y adelantos por igual—. Con **varios repositorios**, `--root` repetido agrega los `openspec/` de todos y añade el desglose por repo |
+| transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA). El esfuerzo humano real sale del **worklog de Jira** vía MCP, con la cobertura declarada junto a la cifra |
 
 Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis`.
 

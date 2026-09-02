@@ -26,6 +26,8 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-18 | `verification` en la auditoría y lead time en días laborables | aisdd, aiba | **implementada** | 2026-08-31 |
 | F-19 | `aiba metrics`: la comparación se llama calibración, y suma la autoría real de AIAD | aiba | **implementada** | 2026-08-31 |
 | F-20 | Producto en varios repositorios: cada repo autónomo con su `openspec/`, un lane por repo, KPI agregados | aidd, aisdd, aiba | **implementada** | 2026-08-31 |
+| F-21 | Esfuerzo humano del worklog de Jira, y desviaciones atribuidas a la auditoría | aiba | **implementada** | 2026-09-01 |
+| F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 
 ---
 
@@ -345,3 +347,75 @@ La marca que los distingue es que **las fases anteriores a la migración no tien
 
 - **Cada repo lleva el roadmap completo pero solo ejecuta las fases de su lane**, así que el informe de un repo filtra por su `roadmap.repo`. Sin ese filtro se quedaría clavado en un tercio para siempre, y no por ir retrasado.
 - **Se suman días de esfuerzo, no porcentajes.** La media de tres porcentajes le da el mismo peso a un repo de 40 días que a uno de 4. El HTML añade «Avance por repositorio» con la columna **Peso**, que es la que distingue tres repos al 27 % de dos acabados con uno sin empezar. Los caminos críticos se dan por repo y **no se suman**: son cadenas paralelas, y el del proyecto es el más largo.
+
+## F-21 — El esfuerzo humano real, y por qué se desvió cada change
+
+**Estado:** implementada · **Versión:** `aiba` 1.9.0 · **Añadida:** 2026-09-01 · **Issue:** #26
+
+Dos cosas que iban juntas porque comparten fuente y destino.
+
+### El único número que se tecleaba
+
+`compute_kpis.py` calibra un baseline de tallas contra el esfuerzo real, y ese esfuerzo real era el único dato del informe que alguien escribía a mano con `--real-days`. No por descuido: el tiempo atendido mide solo los turnos —no ver al humano leer, revisar, teclear a mano ni reunirse— y restarlo del baseline da aceleraciones de x100.
+
+Pero el dato existe: **está imputado en Jira**. Ahora sale de ahí.
+
+**Se accede por MCP, y la regla de `jira.md` no se toca**: nada de REST manual ni de gestionar credenciales. Eso tiene una consecuencia que decide el diseño — **el script no puede llamar al MCP**, porque es Python sin dependencias de red y las tools viven en el modelo. Así que el skill consulta el worklog siguiendo el mapa HU → Story → change de `docs/jira-sync.md`, lo deja en un JSON, y el script lo suma. El script sigue siendo puro.
+
+**Y no se pasa un total, se pasa el desglose por issue.** Un worklog al 50 % da la mitad de horas, la mitad de horas da el doble de relación baseline/real, y esa es la cifra que más viaja sola a una diapositiva. Con el desglose, el informe declara la **cobertura** pegada al número:
+
+> **Cobertura del worklog: 50 %.** 2 issues del alcance no tienen horas imputadas. El esfuerzo real sale corto en esa proporción, así que la relación baseline/real sale **alta por defecto de imputación, no por rendimiento**.
+
+El worklog manda sobre `--real-days`, y si vienen los dos y no coinciden **lo dice** en vez de elegir en silencio entre dos números distintos.
+
+### Por qué se desvió cada change
+
+El informe ya sabía cuánto duró cada change. Lo que faltaba era **por qué**, y sin eso «vamos tres días tarde» no dice si hay que contratar, desbloquear o rehacer specs — tres decisiones distintas.
+
+La auditoría ya tenía la materia prima. `atribucion` cruza el lead time en **días laborables** contra el esfuerzo estimado de la fase y adjunta la señal que lo explica: ratio de atención, bloqueos sin resolver, reintentos, `first_run_green`, correcciones e intervenciones.
+
+Dos reglas la sostienen:
+
+- **Nada se inventa.** Un change desviado sin señal registrada se declara como **hueco**, no recibe la causa más plausible. Una causa inventada es peor que un hueco porque se actúa sobre ella.
+- **Los adelantos se explican igual que los retrasos.** Es lo único del informe que dice **qué hay que repetir**, y mirando solo los rojos solo se aprende de lo que sale mal.
+
+El umbral es el ±25 %: un change de 3 días que tarda 3,5 no es un hallazgo, y marcarlo llenaría el informe de falsos positivos.
+
+## F-22 — Dónde vive `openspec/` es una pregunta, no una deducción
+
+**Estado:** implementada · **Versión:** `aidd` 2.5.0, `aisdd` 3.6.0, `aiba` 1.9.0 · **Añadida:** 2026-09-01
+
+F-20 asumió que varios repos implican un `openspec/` por repo. Es una de las formas de trabajar, no la única, y el número de repos no la determina.
+
+Hay ahora una decisión anterior al modo de faseado —la **topología**, en `roadmap.topology`— y **la pregunta `aisdd init`**, que es quien crea `openspec/` y por tanto quien decide dónde vive. `aisdd roadmap` la lee; cambiarla desde ahí es una migración, no un ajuste.
+
+| Topología | Repos de código | Dónde viven `openspec/` y `docs/` |
+|---|---|---|
+| **`mono`** | 1 | En el propio repo |
+| **`fraccionado`** | N | Uno **por repo**, cada uno con su copia de `docs/` |
+| **`externalizado`** | **1 o N** | En un **repositorio git aparte** que gobierna a los de código |
+
+**`externalizado` no depende de cuántos repos de código haya.** Un proyecto de un solo repo también puede tener su `openspec/` fuera, y ese es el caso que más veces la motiva: cuando los artefactos de especificación **no pueden estar en el repo de código** — por política del cliente, por contrato, o porque ese repo es un entregable y estos son documentos de trabajo internos.
+
+**Y tiene que ser un repo git, no una carpeta compartida.** No es una preferencia de estilo. En una carpeta sincronizada la fecha de un fichero la cambia cualquiera —y OneDrive la cambia sola al sincronizar—, dos personas escribiendo a la vez producen una escritura perdida en vez de un conflicto visible, y un borrado no se deshace. Con un repo, las tres cosas se resuelven de golpe: la fecha va dentro del commit, un choque es un conflicto que hay que resolver, y cualquier estado anterior vuelve con un `checkout`. `aisdd init` **se detiene** si la ubicación no es un repositorio git.
+
+**La auditoría es una sola, con el repo anotado en cada entrada.** El fichero ya se parte por escritor y mes (`audit/YYYY-MM/<quien>.jsonl`), y con un dev por repo eso separa por repo de hecho: un nivel más de directorio no evitaría ninguna colisión que no esté evitada, y obligaría al lector a manejar tres disposiciones. Un campo `repo` da el mismo filtrado sin tocar el layout.
+
+**Los repos de código van dentro del árbol del de gobierno**, ignorados por él —`init` escribe ese `.gitignore`, y sin él un `git add -A` se traga el código del cliente—. No es una convención: el CLI de `openspec` no admite opción de raíz y espera `openspec/` en el directorio desde el que corre, así que ese árbol es lo que hace que todo lo demás funcione.
+
+**Y un dev no cambia de carpeta nunca.** Trabaja en su repo de código y lanza ahí `open`, `implement`, `amend` y `close`; el skill sube hasta `openspec/config.yaml` para encontrar las specs, ejecuta el CLI desde esa raíz y commitea con `git -C`. Build y tests se quedan donde está el dev. Solo `init` y `roadmap` se lanzan desde la raíz, y son del Lead.
+
+Eso hace además que **el repo de código no lleve ninguna referencia** al de gobierno: subir es suficiente. Una cosa menos que mantener, y un rastro menos en el repo del cliente.
+
+**Commit y push van por comando, no por sesión.** Todos los comandos escriben una entrada de auditoría, y una entrada que solo existe en un portátil no es un registro. Y el orden respecto al repo de código es lo que hace que el roadmap diga la verdad: `open change` se commitea antes de escribir código, y `close change` **después** de que la PR esté mergeada.
+
+**Los rastros no son solo esas dos carpetas.** Si la razón de externalizar es que no aparezcan en el repo de código, `aisdd init` enumera también `AGENTS.md`, `CLAUDE.md`, `.claude/`, `docs/aidd-activity.md` —que el hook escribe dentro del repo de código— y los trailers de co-autoría en los mensajes de commit, que están en la historia y no se quitan sin reescribirla. **Los enumera; no borra nada ni toca el `.gitignore`**: son ficheros del repo del cliente.
+
+**Y al repasar la externalización aparecieron dos cosas que sí rompía**, ninguna en el sitio donde las buscaba:
+
+- **`aiba metrics` era single-repo**, en las dos topologías de varios repos y desde F-20. El registro de actividad lo escribe un hook que anota **relativo al directorio donde se trabaja**, así que con N repos hay N registros y los KPIs medían uno. Publicar la actividad de un tercio del equipo sin ninguna señal de que falta el resto es peor que no publicarla. `--activity` y `--repo` pasan a ser **repetibles**, con aviso cuando alguno falta.
+- **En `externalizado`, el `openspec/` está fuera y los registros de actividad dentro** de cada repo, que es donde el hook escribe. Queda dicho explícitamente, porque buscarlos al lado del `openspec/` no los encuentra.
+
+Lo que **no** rompe, comprobado: `audit.py` funciona fuera de un repo git —cae a la identidad global— y las métricas de git degradan a `available: false` sin romper el informe.
+
+`multirepo: true` sigue valiendo como `fraccionado` — migración aditiva, sin romper los `config.yaml` ya escritos. Y cambiar de topología a mitad de proyecto tiene procedimiento propio: **es una migración**, no un ajuste, y en la dirección `externalizado → fraccionado` hay un caso incómodo que hay que decir antes de empezar — los changes archivados que tocaron varios repos no tienen un sitio único.

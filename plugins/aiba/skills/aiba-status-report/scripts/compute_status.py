@@ -169,11 +169,51 @@ def leer_auditoria(root: Path) -> tuple[dict, str | None]:
                 if dur is not None:
                     reg["atendido_h"] = reg.get("atendido_h", 0.0) + dur
                     reg["comandos_medidos"] = reg.get("comandos_medidos", 0) + 1
+            # Senales que explican **por que** un change duro lo que duro. Se
+            # acumulan por change para poder atribuir despues; por si solas no
+            # dicen nada, y juntas con la duracion si.
+            if cid:
+                reg = eventos.setdefault(cid, {})
+                try:
+                    reg["intentos"] = max(int(reg.get("intentos") or 1),
+                                          int(e.get("attempt") or 1))
+                except (TypeError, ValueError):
+                    pass
+                pf = e.get("preflight") or {}
+                for k_src, k_dst in (("bloqueantes", "pf_bloqueantes"),
+                                     ("total", "pf_dudas"),
+                                     ("rounds", "pf_rondas")):
+                    try:
+                        v_ = pf.get(k_src)
+                        if v_ is not None:
+                            reg[k_dst] = reg.get(k_dst, 0) + int(v_)
+                    except (TypeError, ValueError):
+                        pass
+                ver = e.get("verification")
+                if isinstance(ver, dict):
+                    if ver.get("first_run_green") is False:
+                        reg["verde_primera"] = False
+                    elif ver.get("first_run_green") is True:
+                        reg.setdefault("verde_primera", True)
+                sr = e.get("self_reported") or {}
+                try:
+                    iv = sr.get("interventions")
+                    if iv is not None:
+                        reg["intervenciones"] = reg.get("intervenciones", 0) + int(iv)
+                except (TypeError, ValueError):
+                    pass
+                for dec in e.get("decisions") or []:
+                    if dec.get("type") == "correccion":
+                        reg["correcciones"] = reg.get("correcciones", 0) + 1
+
             for dec in e.get("decisions") or []:
                 if (dec.get("type") == "bloqueante"
                         and str(dec.get("decision", "")).strip().lower() == "pendiente"):
                     bloqueos.append({"origen": "auditoria", "change": cid,
                                      "decision": dec.get("slug", ""), "desde": ts})
+                    if cid:
+                        reg = eventos.setdefault(cid, {})
+                        reg["bloqueos_pendientes"] = reg.get("bloqueos_pendientes", 0) + 1
     return {"disponible": True, "entradas": entradas, "eventos": eventos,
             "bloqueos": bloqueos}, None
 
@@ -583,8 +623,13 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
     # Multirepo: cada repo lleva una copia del roadmap **completo** pero solo
     # ejecuta las fases de su lane. Sin este filtro el informe de un repo se
     # quedaria clavado en un tercio para siempre, y no por ir retrasado.
-    repo_id = str(roadmap.get("repo") or "") if roadmap.get("multirepo") else ""
-    if roadmap.get("multirepo") and not repo_id:
+    # `topology` es la clave buena; `multirepo: true` es el nombre anterior y
+    # sigue valiendo como `fraccionado`, para no romper los config ya escritos.
+    topo = str(roadmap.get("topology") or
+               ("fraccionado" if roadmap.get("multirepo") else "mono"))
+    fraccionado = topo == "fraccionado"
+    repo_id = str(roadmap.get("repo") or "") if fraccionado else ""
+    if fraccionado and not repo_id:
         # Sin `roadmap.repo` se infiere del nombre del directorio, igual que hacen
         # los comandos de aisdd. Solo si hay **una** coincidencia: con cero o con
         # varias no se elige, se avisa. Un script no puede preguntar.
@@ -597,7 +642,7 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
                           f"directorio. Escribelo en `openspec/config.yaml` para no depender "
                           f"del nombre de la carpeta")
         else:
-            avisos.append("`roadmap.multirepo` esta puesto pero falta `roadmap.repo`, y el "
+            avisos.append("la topologia es `fraccionado` pero falta `roadmap.repo`, y el "
                           "nombre del directorio no coincide con ningun lane: se cuentan las "
                           "fases de todos y el avance de este repo sale diluido. Lo escribe "
                           "`aisdd init`")
@@ -681,6 +726,14 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         desv = {"puntos": None, "dias": None, "sentido": "no comparable",
                 "motivo": prev.get("motivo_si_falta", "falta el avance previsto")}
 
+    rit = ritmo(aud.get("eventos", {}), cerrados, cal)
+    atr = atribuir(rit, fases, pesos, aud.get("eventos", {}), cal)
+    if atr["sin_causa"]:
+        avisos.append(f"{len(atr['sin_causa'])} changes con desviacion y sin senal en la "
+                      f"auditoria que la explique ({', '.join(atr['sin_causa'][:4])}"
+                      f"{'...' if len(atr['sin_causa']) > 4 else ''}): se declaran como hueco. "
+                      f"No les atribuyas una causa al narrar")
+
     huerfanos = sorted((activos | cerrados) - {f.get("change_hint") for f in fases})
     if huerfanos:
         avisos.append(f"changes sin fase en el roadmap: {', '.join(huerfanos[:6])}"
@@ -691,7 +744,8 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "generado": hoy.isoformat(),
         "proyecto": roadmap.get("project") or roadmap.get("name") or "",
         "modo_faseado": roadmap.get("mode", "atomic"),
-        "multirepo": bool(roadmap.get("multirepo")),
+        "topology": topo,
+        "multirepo": fraccionado,
         "repo": repo_id or None,
         "heredado": her,
         "raiz": str(root),
@@ -727,8 +781,137 @@ def construir(root: Path, yaml_mod, hoy: date) -> dict:
         "bloqueos": aud.get("bloqueos", []),
         "dependencias": dependencias(fases, cls),
         "camino_critico": cc,
-        "ritmo": ritmo(aud.get("eventos", {}), cerrados, cal),
+        "ritmo": rit,
+        "atribucion": atr,
         "avisos": avisos,
+    }
+
+
+def atribuir(rit: dict, fases: list, pesos: dict, eventos: dict, cal: dict) -> dict:
+    """Por que cada change tardo lo que tardo, con la senal que lo dice.
+
+    El informe ya sabe **cuanto** duro cada change. Lo que faltaba es **por que**,
+    y sin eso una desviacion no es accionable: "vamos tres dias tarde" no dice si
+    hay que contratar, desbloquear o rehacer specs.
+
+    Dos reglas que sostienen esta seccion, y son las mismas del resto del informe:
+
+    - **Nada se inventa.** Cada causa nombra el dato de la auditoria del que sale.
+      Un change lento sin ninguna senal se declara como **hueco**, no se le asigna
+      la causa mas plausible. Una causa inventada es peor que un hueco porque se
+      actua sobre ella.
+    - **Los adelantos se explican igual que los retrasos.** Un change que costo la
+      mitad de lo estimado es informacion para la proxima estimacion, y si nadie
+      lo mira solo se aprende de lo que sale mal.
+
+    El esfuerzo estimado esta en jornadas de trabajo y el lead time en dias de
+    calendario, asi que la comparacion va contra **dias laborables**. Compararlo
+    con dias naturales haria que todo change que cruza un fin de semana pareciera
+    ir tarde.
+    """
+    por_fase = {str(f.get("change_hint") or ""): f for f in fases if f.get("change_hint")}
+    filas = []
+    for m in rit.get("por_change") or []:
+        cid = m["change"]
+        fase = por_fase.get(cid)
+        est = pesos.get(str(fase.get("id"))) if fase else None
+        real = m.get("dias_laborables")
+        if not est or real is None:
+            filas.append({"change": cid, "estimado_dias": est, "real_laborable": real,
+                          "sentido": "no comparable",
+                          "motivo": ("la fase no declara esfuerzo" if fase and not est
+                                     else "el change no esta en el roadmap" if not fase
+                                     else "sin dias laborables medidos")})
+            continue
+
+        desv = round(real - est, 2)
+        # +-25 % es ruido: un change de 3 dias que tarda 3,5 no es un hallazgo, y
+        # marcarlo como desviacion llenaria el informe de falsos positivos.
+        rel = desv / est
+        sentido = ("retrasado" if rel > 0.25 else
+                   "adelantado" if rel < -0.25 else "en linea")
+
+        reg = eventos.get(cid) or {}
+        causas = []
+        if sentido == "retrasado":
+            ratio = m.get("ratio_atencion")
+            if ratio is not None and ratio < 15:
+                causas.append({
+                    "senal": "ratio de atencion",
+                    "valor": f"{ratio:.1f} %",
+                    "dice": ("el change estuvo esperando, no avanzando: de todo el tiempo "
+                             "que estuvo abierto solo se trabajo en el esa fraccion. "
+                             "Mas gente no acorta una espera")})
+            if reg.get("bloqueos_pendientes"):
+                causas.append({
+                    "senal": "decisiones bloqueantes sin resolver",
+                    "valor": str(reg["bloqueos_pendientes"]),
+                    "dice": "hubo decisiones que nadie cerro mientras el change estaba vivo"})
+            if (reg.get("intentos") or 1) > 1:
+                causas.append({
+                    "senal": "reintentos del comando",
+                    "valor": str(reg["intentos"]),
+                    "dice": ("el comando se relanzo sobre el mismo change: las specs no "
+                             "estaban listas para ejecutarse a la primera")})
+            if reg.get("verde_primera") is False:
+                causas.append({
+                    "senal": "build o tests en rojo en la primera pasada",
+                    "valor": "first_run_green = false",
+                    "dice": "hubo que corregir despues de implementar, no antes"})
+            if reg.get("correcciones"):
+                causas.append({
+                    "senal": "correcciones durante la implementacion",
+                    "valor": str(reg["correcciones"]),
+                    "dice": "el trabajo se desvio de lo especificado y hubo que rectificar"})
+            if reg.get("intervenciones"):
+                causas.append({
+                    "senal": "intervenciones del humano",
+                    "valor": str(reg["intervenciones"]),
+                    "dice": ("el humano tuvo que redirigir a mitad. Es auto-declarado y no "
+                             "se puede contrastar: tomalo como contexto, no como prueba")})
+        else:
+            if m.get("ratio_atencion") is not None and m["ratio_atencion"] > 40:
+                causas.append({
+                    "senal": "ratio de atencion",
+                    "valor": f"{m['ratio_atencion']:.1f} %",
+                    "dice": "el change se trabajo de forma continua, casi sin esperas"})
+            if reg.get("verde_primera") is True and (reg.get("intentos") or 1) == 1:
+                causas.append({
+                    "senal": "verde a la primera",
+                    "valor": "sin reintentos",
+                    "dice": ("las specs bastaron para implementar sin rectificar. Es lo que "
+                             "hay que repetir, y solo se ve mirando los adelantos")})
+            if not reg.get("correcciones") and reg.get("pf_dudas"):
+                causas.append({
+                    "senal": "pre-flight resuelto y sin correcciones despues",
+                    "valor": f"{reg['pf_dudas']} dudas antes, 0 correcciones despues",
+                    "dice": "preguntar antes evito rectificar durante"})
+
+        filas.append({
+            "change": cid, "fase": (fase or {}).get("id"),
+            "estimado_dias": est, "real_laborable": real,
+            "desviacion_dias": desv,
+            "desviacion_pct": round(rel * 100, 1),
+            "sentido": sentido,
+            "causas": causas,
+            "sin_causa": bool(sentido != "en linea" and not causas),
+        })
+
+    con_desv = [x for x in filas if x.get("sentido") in ("retrasado", "adelantado")]
+    sin_causa = [x["change"] for x in con_desv if x.get("sin_causa")]
+    return {
+        "changes": filas,
+        "retrasados": sum(1 for x in filas if x.get("sentido") == "retrasado"),
+        "adelantados": sum(1 for x in filas if x.get("sentido") == "adelantado"),
+        "en_linea": sum(1 for x in filas if x.get("sentido") == "en linea"),
+        "no_comparables": sum(1 for x in filas if x.get("sentido") == "no comparable"),
+        "dias_perdidos": round(sum(x["desviacion_dias"] for x in filas
+                                   if x.get("sentido") == "retrasado"), 2),
+        "dias_ganados": round(-sum(x["desviacion_dias"] for x in filas
+                                   if x.get("sentido") == "adelantado"), 2),
+        "sin_causa": sin_causa,
+        "umbral": "una desviacion cuenta a partir del 25 % sobre el esfuerzo estimado",
+        "base": "dias laborables frente a esfuerzo estimado de la fase",
     }
 
 

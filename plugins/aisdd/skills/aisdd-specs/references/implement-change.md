@@ -8,6 +8,8 @@
 
 Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver dudas con el usuario antes de tocar codigo.
 
+> **Si `roadmap.topology` es `externalizado`, empieza resolviendo la raiz de gobierno**: sube desde el directorio actual hasta encontrar `openspec/config.yaml`. Ese es el sitio donde estan las specs y la auditoria, y la carpeta que dejaste atras al subir dice **en que repo de codigo estas**. El CLI de `openspec` se ejecuta desde esa raiz (`cd <raiz> && openspec ...`) y los commits con `git -C <raiz>`; build y tests, donde estas. **No pidas al usuario que cambie de carpeta.** Ver "Donde se ejecuta cada comando" (`references/governance-repo.md`).
+
 1. **Resuelve el change objetivo** segun "Resolver el change objetivo (compartido)" (`references/target-change.md`). El argumento es opcional; si no llega y hay varios changes abiertos —lo normal en `waves` y `multilane`— presenta los candidatos con su lane u oleada y deja elegir. No escojas tu.
 2. Ejecuta el **pre-flight de dudas** segun la seccion "Pre-flight de dudas (compartido)" (`references/preflight.md`), variante **[IMPLEMENTACION]**.
 3. Cuando el pre-flight termine y no queden dudas bloqueantes pendientes, ejecuta:
@@ -26,7 +28,7 @@ Implementa un cambio OpenSpec con una fase previa de pre-flight para resolver du
 
    **Y el bloque `verification`** con lo que dieron el build, los tests y las puertas de calidad que hayas pasado: `{build, tests_run, passed, failed, added, modified, gates[]}`. Este comando **ya los ejecuta**; lo unico nuevo es dejar constancia. Si no ejecutaste alguno, omite ese campo en vez de poner cero: un cero se lee como cero fallos.
 
-   > No pases `first_run_green`: lo deriva el script de que sea el primer intento y de que no falle nada. Es el mejor indicador de si las specs iban bien, y por eso no puede depender de que te acuerdes de marcarlo. Reporta despues su ruta y su `id` en la verificacion final.
+   > No pases `first_run_green`: lo deriva el script de que sea el primer intento y de que no falle nada. Es el mejor indicador de si las specs iban bien, y por eso no puede depender de que te acuerdes de marcarlo. Reporta despues su ruta y su `id` en la verificacion final. **Y si `roadmap.topology` es `externalizado`, commitea y sube el repo de gobierno** antes de dar el comando por terminado: una entrada que solo existe en un portatil no es un registro. Ver "Ritmo de commit y push" (`references/governance-repo.md`).
 9. **Sugiere los proximos pasos.** Cierra diciendo **que hace el usuario ahora**, con el comando ya resuelto y listo para copiar. Sigue "Proximos pasos al terminar un comando" (`references/next-steps.md`), que dice cual toca segun el estado — modo, changes vivos, barreras bloqueadas, lane activo y si hay capa de entrega.
 
 ### Correcciones durante la implementacion
@@ -64,7 +66,7 @@ Reglas de aplicacion:
 
    Un nivel 4 **es** caro — cuesta parar a varias personas. Esa es la razon de que exista: si no fuera caro, el faseado permitiria que los lanes se contradijeran gratis.
 
-   > **En multirepo el nivel 4 existe pero no para a nadie.** No hay contrato compartido en el fuente ni barrera a la que remitir: lo que se desmiente es un **artefacto publicado** que otros repos consumen por version. Registra la entrada igual --con `Estado: pendiente de publicar contrato` en vez de `pendiente de barrera`--, di **que repos consumen esa version** segun `roadmap.lanes`, y deja claro que siguen trabajando contra la version antigua legitimamente: no estan equivocados, estan desactualizados, y la diferencia importa. La resolucion es publicar una version nueva desde el repo que la expone y que cada consumidor la adopte como fase suya.
+   > **En topologia `fraccionado` el nivel 4 existe pero no para a nadie.** (En `externalizado` si: ahi hay contrato compartido y barreras, y el nivel 4 funciona como siempre.) No hay contrato compartido en el fuente ni barrera a la que remitir: lo que se desmiente es un **artefacto publicado** que otros repos consumen por version. Registra la entrada igual --con `Estado: pendiente de publicar contrato` en vez de `pendiente de barrera`--, di **que repos consumen esa version** segun `roadmap.lanes`, y deja claro que siguen trabajando contra la version antigua legitimamente: no estan equivocados, estan desactualizados, y la diferencia importa. La resolucion es publicar una version nueva desde el repo que la expone y que cada consumidor la adopte como fase suya.
 
 Formato de la entrada en `openspec/changes/<change>/decisions.md`:
 
