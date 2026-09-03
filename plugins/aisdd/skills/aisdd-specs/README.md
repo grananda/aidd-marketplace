@@ -143,6 +143,8 @@ Comportamientos clave del pre-flight:
 
 Implementa un cambio en dos fases:
 
+> **Si el change toca front, lee antes la fuente de diseno.** Se deduce del contexto de la HU --y, si el proyecto lleva artefactos de diseno, de que haya alguno para esa HU--. Lee los artefactos de `docs/design/` si estan (los produce el plugin opcional `aifg`, que extrae el diseno de Figma y lo deja colgando de cada HU), `docs/guia-estilos.md` si no, e improvisa si no hay ninguno. **Degrada sin error en los tres casos**, y no carga el arbol entero: el mapa de la HU es corto y las definiciones de componente se abren una a una, solo las que el change toca.
+
 1. **Pre-flight de dudas**: antes de tocar codigo, el agente lee `design.md`, `proposal.md`, los `spec.md` y, si existen, `tasks.md` y `decisions.md` previos del cambio. Detecta dudas reales que afecten a la implementacion y las clasifica como `bloqueante`, `preferencia` o `confirmacion`. **El pre-flight es el mismo para ambos comandos**: una sola seccion del `SKILL.md` con variantes `[APERTURA]` / `[IMPLEMENTACION]`, para que las reglas no se desincronicen. Las respuestas se persisten en `openspec/changes/<change>/decisions.md`.
 2. **Aplicacion de instrucciones**:
 
@@ -233,9 +235,11 @@ aisdd close change alta-clientes-portal
 
 Cuatro scripts en `scripts/`, solo con biblioteca estandar de Python 3:
 
+> **La ruta se resuelve, no se asume.** Los skills los invocan con `${CLAUDE_PLUGIN_ROOT}`, que define Claude Code; **otros agentes la dejan vacia** --medido en Codex y en Cline-- y entonces la orden falla con `No such file or directory`. La regla, que viaja en el indice del skill y en cada sitio que manda ejecutar uno: si la variable no resuelve, localiza el script con **`find -L`** --el `-L` no es opcional: si los skills estan instalados por enlace simbolico, un `find` a secas no los sigue y devuelve vacio con el fichero delante-- y usa su ruta absoluta. Si no aparece, degrada a la prosa y dilo.
+
 | Script | Que hace |
 |---|---|
-| `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
+| `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes. Y **escribe el registro de actividad** (`docs/aidd-activity.md`) cuando `activity.source` es `skills` en `config.yaml` --el plan B para agentes que no ejecutan los hooks de plugin--; con `hooks` no lo toca, para no duplicar lo que ya escribe el hook |
 | `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
 | `optimize_phasing.py` | Calcula el calendario de cada modo de faseado con cada numero de developers, encuentra el optimo y emite un HTML con los caminos enfrentados. **Obligatorio** en `aisdd roadmap` salvo con un solo dev |
 | `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252. **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, justo antes de la entrada de auditoria y solo sobre los artefactos documentales, nunca sobre codigo fuente |
