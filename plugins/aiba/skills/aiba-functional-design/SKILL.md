@@ -48,27 +48,27 @@ Criterio de salida: existe un `.docx` por cada HU solicitada en `docs/df/`, con 
 
 ## Flujo del comando
 
-### 1. Marca corporativa (preguntar SIEMPRE, antes de generar nada)
+### 1. Plantilla y marca (preguntar SIEMPRE, antes de generar nada)
 
-Antes de leer documentacion o generar ficheros, **pregunta al usuario si quiere aplicar una marca**. Es lo primero porque condiciona todo el resto y porque rehacer veinte documentos por no haber preguntado es caro.
+Antes de leer documentacion o generar ficheros, **pregunta con que aspecto sale el documento**. Es lo primero porque condiciona todo el resto y porque rehacer veinte documentos por no haber preguntado es caro.
 
-Usa `AskUserQuestion` si la plataforma lo soporta, con estas opciones:
+La pregunta de verdad es corta: **si el cliente tiene una plantilla, donde esta**. Usa `AskUserQuestion` si la plataforma lo soporta:
 
-1. **Sin marca `(Recomendada)`** — estilos nativos de Word, sin logo y con la paleta por defecto. El documento queda listo para que cualquiera le aplique despues su identidad visual sin rehacerlo.
-2. **Marca desde una carpeta local** — pide la ruta y busca en ella el logo (`.png`, `.jpg`, `.svg`) y, si existe, un fichero de tokens o guia de estilos del que extraer los colores.
-3. **Marca desde una URL** — pide la URL de la web corporativa o de la guia de marca, y extrae de ahi el logo y los colores dominantes.
-4. **Plantilla del cliente (`.docx` o `.dotx`)** — pide la ruta. El documento **hereda sus estilos, cabecera, pie y formato de pagina**, y el contenido se escribe encima. Es lo que hay que usar cuando el cliente tiene su propia plantilla: aplicarla despues a mano en veinte documentos no es una opcion.
+1. **Plantilla del cliente `(Recomendada si existe)`** — pide **la ruta del fichero** `.docx` o `.dotx` y ya esta. El documento hereda sus **estilos, cabecera, pie y formato de pagina**, y el contenido se escribe encima. Si el cliente tiene plantilla, esto es siempre mejor que cualquier otra opcion: aplicarla despues a mano en veinte documentos no es una opcion.
+2. **Sin nada `(Recomendada si no hay plantilla)`** — estilos nativos de Word, sin logo y con la paleta por defecto. Queda listo para que cualquiera le aplique despues su identidad sin rehacerlo.
+3. **Marca desde una carpeta local** — pide la ruta y busca en ella el logo (`.png`, `.jpg`, `.svg`) y, si existe, un fichero de tokens o guia de estilos del que extraer los colores.
+4. **Marca desde una URL** — pide la URL de la web corporativa o de la guia de marca, y extrae de ahi el logo y los colores dominantes.
 
-   Pasala al generador con `--plantilla <ruta>`. Dos cosas que comprobar en su salida y **decir en el resumen**:
+Si elige **3 o 4**, pide ademas lo que no puedas deducir: **color principal**, **color secundario** y **texto de cabecera y pie**. Confirma lo detectado antes de usarlo; no des por buena una paleta extraida automaticamente sin ensenarla.
 
-   - **`avisos`**: los estilos que la plantilla no trae. Esas partes salen sin formato, y si no lo dices nadie se entera hasta abrir el documento. Los nombres se resuelven por idioma --una plantilla en espanol trae `Titulo 1` donde el generador pide `Heading 1`-- pero un estilo con nombre propio del cliente no se puede adivinar.
-   - **Si la plantilla ya numera sus titulos**, pasa `"numerar_apartados": false` en el manifiesto: si no, saldria `1. 1. Introduccion`. Mirala antes de generar veinte documentos.
+En modo no interactivo, toma la **opcion 2** y registralo como supuesto.
 
-Si el usuario elige 2 o 3, pide ademas lo que no puedas deducir: **color principal**, **color secundario** y **texto de cabecera y pie**. Confirma lo detectado antes de usarlo; no des por buena una paleta extraida automaticamente sin ensenarla.
+**Con plantilla**, pasala al generador con `--plantilla <ruta>` y mira dos cosas de su salida, que van al resumen:
 
-En modo no interactivo, toma **sin marca** y registralo como supuesto.
+- **`avisos`** — los estilos que la plantilla no trae. Esas partes salen **sin formato**, y si no lo dices nadie se entera hasta abrir el documento. Los nombres se resuelven por idioma --una plantilla en espanol trae `Titulo 1` donde el generador pide `Heading 1`--, pero un estilo con nombre propio del cliente no se puede adivinar.
+- **Si la plantilla ya numera sus titulos**, pasa `"numerar_apartados": false` en el manifiesto o saldra `1. 1. Introduccion`. Compruebalo en el primer documento, antes de generar veinte.
 
-> **Por que el default es sin marca.** Un DF suele acabar en manos de un cliente que tiene su propia identidad. Generarlo con la marca de quien lo escribe obliga a rehacerlo; generarlo neutro pero **bien estructurado** permite aplicar cualquier identidad en minutos, porque los colores viven en los estilos y no en cada parrafo.
+> **Por que sin plantilla el default es sin marca.** Un DF acaba en manos de un cliente que tiene su propia identidad. Generarlo con la marca de quien lo escribe obliga a rehacerlo; generarlo neutro pero **bien estructurado** permite aplicar cualquier identidad en minutos, porque los colores viven en los estilos y no en cada parrafo.
 
 ### 2. Recopilacion de contexto
 
