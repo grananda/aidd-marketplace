@@ -46,8 +46,8 @@ LEIBLES = {".md", ".py", ".sh", ".json", ".yaml", ".yml"}
 # Ficheros replicados a proposito. Cada entrada: ruta relativa al plugin y los
 # plugins que deben llevarla identica.
 COMPARTIDOS = [
-    ("hooks/aidd-activity-hook.sh", ["aidd", "aisdd", "aiad", "aiba", "boosters"]),
-    ("hooks/hooks.json", ["aidd", "aisdd", "aiba", "boosters"]),  # aiad suma su journal
+    ("hooks/aidd-activity-hook.sh", ["aidd", "aisdd", "aiad", "aiba", "aifg", "boosters"]),
+    ("hooks/hooks.json", ["aidd", "aisdd", "aiba", "aifg", "boosters"]),  # aiad suma su journal
     ("scripts/stamp_doc.py", ["aidd", "aiba"]),
 ]
 
