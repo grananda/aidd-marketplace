@@ -40,7 +40,7 @@ Como complemento opcional, al final del comando se genera una **vista HTML** de 
 
 > Actua como experto en diseno de producto, sistemas de diseno y arquitectura frontend. Tu objetivo es definir la guia de estilos del producto a partir del detalle de historias y de la identidad visual o de marca indicada. Es la base visual para el AI Lead y los AI Developers.
 
-Criterio de salida del paso: existe `docs/guia-estilos.md` con design tokens CSS concretos (no descripciones vagas), paleta, tipografia, componentes base y reglas de accesibilidad WCAG 2.1 AA. Lo que falte de identidad visual se marca como pendiente; no inventes una marca.
+Criterio de salida del paso: existe `docs/guia-estilos.md` con design tokens CSS concretos (no descripciones vagas), paleta, tipografia, componentes base y reglas de accesibilidad WCAG 2.1 AA, **y esos tokens emitidos ademas como `docs/design/tokens.json` y `docs/design/tokens.css`**. Lo que falte de identidad visual se marca como pendiente; no inventes una marca.
 
 ## Reglas generales
 
@@ -187,7 +187,9 @@ Al terminar, informa:
 - Comando AIDD ejecutado (`aidd style-guide`) y fase/paso (2 / 2.3).
 - Ruta del documento generado o actualizado (`docs/guia-estilos.md`).
 - Ruta de la vista HTML generada (`docs/html/guia-estilos.html`), o aviso si no se pudo generar el HTML.
+- **Rutas de los tokens emitidos** (`docs/design/tokens.json` y `docs/design/tokens.css`), y cuantos tokens llevan.
 - Si hay design tokens concretos y si la identidad visual es definitiva o provisional.
+- Si se ofrecio `aifg capture` y que respondio el usuario, o que el plugin `aifg` no estaba instalado.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd architecture-proposal` (si no se hizo) y despues `aidd architecture` (arquitectura tecnica definitiva).
 - **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

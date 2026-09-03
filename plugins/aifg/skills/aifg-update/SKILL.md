@@ -31,9 +31,11 @@ El modelo, el esquema de extraccion y el acceso a Figma son **los mismos** que e
 ## `aifg update [componente-o-hu]`
 
 1. **Resuelve que se re-captura.** Si el argumento no llega, pregunta: un **componente** (`card`), una **HU** (`HU-07`) o un **frame** concreto. No lo adivines por lo ultimo que se toco.
-2. **Comprueba el acceso a Figma** (`mcp.md`). Sin MCP, detente: media actualizacion deja el arbol mintiendo con hash nuevo.
-3. **Re-captura la pieza** con el mismo esquema de `extraction.md`, y **actualiza su cabecera**: hash del payload nuevo y fecha.
-4. **Si lo re-capturado es un componente, propaga.** Es lo barato: **la referencia no cambia**, los mapas siguen apuntando a `componentes/card.json`; lo que se actualiza es el hash y la fecha de los mapas que lo referencian.
+2. **Comprueba el acceso a Figma** (`${CLAUDE_PLUGIN_ROOT}/skills/aifg-capture/references/mcp.md`). Sin MCP, detente: media actualizacion deja el arbol mintiendo con hash nuevo.
+3. **Re-captura la pieza** con el mismo esquema de `${CLAUDE_PLUGIN_ROOT}/skills/aifg-capture/references/extraction.md`, y **actualiza su cabecera**: hash del payload nuevo y fecha.
+4. **Si lo re-capturado es un componente, propaga.** Es lo barato: **la referencia no cambia**, los mapas siguen apuntando a `componentes/card.json`. Lo que se actualiza es el **hash del componente que cada mapa tenia registrado**.
+
+   Un mapa guarda, junto a cada referencia, el hash del componente contra el que se construyo. Sin eso no se puede distinguir "este mapa esta al dia" de "este mapa se escribio contra otra version", que es justo lo que hace falta saber en el paso 6. **No toques el hash del propio mapa** si su contenido no ha cambiado: seria decir que cambio algo que no cambio.
 5. **Detecta los overrides huerfanos.** Es el unico paso de esta lista que no es mecanico, y es el que importa:
 
    Si una instancia sobreescribia `boton.visible` y el disenador **quito el boton del molde**, ese override apunta a algo que ya no existe. Detectarlo es barato; **no detectarlo es corrupcion silenciosa** --el mapa sigue pareciendo valido y describe algo imposible--.

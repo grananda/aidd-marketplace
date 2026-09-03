@@ -40,15 +40,16 @@ Extraccion masiva: recorre el archivo de Figma y deja el arbol completo bajo `do
 
 1. **Comprueba el acceso a Figma.** Sin MCP no hay extraccion posible; ver `references/mcp.md`. Si no lo hay, **detente y dilo** en vez de producir un arbol a medias.
 2. **Pide el enlace del archivo** y lee su estructura: paginas, frames, componentes publicados.
-3. **Resuelve el vinculo HU <-> diseno** segun `references/binding.md`. Lo que no admite duda se resuelve solo; lo demas se le presenta al humano en una tabla con miniaturas.
-4. **Extrae y normaliza** segun `references/extraction.md`: definiciones de componente una sola vez, un mapa de composicion por HU, imagenes de frame y de componente.
-5. **Escribe el arbol** segun `references/model.md`, con la cabecera de generado, el hash y la fecha en cada fichero.
-6. **Reporta lo que importa y no se ve solo**:
+3. **Exporta las miniaturas de los frames.** Van antes de vincular, no despues: la tabla del paso siguiente **se decide mirando**, y con los nombres de frame a secas nadie puede.
+4. **Resuelve el vinculo HU <-> diseno** segun `references/binding.md`. Lo que no admite duda se resuelve solo; lo demas se le presenta al humano con su miniatura al lado.
+5. **Extrae y normaliza** lo que quedo vinculado, segun `references/extraction.md`: definiciones de componente una sola vez, un mapa de composicion por HU, y la imagen de cada componente. **Extraer despues de vincular** evita destripar frames que ninguna HU reclama.
+6. **Escribe el arbol** segun `references/model.md`, con la cabecera de generado, el hash y la fecha en cada fichero. Cada referencia a un componente guarda ademas **el hash del componente contra el que se construyo**: es lo que permite despues saber si un mapa quedo desactualizado.
+7. **Reporta lo que importa y no se ve solo**:
    - Cuantos componentes cayeron a **node id** por no estar publicados en una libreria. Es el modo fragil, y hay que estar en el sabiendolo.
    - Cuantas instancias tienen **overrides estructurales**, que casi siempre significan que falta una variante del componente.
    - **HU sin diseno** y **disenos que ninguna HU reclama**. El segundo suele ser un hueco de requisitos o algo muerto en el Figma.
    - El peso del arbol, separando JSON e imagenes.
-7. **Di donde queda todo y quien lo consume**: `aisdd implement change` lo encuentra solo por la ruta, sin que la HU lleve ninguna referencia.
+8. **Di donde queda todo y quien lo consume**: `aisdd implement change` lo encuentra solo por la ruta, sin que la HU lleve ninguna referencia.
 
 ## Lo que no haces nunca
 

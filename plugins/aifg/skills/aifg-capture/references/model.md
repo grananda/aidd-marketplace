@@ -51,6 +51,8 @@ Dos consecuencias:
              "extraido": "<YYYY-MM-DD>"}}
   ```
 
+  **Y cada referencia a un componente guarda ademas el hash de ese componente** (`refHash`), que es cosa distinta: el de la cabecera dice si cambio **este** fichero, y el `refHash` dice si cambio **aquel** contra el que se construyo. Solo el segundo permite detectar un mapa desactualizado.
+
   Van ahi, y no en un indice aparte, para que **viajen con lo que describen**: un indice separado se desincroniza y nadie se entera. Cubren tambien la imagen: un JSON fresco junto a un PNG viejo es peor que no tener imagen, porque parece verificacion y no lo es.
 
 ## Por que se versiona algo generado

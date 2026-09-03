@@ -63,9 +63,11 @@ Si el mapa guarda tres veces `{"ref": "componentes/card.json"}`, quien implement
 Cada instancia lleva su diff contra el molde:
 
 ```json
-{"ref": "componentes/card.json", "nodeId": "1:482",
+{"ref": "componentes/card.json", "refHash": "<hash del componente al capturar>", "nodeId": "1:482",
  "overrides": {"titulo": "Pago rechazado", "boton.visible": false, "fill": "--color-error"}}
 ```
+
+`refHash` es el hash del componente **contra el que se construyo esta instancia**. Sin el no se puede distinguir un mapa al dia de uno escrito contra otra version del molde, que es lo que `aifg update` necesita saber para decir a que HU afecta un cambio.
 
 **La referencia dice de que molde sale; los overrides, en que se separa. Los dos, o no se reconstruye nada.**
 
