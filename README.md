@@ -377,9 +377,11 @@ El marketplace está pensado para Claude Code, pero **Codex ya lo instala tal cu
 | **Skills** | Sí | Sí (avisa si acorta descripciones para caber en su presupuesto) | Sí — lee `.claude/skills/` de forma nativa |
 | **Hooks** | Sí | Sí, se registran y se confían por hash | **No** — su modelo de plugin es un módulo TypeScript sobre su SDK |
 | **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí | Por verificar |
-| **Registro de actividad y KPIs** | Sí | Ver abajo | **No**, al no haber hooks |
+| **Registro de actividad y KPIs** | Sí | **Todavía no** — ver abajo | **No**, al no haber hooks |
 
-**En Codex, cualquier cambio del hook exige volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
+**En Codex el registro de actividad todavía no funciona.** Los hooks se registran, pero el del plugin no llega a ejecutarse: uno equivalente declarado a nivel de proyecto y con ruta absoluta sí lo hace, así que la sospecha está en la forma del comando (`"${CLAUDE_PLUGIN_ROOT}/…"`, entrecomillado y con variable). Hasta que se resuelva, en Codex **no hay KPIs de uso**: los skills funcionan, la medición no.
+
+**Y cuando funcione, cualquier cambio del hook exigirá volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
 
 **En Cline no hay registro de actividad**, así que `aiba metrics` no tiene de dónde calcular los KPIs de uso. Los skills funcionan; la medición no.
 

@@ -30,7 +30,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 | F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
 | F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
-| F-25 | El hook de actividad deja de ser de una sola plataforma: mismos eventos en Claude Code y Codex, con prueba | todos | **implementada** | 2026-09-03 |
+| F-25 | El hook de actividad, endurecido para otras plataformas: `turn_id`, detección de escritura sin lista blanca y prueba de paridad | todos | **parcial** | 2026-09-03 |
 
 ---
 
@@ -479,29 +479,30 @@ Decisiones que sostienen el diseño:
 
 **Queda fuera, dicho a propósito:** remediar HU cerradas cuando cambia el diseño contra el que se implementaron. Se reporta cuáles son y ahí para — la salida natural es otra HU o una tarea, y la metodología no contempla hoy ese camino.
 
-## F-25 — El registro de actividad no era de una sola plataforma por decisión, sino por descuido
+## F-25 — El registro de actividad no escribe fuera de Claude Code
 
-**Estado:** implementada · **Versión:** `VERSION` 1.36.0 · **Añadida:** 2026-09-03
+**Estado:** parcial · **Versión:** `VERSION` 1.36.0 · **Añadida:** 2026-09-03
 
-Se comprobó sobre Codex CLI 0.151.0, con el marketplace instalado de verdad.
+Comprobado sobre Codex CLI 0.151.0 con el marketplace instalado de verdad, capturando payloads reales.
 
-**Codex ya instala este repositorio tal cual.** Lee `.claude-plugin/marketplace.json` y los `plugin.json` sin traducción, y registra los hooks normalizando los nombres de evento a los suyos (`post_tool_use`, `user_prompt_submit`, `stop`). No hacía falta ningún manifiesto nuevo — el supuesto de que sí era falso.
+**Codex ya instala este repositorio tal cual.** Lee `.claude-plugin/marketplace.json` y los `plugin.json` sin traducción, y registra los hooks en su `config.toml` con un `trusted_hash` por entrada. No hacía falta ningún manifiesto nuevo — el supuesto de que sí, era falso.
 
-**Pero el registro de actividad quedaba vacío.** El `case` del hook comparaba literales en PascalCase, así que con los nombres de Codex no reconocía ningún evento, salía con 0, y `aiba metrics` publicaba ceros. No fallaba: mentía, que es peor.
+**Y el vocabulario del payload también coincide.** Capturado literal de una sesión de Codex:
 
-Medido aislando el hook con la misma secuencia escrita de las dos formas:
+```json
+{"session_id":"…","turn_id":"…","transcript_path":"…","cwd":"…",
+ "hook_event_name":"Stop","model":"…","permission_mode":"bypassPermissions",
+ "stop_hook_active":false,"last_assistant_message":"¡Hola!"}
+```
 
-| Nombres de evento | Línea `file:` | Línea `turn` |
-|---|---|---|
-| `UserPromptSubmit` / `PostToolUse` / `Stop` | 1 | 1 |
-| `user_prompt_submit` / `post_tool_use` / `stop` | 1 | **0** |
+`hook_event_name` viene en **PascalCase**, igual que en Claude Code. El snake_case (`post_tool_use`) son solo las **claves de configuración** de Codex, no lo que envía. Una hipótesis anterior decía lo contrario y era falsa.
 
-**Qué cambia.** El hook normaliza el nombre del evento y de la herramienta antes de decidir —minúsculas, sin guiones ni espacios— con expansión de bash y sin subprocesos, porque esto corre en cada llamada a una tool. La detección de escritura deja de ser una lista blanca de nombres de Claude Code: cubre también los habituales de otros agentes y, para una herramienta desconocida, exige **ruta de fichero y señal de escritura** (`content`, `new_string`, `patch`, `diff`, `edits`). Con la ruta sola no basta — una lectura también la trae, y contarla inflaría el registro.
+**La diferencia real capturada es otra: no hay `prompt_id`, hay `turn_id`.** El hook deduplica los eventos de turno por ese identificador entre sus seis copias, así que sin él no hay deduplicación. Corregido: se acepta `turn_id` cuando `prompt_id` no viene.
 
-**Y una prueba, porque esto se rompió en silencio y podía volver a hacerlo.** `check_activity_hook.py` dispara el hook con la misma secuencia en los dos vocabularios y exige que produzca las mismas líneas, más un caso negativo: una lectura no puede quedar registrada como actividad.
+**Lo que sigue sin resolverse.** Con el hook del plugin instalado, el registro **queda vacío**, y una sonda en la primera línea del script no produce salida: el comando del hook **no llega a ejecutarse**. Un hook equivalente declarado a nivel de proyecto y con ruta absoluta sí se ejecuta y sí escribe. La diferencia está en la forma del comando —`"${CLAUDE_PLUGIN_ROOT}/hooks/aidd-activity-hook.sh"`, entrecomillado y con variable— y falta aislar cuál de las dos cosas lo rompe.
 
-**Un hallazgo operativo que va al README:** Codex guarda un `trusted_hash` por entrada de hook, así que **cualquier release que cambie el hook detiene el registro hasta que el usuario vuelva a confiarlo**. No da error. Si tras actualizar las métricas se quedan planas, es eso.
+Así que **el hook sigue sin registrar en Codex**, y lo que va en esta versión es el trabajo que sí está probado: normalización defensiva de los nombres de evento y herramienta, detección de escritura que no depende de una lista blanca de Claude Code, `turn_id`, y una prueba en CI que fija que las dos formas produzcan las mismas líneas.
 
-**Lo que queda sin verificar:** que en Codex el registro se llene de extremo a extremo. Al cambiar el fichero deja de coincidir con su hash de confianza, y aprobarlo de nuevo exige una sesión interactiva. Los nombres exactos de herramienta que envía Codex siguen sin capturar; por eso la detección se apoya en la forma del payload y no solo en una lista de nombres.
+**Un hallazgo operativo que va al README:** Codex confía los hooks por hash, así que **cualquier release que cambie el hook detiene el registro** hasta que el usuario vuelva a confiarlo. No da error. Si tras actualizar las métricas se quedan planas, es eso. Existe `--dangerously-bypass-hook-trust` para automatizaciones que ya validan el origen.
 
-**Cline** queda documentado y sin tocar: los skills funcionan —lee `.claude/skills/` de forma nativa— pero su modelo de plugin es un módulo TypeScript sobre su SDK, así que **no hay hooks y no hay KPIs**. Portarlo es otro proyecto.
+**Cline** queda documentado y sin tocar: los skills funcionan —lee `.claude/skills/` de forma nativa— pero su modelo de plugin es un módulo TypeScript sobre su SDK, así que no hay hooks y no hay KPIs.

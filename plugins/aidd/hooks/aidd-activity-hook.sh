@@ -54,7 +54,7 @@ if command -v jq >/dev/null 2>&1; then
     "tool="  + (.tool_name | q),
     "uid="   + (.tool_use_id | q),
     "sid="   + (.session_id | q),
-    "pid="   + (.prompt_id | q),
+    "pid="   + ((.prompt_id // .turn_id) | q),
     "cwd="   + (.cwd | q),
     "file="  + ((.tool_input.file_path // .tool_input.notebook_path
                  // (.tool_input.edits[0].file_path)
@@ -93,7 +93,7 @@ p("event", d.get("hook_event_name"))
 p("tool", d.get("tool_name"))
 p("uid", d.get("tool_use_id"))
 p("sid", d.get("session_id"))
-p("pid", d.get("prompt_id"))
+p("pid", d.get("prompt_id") or d.get("turn_id"))
 p("cwd", d.get("cwd"))
 p("file", f)
 p("wrote", wrote)
@@ -110,6 +110,9 @@ fi
 # fuera media plataforma **en silencio** -- el hook se disparaba, no reconocia
 # el evento y salia con 0, asi que el registro quedaba vacio y `aiba metrics`
 # publicaba ceros sin ninguna senal de que faltara nada.
+# El identificador de turno no se llama igual en todas partes: Claude Code manda
+# `prompt_id` y Codex manda `turn_id`. Sin uno de los dos no hay deduplicacion
+# de los eventos de turno entre las copias del hook.
 # Sin subprocesos: esto corre en cada llamada a una tool.
 norm() { local s="${1:-}"; s="${s//[-_ ]/}"; printf '%s' "${s,,}"; }
 event_n="$(norm "${event:-}")"
