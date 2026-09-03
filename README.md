@@ -417,6 +417,15 @@ Con eso, en Cline funcionan los skills, la auditoría, el sellado y los KPIs cal
 
 Los seis plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
 
+**Quién lo escribe depende del agente.** En Claude Code, el hook — ve el turno entero, incluido el trabajo que no es una invocación de comando. Donde los hooks de plugin no se ejecutan (Codex, Cline), lo escribe **`audit.py`** en cada comando `aisdd`. La decisión **se declara** en `openspec/config.yaml` y la fija `aisdd init`:
+
+```yaml
+activity:
+  source: hooks   # hooks | skills
+```
+
+Nunca escriben los dos: duplicar cada línea no da error, infla el tiempo atendido y la aceleración sale mejor de lo que fue. Sin la clave se asume `hooks`. Con `source: skills` el tiempo atendido es **una cota inferior** —un comando no ve el tiempo de revisar, conversar ni iterar— y `aiba metrics` lo declara en el informe en vez de presentarlo como equivalente.
+
 **Se activa por proyecto creando el fichero de registro** (sin él no se escribe nada, en ningún proyecto):
 
 ```bash

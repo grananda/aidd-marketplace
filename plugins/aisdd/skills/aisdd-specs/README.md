@@ -235,7 +235,7 @@ Cuatro scripts en `scripts/`, solo con biblioteca estandar de Python 3:
 
 | Script | Que hace |
 |---|---|
-| `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes |
+| `audit.py` | Compone y persiste la entrada JSONL de auditoria: hashes SHA-256, agregados, purga por retencion. Recibe por stdin lo que solo el agente sabe (comando, modelo, decisiones, rutas) y rellena `id`, `timestamp` y hashes. Y **escribe el registro de actividad** (`docs/aidd-activity.md`) cuando `activity.source` es `skills` en `config.yaml` --el plan B para agentes que no ejecutan los hooks de plugin--; con `hooks` no lo toca, para no duplicar lo que ya escribe el hook |
 | `agents_block.py` | Reemplazo idempotente de un bloque delimitado de `AGENTS.md` (`commands` o `roadmap`), sin tocar el resto del fichero ni el otro bloque. Migra bloques legacy `native-ai-specs` |
 | `optimize_phasing.py` | Calcula el calendario de cada modo de faseado con cada numero de developers, encuentra el optimo y emite un HTML con los caminos enfrentados. **Obligatorio** en `aisdd roadmap` salvo con un solo dev |
 | `check_mojibake.py` | Detecta (y con `--fix` repara) UTF-8 mal interpretado como Latin-1/CP1252. **Obligatorio** en `init`, `roadmap` y `open`/`implement`/`close change`, justo antes de la entrada de auditoria y solo sobre los artefactos documentales, nunca sobre codigo fuente |
