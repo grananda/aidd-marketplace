@@ -21,6 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 KPIS = ROOT / "plugins/aiba/skills/aiba-metrics/scripts/compute_kpis.py"
 AUDIT = ROOT / "plugins/aisdd/skills/aisdd-specs/scripts/audit.py"
+DF = ROOT / "plugins/aiba/skills/aiba-functional-design/scripts/gen_df_docx.py"
 
 ACTIVIDAD = """# Registro de actividad AIDD
 
@@ -85,10 +86,59 @@ with tempfile.TemporaryDirectory() as tmp:
     if r.returncode != 0:
         errors.append(f"audit.py falla al ejecutarse: {r.stderr.strip()[-400:]}")
 
+    # 4. `aiba functional-design`: genera el .docx, con plantilla y sin ella.
+    #    Necesita python-docx; si no esta, se **dice** y no se finge cobertura.
+    df_ejercitado = False
+    try:
+        import docx                                            # noqa: F401,PLC0415
+    except ImportError:
+        pass
+    else:
+        df_ejercitado = True
+        manifiesto = {"proyecto": "P", "titulo": "T", "introduccion": "x",
+                      "alcance": "x", "narrativa": {"como": "a", "quiero": "b", "para": "c"},
+                      "integraciones": "N/A",
+                      "validaciones": {"frontal": "N/A", "core": "N/A"},
+                      "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",
+                                   "core": "N/A"},
+                      "pantallas": "N/A", "especificaciones_tecnicas": "N/A"}
+        (d / "m.json").write_text(json.dumps(manifiesto), encoding="utf-8")
+
+        # Plantilla con estilo en espanol y relleno, como la de un cliente.
+        import docx as _docx                                   # noqa: PLC0415
+        tpl = _docx.Document()
+        tpl.add_paragraph("RELLENO DE LA PLANTILLA")
+        tpl.styles["Heading 1"].name = "Título 1"
+        tpl.save(str(d / "tpl.docx"))
+
+        for etiqueta, extra in (("sin plantilla", []),
+                                ("con plantilla", ["--plantilla", str(d / "tpl.docx")])):
+            salida = d / f"df-{etiqueta.split()[0]}.docx"
+            r = subprocess.run([sys.executable, str(DF), "--manifest", str(d / "m.json"),
+                                "--output", str(salida), "--no-install"] + extra,
+                               capture_output=True, text=True, timeout=120)
+            if r.returncode != 0:
+                errors.append(f"gen_df_docx.py falla {etiqueta}: {r.stderr.strip()[-300:]}")
+                continue
+            doc = _docx.Document(str(salida))
+            titulos = [p.text for p in doc.paragraphs
+                       if p.style.name in ("Heading 1", "Título 1")]
+            if not any(x.startswith("1. ") for x in titulos):
+                errors.append(f"gen_df_docx.py {etiqueta}: los apartados no salen "
+                              f"numerados ({titulos[:3]})")
+            if "con plantilla" in etiqueta:
+                if any("RELLENO DE LA PLANTILLA" in p.text for p in doc.paragraphs):
+                    errors.append("gen_df_docx.py: el contenido de ejemplo de la "
+                                  "plantilla acaba dentro del DF")
+
 if errors:
     print("Scripts que compilan pero no funcionan:", file=sys.stderr)
     for e in errors:
         print(f"  - {e}", file=sys.stderr)
     sys.exit(1)
+# Decir que se ejercito y que no. Un "correcto" que oculta una parte sin
+# ejecutar es el mismo fallo que esta comprobacion existe para cazar.
 print("Humo de scripts correcto: compute_kpis (json y md) y audit.py se ejecutan "
-      "de punta a punta sobre un proyecto minimo.")
+      "de punta a punta sobre un proyecto minimo"
+      + (", y gen_df_docx con plantilla y sin ella." if df_ejercitado
+         else ". AVISO: gen_df_docx **no** se ha ejercitado (falta python-docx)."))

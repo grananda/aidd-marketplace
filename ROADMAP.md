@@ -34,6 +34,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-26 | Los scripts se resuelven en vez de asumir la ruta: la auditoría vuelve a funcionar fuera de Claude Code | todos | **implementada** | 2026-09-03 |
 | F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-28 | El retrabajo se distingue del trabajo nuevo, y `close change` comprueba antes de archivar | aisdd, aiba | **implementada** | 2026-09-03 |
+| F-29 | El DF sale con la plantilla del cliente, numerado, en español natural y con la pantalla dentro | aiba | **implementada** | 2026-09-03 |
 
 ---
 
@@ -590,3 +591,21 @@ Se propuso que el hook creara `docs/aidd-activity.md` al dispararse, convirtiend
 `compute_kpis.py` referenciaba una variable inexistente en el bloque de la base del tiempo atendido, así que **`aiba metrics` no se podía ejecutar** desde v1.38.1. `py_compile` no ve un `NameError`: el fichero compila y revienta al usarlo, y ninguna de las nueve comprobaciones llamaba al script.
 
 `check_scripts_run.py` lo ejecuta ahora de punta a punta sobre un proyecto mínimo —en los dos formatos de salida— junto con `audit.py`. Es el humo que faltaba, y es el que lo habría cazado.
+
+## F-29 — El DF, listo para enseñárselo al cliente
+
+**Estado:** implementada · **Versión:** `aiba` 1.14.0 · **Añadida:** 2026-09-03
+
+Seis comentarios del equipo sobre los DF que genera `aiba functional-design` (#35). **Los seis eran resolubles**, y tres de ellos eran fallos de la especificación, no del modelo que la ejecuta.
+
+**La plantilla del cliente.** El skill ofrecía *marca* —logo y colores— pero no *plantilla*, y el documento se construía siempre desde cero. Ahora acepta `--plantilla`: hereda **estilos, cabecera, pie y formato de página**, y el contenido se escribe encima. Los nombres de estilo **se resuelven por idioma** —una plantilla en español trae `Título 1` donde el generador pide `Heading 1`— y los que falten **se reportan**, porque un documento con partes sin formato no se nota hasta abrirlo.
+
+**Los apartados van numerados.** El `SKILL.md` decía «numerado con Título 1/2/3», y eso asume algo que Word no hace: sus estilos `Heading` **no numeran solos**. El número lo pone ahora el generador en el texto del título (`2.3.1 Específicas del Frontal`), que encaja porque el documento se **regenera**, nunca se edita a mano. Con una plantilla que ya numere, se desactiva.
+
+**Español correcto, y para quien lo va a leer.** Faltaban dos reglas. La primera: el `.docx` va con acentos y eñes **da igual cómo esté escrito el skill** —sin ellos, por convención del repositorio—; eso es código fuente y el DF no. La segunda: se escribe para **Negocio y QA del cliente, ajenos al proyecto**, así que párrafo de contexto antes de cada tabla, siglas expandidas la primera vez, y nada de estilo telegráfico.
+
+**Sin códigos internos.** Salían porque una regla los pedía: el paso 2 mandaba leer los RF «para alimentar el alcance». Ahora el cuerpo **explica el contenido** en vez de citar el código. La trazabilidad no se pierde —vive en `requisitos.md` y en `jira-sync.md`— y el `HU-XX` se queda, que da nombre al fichero y engancha con Jira.
+
+**La pantalla, dentro.** El generador **ya sabía insertar imágenes**; lo que faltaba era decirle dónde está la pantalla. Desde F-24 la deja `aifg` en `docs/design/hu/<HU-XX>/referencia.png`, y ahí se lee. Se inserta la pantalla, no el identificador del nodo, que fuera del equipo no le dice nada a nadie.
+
+**Y la CI ejecuta el generador.** `check_scripts_run.py` lo corre con plantilla y sin ella, y comprueba que los apartados salen numerados y que el contenido de ejemplo de la plantilla **no** acaba dentro del DF. Verificado que caza la regresión: al desactivar la numeración a propósito, falla. Si `python-docx` no está, **lo dice** en vez de pasar en silencio.
