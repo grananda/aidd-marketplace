@@ -32,6 +32,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
 | F-25 | El hook de actividad, endurecido para otras plataformas: `turn_id`, detección de escritura sin lista blanca y prueba de paridad | todos | **parcial** | 2026-09-03 |
 | F-26 | Los scripts se resuelven en vez de asumir la ruta: la auditoría vuelve a funcionar fuera de Claude Code | todos | **implementada** | 2026-09-03 |
+| F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
 
 ---
 
@@ -540,3 +541,19 @@ Con eso vuelven a funcionar fuera de Claude Code la **auditoría**, el **sellado
 **La regla vive tambien en el indice de `aisdd-specs`, no solo en su ficha de scripts.** Los otros 19 sitios la llevan dentro del propio `SKILL.md`; `aisdd` la tenia unicamente en `references/scripts.md`, y no todos los agentes cargan ese directorio --Cline documenta `docs/`, `templates/` y `scripts/` como subdirectorios de un skill, y no menciona `references/`--. Como la entrada de auditoria es obligatoria en todos los comandos, esa regla no puede depender de que se lea un fichero de segundo nivel.
 
 **Lo que queda pendiente:** verificar de extremo a extremo que ese registro se llena en Codex. El hook llega a dispararse, pero falta saber qué eventos emite y con qué nombre de herramienta. Hasta entonces, en Codex `aiba metrics` trabaja con lo que sale de la auditoría y le falta el tiempo atendido.
+
+## F-27 — El registro de actividad, sin depender de los hooks
+
+**Estado:** implementada · **Versión:** `aisdd` 3.11.0 · `aiba` 1.12.0 · **Añadida:** 2026-09-03
+
+F-26 dejó funcionando fuera de Claude Code todo menos una cosa: el registro de actividad, y con él el **tiempo atendido**, que es de donde sale el ahorro. Los hooks de plugin se registran y no se ejecutan en Codex, y en Cline no hay mecanismo compatible.
+
+**Los hooks se quedan.** Donde corren son la vía preferente: ven el turno entero, incluido el trabajo que no es una invocación de comando.
+
+**Donde no corren, escribe `audit.py`.** Ya se ejecuta en todos los comandos `aisdd` y ya sabe cuándo empezó y acabó cada uno (`started_at` + `timestamp`, de F-21), así que no hace falta maquinaria nueva: se aprovecha lo que ya se medía.
+
+**Quién escribe se declara, no se adivina.** `aisdd init` lo fija en `activity.source` de `openspec/config.yaml` (`hooks` | `skills`), y sin la clave se asume `hooks` —el comportamiento histórico—. La razón de declararlo en vez de deducirlo por plataforma en cada ejecución es que **el fallo peligroso no es perder una línea, es duplicarla**: dos escritores no dan error, inflan el tiempo atendido y la aceleración sale mejor de lo que fue.
+
+**Y la base se declara en el informe.** Un comando solo se ve a sí mismo; el hook ve el turno, que incluye revisar, conversar e iterar. Con `source: skills` el tiempo atendido es **una cota inferior**, la línea lleva `scope=comando` y `compute_kpis.py` lo distingue —`base: turnos | comandos | mixta`— con una nota que lo explica. Un proyecto que cambie de agente a mitad sale como `mixta`, y el informe advierte de que las dos partes no son comparables.
+
+**`check_activity_source.py`** fija las tres ramas en CI: sin clave no escribe, con `hooks` no escribe, con `skills` escribe tres líneas y la de turno declara su base. Es lo que impide que alguien active las dos fuentes sin enterarse.

@@ -101,6 +101,9 @@ jobs:
       - name: Toda invocacion de script dice como resolver su ruta
         run: python3 .github/scripts/check_script_resolution.py
 
+      - name: El registro de actividad lo escribe uno solo
+        run: python3 .github/scripts/check_activity_source.py
+
       - name: El hook de actividad registra igual en Claude Code y en Codex
         run: python3 .github/scripts/check_activity_hook.py
 

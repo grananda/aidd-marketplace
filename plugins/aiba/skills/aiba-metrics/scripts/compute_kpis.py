@@ -157,6 +157,14 @@ class Activity:
             elif action == "turn":
                 d = DUR_RE.search(entry["note"])
                 entry["dur"] = int(d.group(1)) if d else None
+                # Una linea con `scope=comando` no mide un turno: la escribe
+                # `audit.py` donde los hooks de plugin no se ejecutan --Codex,
+                # Cline-- y solo abarca lo que duro el comando. El turno de
+                # verdad incluye ademas revisar, conversar e iterar. Contarlos
+                # como lo mismo daria un tiempo atendido menor y una
+                # aceleracion inflada, asi que se marca y se declara.
+                entry["scope"] = ("comando" if "scope=comando" in entry["note"]
+                                  else "turno")
                 self.turns.append(entry)
 
 
@@ -490,6 +498,14 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
     durations = [t["dur"] for t in act.turns if t.get("dur") is not None]
     attended = float(sum(durations))
     attended_days = attended / 3600.0 / HOURS_PER_DAY
+    # De donde sale el tiempo atendido, para que el informe pueda decirlo.
+    ambitos = {x.get("scope", "turno") for x in log.turns if x.get("dur") is not None}
+    if ambitos == {"comando"}:
+        base_atendido = "comandos"
+    elif "comando" in ambitos:
+        base_atendido = "mixta"
+    else:
+        base_atendido = "turnos"
 
     writes = Counter(e["file"] for e in act.files)
     reworked = {f: n for f, n in writes.items() if n > 2}
@@ -546,6 +562,17 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
             "seconds": attended,
             "hours": attended / 3600.0,
             "days": attended_days,
+            "base": base_atendido,
+            "base_nota": {
+                "turnos": "turnos completos (hook de actividad)",
+                "comandos": "solo lo que duraron los comandos: el agente no ejecuta "
+                            "los hooks de plugin, asi que no se ve el tiempo de "
+                            "revisar, conversar ni iterar. Es una base mas estrecha "
+                            "y el tiempo atendido real es mayor",
+                "mixta": "mezcla de turnos completos y de duraciones por comando; "
+                         "el proyecto cambio de agente a mitad y las dos partes "
+                         "no son comparables entre si",
+            }[base_atendido],
             "turns_measured": len(durations),
             "turns_without_duration": len(act.turns) - len(durations),
             "mean_turn_s": (attended / len(durations)) if durations else 0.0,

@@ -85,8 +85,19 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    El registro (`docs/aidd-activity.md`) es de donde `aiba metrics` saca el tiempo atendido. Lo escribe el hook `aidd-activity-hook.sh` que traen los plugins, y es **opt-in**: sin el fichero no se registra nada.
 
    - **Ofrece crearlo.** Preguntalo aqui y no despues: la ventana de medicion **no se reconstruye**. Si el usuario dice que no, no insistas y dilo en el resumen.
+   - **Declara quien escribe el registro** en `openspec/config.yaml`. Es lo que evita que se registre por duplicado:
+
+     ```yaml
+     activity:
+       source: hooks   # hooks | skills
+     ```
+
+     Con `hooks` manda el hook y `audit.py` no toca el registro; con `skills` lo escribe `audit.py` en cada comando. **Nunca los dos**: duplicar cada linea no falla, infla el tiempo atendido y la aceleracion sale mejor de lo que fue. Sin la clave se asume `hooks`, que es el comportamiento historico.
+
    - **Comprueba si el agente ejecuta los hooks de los plugins.** Claude Code si. **Codex no**: los registra en su `config.toml` y no llega a ejecutarlos --comprobado sobre 0.151.0--, asi que el registro quedaria vacio sin que nada avisara.
-   - **Si no los ejecuta, declara el hook a nivel de proyecto**, que ahi si corre. Localiza el script del plugin instalado (con `find`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
+   - **Si no los ejecuta, pon `source: skills`.** Con eso `audit.py` registra lo que dura cada comando y `aiba metrics` recupera el tiempo atendido — **con una base mas estrecha**, que el informe declara: un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si.
+
+   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
 
      ```json
      {"hooks": {
