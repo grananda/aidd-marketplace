@@ -143,7 +143,7 @@ def as_blocks(value) -> list[str]:
     return [str(value)]
 
 
-def write_blocks(doc, value, vacio: str = PENDIENTE) -> None:
+def write_blocks(doc, value, vacio: str = PENDIENTE, est=None) -> None:
     """Escribe parrafos; las lineas que empiecen por '- ' salen como vinetas."""
     blocks = as_blocks(value)
     if not blocks:
@@ -151,7 +151,8 @@ def write_blocks(doc, value, vacio: str = PENDIENTE) -> None:
         return
     for b in blocks:
         if b.startswith(("- ", "* ")):
-            doc.add_paragraph(b[2:].strip(), style="List Bullet")
+            doc.add_paragraph(b[2:].strip(),
+                              style=est("List Bullet") if est else "List Bullet")
         else:
             doc.add_paragraph(b)
 
@@ -201,7 +202,76 @@ def add_toc(doc) -> None:
 
 # --- Documento ---------------------------------------------------------------
 
-def build(m: dict, salida: Path) -> dict:
+# Nombres de estilo por idioma. Word los traduce, asi que una plantilla en
+# espanol trae `Titulo 1` donde el script escribe `Heading 1`. Escribir contra un
+# nombre que la plantilla no tiene revienta o, peor, deja el parrafo sin formato
+# y el documento parece correcto hasta que alguien lo abre.
+EQUIVALENTES = {
+    "Title":       ["Title", "Título", "Titulo"],
+    "Subtitle":    ["Subtitle", "Subtítulo", "Subtitulo"],
+    "Heading 1":   ["Heading 1", "Título 1", "Titulo 1"],
+    "Heading 2":   ["Heading 2", "Título 2", "Titulo 2"],
+    "Heading 3":   ["Heading 3", "Título 3", "Titulo 3"],
+    "List Bullet": ["List Bullet", "Lista con viñetas", "Lista con vinetas",
+                    "List Paragraph", "Párrafo de lista"],
+}
+
+
+class Estilos:
+    """Traduce los nombres logicos a los que existen de verdad en el documento.
+
+    Lo que no puede es fallar en silencio: cada estilo ausente se **reporta** y
+    su parrafo se escribe sin estilo, en vez de reventar a mitad del documento.
+    """
+
+    def __init__(self, doc) -> None:
+        disponibles = {s.name for s in doc.styles}
+        self.mapa = {k: next((c for c in v if c in disponibles), None)
+                     for k, v in EQUIVALENTES.items()}
+        self.faltan = sorted(k for k, v in self.mapa.items() if v is None)
+
+    def __call__(self, logico: str):
+        return self.mapa.get(logico, logico)
+
+
+def limpiar_cuerpo(doc) -> None:
+    """Vacia la plantilla conservando estilos, cabecera, pie y formato de pagina.
+
+    Una plantilla suele traer texto de ejemplo; sin quitarlo el DF sale detras.
+    Se conserva el `sectPr` final, que es donde viven margenes, tamano y
+    orientacion: borrarlo devolveria el documento a los valores por defecto y se
+    perderia justo lo que aporta la plantilla.
+    """
+    cuerpo = doc.element.body
+    for hijo in list(cuerpo):
+        if not hijo.tag.endswith("}sectPr"):
+            cuerpo.remove(hijo)
+
+
+def titulador(doc, est, numerar: bool = True):
+    """Titulos numerados y con el estilo que exista.
+
+    Word no numera los estilos `Heading` por si solo --hace falta una lista
+    multinivel vinculada, que en python-docx es XML a mano--. El numero literal
+    encaja aqui porque el documento se **regenera**, nunca se edita a mano: no
+    hay renumeracion que mantener. Con una plantilla cuyos estilos ya numeren se
+    desactiva desde el manifiesto, o saldria `1. 1. Introduccion`.
+    """
+    estado = {1: 0, 2: 0, 3: 0}
+
+    def escribe(texto: str, nivel: int) -> None:
+        if numerar and nivel in estado:
+            estado[nivel] += 1
+            for menor in range(nivel + 1, 4):
+                estado[menor] = 0
+            prefijo = ".".join(str(estado[n]) for n in range(1, nivel + 1))
+            texto = f"{prefijo}. {texto}" if nivel == 1 else f"{prefijo} {texto}"
+        doc.add_paragraph(texto, style=est(f"Heading {nivel}"))
+
+    return escribe
+
+
+def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     from docx import Document
 
     branding = marca.normalizar(m.get("branding"))
@@ -213,7 +283,19 @@ def build(m: dict, salida: Path) -> dict:
     version = str(m.get("version", "1.0"))
     hoy = m.get("fecha") or date.today().isoformat()
 
-    doc = Document()
+    avisos: list[str] = []
+    if plantilla:
+        if not plantilla.is_file():
+            raise SystemExit(f"No existe la plantilla '{plantilla}'.")
+        doc = Document(str(plantilla))
+        limpiar_cuerpo(doc)
+    else:
+        doc = Document()
+    est = Estilos(doc)
+    if est.faltan:
+        avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
+                      + ", ".join(est.faltan))
+    h = titulador(doc, est, numerar=bool(m.get("numerar_apartados", True)))
     if branding:
         marca.aplicar_estilos_word(doc, branding)
     marca.cabecera_pie_word(doc, branding,
@@ -222,36 +304,36 @@ def build(m: dict, salida: Path) -> dict:
 
     # Portada
     if proyecto:
-        doc.add_paragraph(proyecto, style="Title")
-    doc.add_heading(titulo, level=0) if not proyecto else doc.add_paragraph(titulo, style="Subtitle")
+        doc.add_paragraph(proyecto, style=est("Title"))
+    doc.add_paragraph(titulo, style=est("Title") if not proyecto else est("Subtitle"))
     doc.add_paragraph(f"Documento de Diseño Funcional · Versión {version} · {hoy}")
     doc.add_paragraph()
 
-    doc.add_paragraph("Control de Versiones", style="Heading 2")
+    doc.add_paragraph("Control de Versiones", style=est("Heading 2"))
     add_table(doc, ["Fecha", "Versión", "Autor", "Descripción del cambio"],
               [[c.get("fecha", ""), c.get("version", ""), c.get("autor", ""), c.get("cambio", "")]
                for c in m.get("control_versiones") or
                [{"fecha": hoy, "version": version, "autor": m.get("autor", ""),
                  "cambio": "Version inicial"}]], accent)
 
-    doc.add_paragraph("Control de Aprobaciones", style="Heading 2")
+    doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
     aprob = m.get("control_aprobaciones") or [{}, {}, {}]
     add_table(doc, ["Responsable", "Cargo", "Departamento", "Fecha", "Versión del documento"],
               [[a.get("responsable", ""), a.get("cargo", ""), a.get("departamento", ""),
                 a.get("fecha", ""), a.get("version", "")] for a in aprob], accent)
 
-    doc.add_paragraph("Índice", style="Heading 2")
+    doc.add_paragraph("Índice", style=est("Heading 2"))
     add_toc(doc)
     doc.add_page_break()
 
     # 1. Introduccion
-    doc.add_heading("Introducción", level=1)
-    write_blocks(doc, m.get("introduccion"))
-    doc.add_heading("Alcance", level=2)
-    write_blocks(doc, m.get("alcance"))
+    h("Introducción", 1)
+    write_blocks(doc, m.get("introduccion"), est=est)
+    h("Alcance", 2)
+    write_blocks(doc, m.get("alcance"), est=est)
 
     # 2. La historia
-    doc.add_heading(titulo, level=1)
+    h(titulo, 1)
     nar = m.get("narrativa") or {}
     if any(nar.values()):
         for etiqueta, clave in (("COMO", "como"), ("QUIERO", "quiero"), ("PARA", "para")):
@@ -261,7 +343,7 @@ def build(m: dict, salida: Path) -> dict:
     else:
         doc.add_paragraph(PENDIENTE)
 
-    doc.add_heading("Filtros/Campos", level=2)
+    h("Filtros/Campos", 2)
     campos = m.get("campos") or {}
     columnas = campos.get("columnas") or ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"]
     if campos.get("filas"):
@@ -269,27 +351,27 @@ def build(m: dict, salida: Path) -> dict:
     else:
         doc.add_paragraph("N/A")
 
-    doc.add_heading("Integraciones otros aplicativos", level=2)
-    write_blocks(doc, m.get("integraciones"))
+    h("Integraciones otros aplicativos", 2)
+    write_blocks(doc, m.get("integraciones"), est=est)
 
-    doc.add_heading("Validaciones / Reglas / Acciones", level=2)
+    h("Validaciones / Reglas / Acciones", 2)
     val = m.get("validaciones") or {}
-    doc.add_heading("Específicas del Frontal", level=3)
-    write_blocks(doc, val.get("frontal"))
-    doc.add_heading("Específicas del Core", level=3)
-    write_blocks(doc, val.get("core"))
+    h("Específicas del Frontal", 3)
+    write_blocks(doc, val.get("frontal"), est=est)
+    h("Específicas del Core", 3)
+    write_blocks(doc, val.get("core"), est=est)
 
-    doc.add_heading("Mensajes y avisos", level=2)
+    h("Mensajes y avisos", 2)
     msg = m.get("mensajes") or {}
-    doc.add_heading("Específicos del Frontal", level=3)
-    write_blocks(doc, msg.get("frontal"))
-    doc.add_heading("Específicos de Integración no Core", level=3)
-    write_blocks(doc, msg.get("integracion_no_core"))
-    doc.add_heading("Específicos del Core", level=3)
-    write_blocks(doc, msg.get("core"))
+    h("Específicos del Frontal", 3)
+    write_blocks(doc, msg.get("frontal"), est=est)
+    h("Específicos de Integración no Core", 3)
+    write_blocks(doc, msg.get("integracion_no_core"), est=est)
+    h("Específicos del Core", 3)
+    write_blocks(doc, msg.get("core"), est=est)
 
-    doc.add_heading("Pantallas y Prototipo", level=2)
-    write_blocks(doc, m.get("pantallas"))
+    h("Pantallas y Prototipo", 2)
+    write_blocks(doc, m.get("pantallas"), est=est)
     from docx.shared import Cm
     for img in m.get("imagenes") or []:
         if Path(img).is_file():
@@ -301,21 +383,21 @@ def build(m: dict, salida: Path) -> dict:
             doc.add_paragraph(f"[Imagen no encontrada: {img}]")
 
     # 3-5
-    doc.add_heading("Criterios de aceptación", level=1)
+    h("Criterios de aceptación", 1)
     ca = m.get("criterios_aceptacion") or {}
     if ca.get("contexto"):
-        write_blocks(doc, ca["contexto"])
+        write_blocks(doc, ca["contexto"], est=est)
     escenarios = ca.get("escenarios") or []
     if escenarios:
         for e in escenarios:
-            doc.add_paragraph(str(e), style="List Bullet")
+            doc.add_paragraph(str(e), style=est("List Bullet"))
     elif not ca.get("contexto"):
         doc.add_paragraph(PENDIENTE)
 
-    doc.add_heading("Especificaciones Técnicas", level=1)
-    write_blocks(doc, m.get("especificaciones_tecnicas"))
+    h("Especificaciones Técnicas", 1)
+    write_blocks(doc, m.get("especificaciones_tecnicas"), est=est)
 
-    doc.add_heading("Puntos abiertos", level=1)
+    h("Puntos abiertos", 1)
     pa = m.get("puntos_abiertos") or []
     add_table(doc, ["ID", "Descripción", "Estado", "Responsable", "F. Estimada", "F. Resolución"],
               [[p.get("id", ""), p.get("descripcion", ""), p.get("estado", "Abierto"),
@@ -323,13 +405,18 @@ def build(m: dict, salida: Path) -> dict:
                for p in pa], accent)
 
     for extra in m.get("secciones_adicionales") or []:
-        doc.add_heading(extra.get("titulo", "Anexo"), level=1)
-        write_blocks(doc, extra.get("contenido"))
+        h(extra.get("titulo", "Anexo"), 1)
+        write_blocks(doc, extra.get("contenido"), est=est)
 
     salida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(salida)
     return {"output": str(salida), "puntos_abiertos": len(pa),
-            "secciones_adicionales": len(m.get("secciones_adicionales") or [])}
+            "secciones_adicionales": len(m.get("secciones_adicionales") or []),
+            "plantilla": str(plantilla) if plantilla else None,
+            # Los estilos que la plantilla no traia. Sin reportarlos, el
+            # documento sale con partes sin formato y nadie se entera hasta
+            # abrirlo.
+            "avisos": avisos}
 
 
 def extraer(ruta: Path) -> dict:
@@ -378,6 +465,9 @@ def main() -> int:
     ap.add_argument("--extraer", metavar="RUTA",
                     help="vuelca a JSON el texto y las tablas de un DF ya generado, "
                          "para que otro skill pueda leerlo, y sale")
+    ap.add_argument("--plantilla", default=None,
+                    help="plantilla .docx/.dotx del cliente: el documento hereda sus "
+                         "estilos, cabecera, pie y formato de pagina")
     ap.add_argument("--no-install", action="store_true", help="no instalar python-docx al vuelo")
     args = ap.parse_args()
 
@@ -403,7 +493,9 @@ def main() -> int:
         return 2
 
     _ensure_docx(allow_install=not args.no_install)
-    print(json.dumps(build(m, Path(args.output)), ensure_ascii=False))
+    print(json.dumps(build(m, Path(args.output),
+                          Path(args.plantilla) if args.plantilla else None),
+                     ensure_ascii=False))
     return 0
 
 

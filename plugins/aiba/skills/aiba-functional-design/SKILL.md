@@ -1,9 +1,9 @@
 ---
 name: aiba-functional-design
-description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes.
+description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes. Acepta una **plantilla `.docx`/`.dotx` del cliente** de la que hereda estilos, cabecera, pie y formato de pagina --resolviendo los nombres de estilo por idioma y avisando de los que falten--, numera los apartados en el texto del titulo porque los estilos `Heading` de Word no numeran solos, escribe en espanol correcto y para Negocio y QA ajenos al proyecto, **no cita codigos internos** (`RF-xx`, `GAP-xx`) sino que explica el contenido, e **inserta la pantalla** exportada de Figma por `aifg` en vez de su identificador de nodo.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.4.0"
+  version: "1.4.0"
 ---
 
 # aiba-functional-design (AIBA · Diseno Funcional)
@@ -40,6 +40,10 @@ Criterio de salida: existe un `.docx` por cada HU solicitada en `docs/df/`, con 
 - **Un DF por HU.** No agrupes varias historias en un documento aunque compartan pantalla: el DF se revisa y se aprueba por historia.
 - El `.docx` es el entregable; **no** hay un `.md` intermedio que sea fuente de verdad. La fuente sigue siendo el detalle de HU, y el DF es su traduccion a un documento firmable.
 - **Sin marca por defecto.** El documento sale con estilos nativos de Word y sin logotipos ni colores corporativos, salvo que el usuario pida lo contrario en el paso 1.
+- **Escribe en espanol correcto, con acentos y enes.** El `.docx` es un documento que firma un cliente: acentuacion, puntuacion y concordancia de un documento formal. **Da igual como este escrito este skill** --sin acentos, por convencion del repositorio--: eso es codigo fuente, y el DF no.
+- **Escribes para Negocio y QA del cliente, que no conocen el proyecto.** Ni las siglas, ni las decisiones previas, ni por que las cosas son como son. En consecuencia: un **parrafo de contexto antes de cada tabla**, que diga que se esta listando y por que; **siglas expandidas la primera vez** que aparecen; y frases completas. Una tabla es una tabla, pero el texto es texto: nada de estilo telegrafico.
+- **Sin codigos internos en el cuerpo.** Nada de `RF-014`, `GAP-07` ni referencias a documentos internos: **se explica el contenido**. En vez de "cumple RF-014", *"el sistema debe permitir buscar por numero de poliza y por NIF del tomador"*. Quien lee el DF no tiene esos documentos y el codigo no le dice nada; el contenido si.
+  > La trazabilidad no se pierde: el vinculo HU -> requisito vive en `docs/requisitos.md` y en el detalle de HU, y el vinculo HU -> Jira en `docs/jira-sync.md`. El DF no tiene que cargarlo. **El `HU-XX` si se queda**: da nombre al fichero y es la clave con la que `aiba test-plan` y Jira enganchan.
 - Este documento requiere revision humana. Al terminar, deja claro que esta pendiente de revision del analista.
 
 ## Flujo del comando
@@ -53,6 +57,12 @@ Usa `AskUserQuestion` si la plataforma lo soporta, con estas opciones:
 1. **Sin marca `(Recomendada)`** — estilos nativos de Word, sin logo y con la paleta por defecto. El documento queda listo para que cualquiera le aplique despues su identidad visual sin rehacerlo.
 2. **Marca desde una carpeta local** — pide la ruta y busca en ella el logo (`.png`, `.jpg`, `.svg`) y, si existe, un fichero de tokens o guia de estilos del que extraer los colores.
 3. **Marca desde una URL** — pide la URL de la web corporativa o de la guia de marca, y extrae de ahi el logo y los colores dominantes.
+4. **Plantilla del cliente (`.docx` o `.dotx`)** — pide la ruta. El documento **hereda sus estilos, cabecera, pie y formato de pagina**, y el contenido se escribe encima. Es lo que hay que usar cuando el cliente tiene su propia plantilla: aplicarla despues a mano en veinte documentos no es una opcion.
+
+   Pasala al generador con `--plantilla <ruta>`. Dos cosas que comprobar en su salida y **decir en el resumen**:
+
+   - **`avisos`**: los estilos que la plantilla no trae. Esas partes salen sin formato, y si no lo dices nadie se entera hasta abrir el documento. Los nombres se resuelven por idioma --una plantilla en espanol trae `Titulo 1` donde el generador pide `Heading 1`-- pero un estilo con nombre propio del cliente no se puede adivinar.
+   - **Si la plantilla ya numera sus titulos**, pasa `"numerar_apartados": false` en el manifiesto: si no, saldria `1. 1. Introduccion`. Mirala antes de generar veinte documentos.
 
 Si el usuario elige 2 o 3, pide ademas lo que no puedas deducir: **color principal**, **color secundario** y **texto de cabecera y pie**. Confirma lo detectado antes de usarlo; no des por buena una paleta extraida automaticamente sin ensenarla.
 
@@ -69,6 +79,7 @@ Lee y consolida, en este orden:
 3. `docs/requisitos.md` — los RF y NFR que la HU realiza; alimentan el alcance.
 4. `docs/arquitectura-base.md` — modulos, integraciones, endpoints y la separacion entre frontal y core, que el DF necesita para las secciones 2.2, 2.3 y 2.4.
 5. Si existen, `docs/guia-estilos.md` y los prototipos de `booster-ux`, para la seccion de pantallas.
+6. **`docs/design/hu/<HU-XX>/referencia.png`**, si el proyecto uso el plugin `aifg`: es **la pantalla exportada de Figma**. Metela en `imagenes` del manifiesto. Es lo que el DF tiene que ensenar --la pantalla-- y no el identificador del nodo, que no le dice nada a nadie fuera del equipo. Si el proyecto no tiene ese arbol, marca la pantalla como `[PENDIENTE]` y genera su fila en Puntos abiertos: dejar la seccion muda es peor.
 
 Si falta alguno de los tres primeros, **avisa de que se genera con menos base** y sigue; si falta el detalle de HU, detente.
 
@@ -89,7 +100,10 @@ Genera exactamente esta estructura. Es la de los DF de referencia y **el orden i
 - **Control de Aprobaciones** — tabla con `Responsable | Cargo | Departamento | Fecha | Version del documento`. Filas vacias para rellenar a mano: **no inventes aprobadores**.
 - **Indice** — campo de tabla de contenidos de Word, que se actualiza solo al abrir el documento.
 
-**Cuerpo** (numerado con Titulo 1/2/3):
+**Cuerpo** (Titulo 1/2/3, **numerado por el generador**):
+
+> Los estilos `Heading` de Word **no numeran solos** --hace falta una lista multinivel vinculada--, asi que el numero va en el texto del titulo y lo pone `gen_df_docx.py`: `1. Introduccion`, `1.1 Alcance`, `2.3.1 Especificas del Frontal`. No los escribas tu en el manifiesto o saldran repetidos.
+
 
 1. **Introduccion** — que resuelve esta HU y en que contexto. Dos o tres parrafos, derivados de la descripcion de la HU y del requisito que realiza.
    1. **Alcance** — que entra y que **no** entra. Lo que no entra es tan importante como lo que entra: si el detalle de HU lo declara, traelo; si no, marca lo que quede por acotar.
@@ -101,7 +115,7 @@ Genera exactamente esta estructura. Es la de los DF de referencia y **el orden i
    2. **Integraciones otros aplicativos** — servicios, endpoints y parametros de entrada y salida, tomados de la arquitectura. Cuando conozcas el contrato, descrbelo (`Parametro de entrada:` / `Parametro de salida:`).
    3. **Validaciones / Reglas / Acciones** — con dos subsecciones de Titulo 3: **Especificas del Frontal** y **Especificas del Core**. Formatos, longitudes, obligatoriedad y reglas de negocio. Si una no aplica, `N/A`.
    4. **Mensajes y avisos** — con tres subsecciones de Titulo 3: **Especificos del Frontal**, **Especificos de Integracion no Core** y **Especificos del Core**. Cada mensaje entre comillas y asociado al campo o condicion que lo dispara.
-   5. **Pantallas y Prototipo** — descripcion del flujo paso a paso y de cada pantalla. Si hay prototipos de `booster-ux`, referencia sus rutas e inserta las imagenes si estan disponibles.
+   5. **Pantallas y Prototipo** — descripcion del flujo paso a paso y de cada pantalla, **con la pantalla insertada**: `docs/design/hu/<HU-XX>/referencia.png` si el proyecto uso `aifg`, o los prototipos de `booster-ux` si los hay. La imagen va en el documento; la ruta o el identificador del nodo, no --a quien lo revisa no le sirven--. Describe ademas lo que la imagen no dice: que pasa al pulsar, que se ve mientras carga, que aparece si no hay resultados.
 3. **Criterios de aceptacion** — un parrafo de contexto y despues los escenarios, uno por linea, con la forma `- Escenario <nombre>: <comportamiento esperado>`. Salen de los criterios Dado/Cuando/Entonces del detalle de HU: **traduce, no reinventes**, y marca los imprescindibles.
 4. **Especificaciones Tecnicas** — notas tecnicas y dependencias de la HU. Si el detalle no las trae, deja la seccion con la marca de pendiente.
 5. **Puntos abiertos** — tabla con `ID | Descripcion | Estado | Responsable | F. Estimada | F. Resolucion`. **Aqui va todo lo que no has podido deducir**: cada hueco del documento genera una fila. Es la seccion que convierte las lagunas en trabajo asignable en vez de en texto inventado.
@@ -185,7 +199,9 @@ Al terminar, informa:
 
 - Comando ejecutado (`aiba functional-design`) y **que HU** se han documentado.
 - **Rutas de los `.docx` generados** en `docs/df/`, una por HU. Sin esto el usuario no sabe donde ha quedado el entregable.
-- **Decision de marca** y su origen: sin marca (default), carpeta local o URL, y que se extrajo de ella. Es la unica eleccion real del comando y la que mas cambia el resultado.
+- **Decision de marca** y su origen: sin marca (default), carpeta local, URL o **plantilla del cliente**, y que se extrajo de ella. Es la unica eleccion real del comando y la que mas cambia el resultado.
+- **Con plantilla: los `avisos` que devolvio el generador** --estilos que la plantilla no traia-- y si se desactivo la numeracion. Sin esto, un documento con partes sin formato pasa por bueno.
+- **Si se inserto la pantalla** y de donde salio (`aifg` o `booster-ux`), o por que no hay ninguna.
 - **Puntos abiertos** que han quedado en cada documento: cuantos y de que tipo. Son el trabajo que el DF deja pendiente, no un detalle de formato.
 - **Documentacion de origen que faltaba** y con que se ha suplido, si aplica.
 - Recordatorio: el `.docx` es el entregable para negocio; la fuente de verdad sigue siendo `docs/detalle-historias-usuario.md`.
