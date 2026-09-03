@@ -379,7 +379,9 @@ El marketplace está pensado para Claude Code, pero **Codex ya lo instala tal cu
 | **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí | Por verificar |
 | **Registro de actividad y KPIs** | Sí | **Todavía no** — ver abajo | **No**, al no haber hooks |
 
-**En Codex el registro de actividad todavía no funciona.** Los hooks se registran, pero el del plugin no llega a ejecutarse: uno equivalente declarado a nivel de proyecto y con ruta absoluta sí lo hace, así que la sospecha está en la forma del comando (`"${CLAUDE_PLUGIN_ROOT}/…"`, entrecomillado y con variable). Hasta que se resuelva, en Codex **no hay KPIs de uso**: los skills funcionan, la medición no.
+**En Codex el registro de actividad no funciona, y no depende de nosotros.** Comprobado sobre Codex CLI 0.151.0: los hooks de un plugin se **registran** —aparecen en `hooks.state` de `~/.codex/config.toml` con su hash de confianza— pero **no se ejecutan**. El mismo script, con la misma ruta absoluta y el mismo evento, sí se ejecuta declarado en un `.codex/hooks.json` de proyecto. Así que en Codex **los skills funcionan y la medición no**: `aiba metrics` no tiene de dónde calcular los KPIs de uso.
+
+Si necesitas el registro en Codex hoy, la salida es declarar el hook **a mano en `.codex/hooks.json`** del proyecto, apuntando con ruta absoluta al script del plugin instalado y **sin comillas** — Codex no pasa el comando por un shell, así que unas comillas se convierten en parte de la ruta.
 
 **Y cuando funcione, cualquier cambio del hook exigirá volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
 

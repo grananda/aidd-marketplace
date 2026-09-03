@@ -499,9 +499,13 @@ Comprobado sobre Codex CLI 0.151.0 con el marketplace instalado de verdad, captu
 
 **La diferencia real capturada es otra: no hay `prompt_id`, hay `turn_id`.** El hook deduplica los eventos de turno por ese identificador entre sus seis copias, así que sin él no hay deduplicación. Corregido: se acepta `turn_id` cuando `prompt_id` no viene.
 
-**Lo que sigue sin resolverse.** Con el hook del plugin instalado, el registro **queda vacío**, y una sonda en la primera línea del script no produce salida: el comando del hook **no llega a ejecutarse**. Un hook equivalente declarado a nivel de proyecto y con ruta absoluta sí se ejecuta y sí escribe. La diferencia está en la forma del comando —`"${CLAUDE_PLUGIN_ROOT}/hooks/aidd-activity-hook.sh"`, entrecomillado y con variable— y falta aislar cuál de las dos cosas lo rompe.
+**El bloqueo, aislado.** Con el hook del plugin instalado el registro queda vacío. Se descartaron una por una las causas plausibles: el entrecomillado del comando --Codex no pasa el comando por un shell, así que unas comillas acaban formando parte de la ruta, pero la copia instalada ya venía sin ellas--, la variable `${CLAUDE_PLUGIN_ROOT}` --sustituida por ruta absoluta, sigue sin escribir-- y el flag `async`.
 
-Así que **el hook sigue sin registrar en Codex**, y lo que va en esta versión es el trabajo que sí está probado: normalización defensiva de los nombres de evento y herramienta, detección de escritura que no depende de una lista blanca de Claude Code, `turn_id`, y una prueba en CI que fija que las dos formas produzcan las mismas líneas.
+La prueba que lo cierra: un script **que sí escribe** declarado en un `.codex/hooks.json` de proyecto deja de escribir en cuanto se declara en el `hooks/hooks.json` de un plugin. Mismo script, misma ruta absoluta, mismo evento.
+
+> **En Codex CLI 0.151.0 los hooks empaquetados en un plugin se registran pero no se ejecutan.** Aparecen en `hooks.state` de `config.toml` con su hash de confianza, y no llegan a correr. Los de proyecto sí. **No hay nada en este repositorio que lo arregle**: está del lado de Codex.
+
+**Qué entrega entonces esta versión.** No el registro en Codex, que no depende de nosotros — sino quitarnos de encima nuestras propias suposiciones de plataforma, para que el día que Codex ejecute los hooks de plugin no haya que volver a investigar: `turn_id` además de `prompt_id`, detección de escritura que ya no es una lista blanca de nombres de Claude Code, normalización defensiva de los nombres de evento, y **una prueba en CI** que fija que las dos formas produzcan las mismas líneas.
 
 **Un hallazgo operativo que va al README:** Codex confía los hooks por hash, así que **cualquier release que cambie el hook detiene el registro** hasta que el usuario vuelva a confiarlo. No da error. Si tras actualizar las métricas se quedan planas, es eso. Existe `--dangerously-bypass-hook-trust` para automatizaciones que ya validan el origen.
 
