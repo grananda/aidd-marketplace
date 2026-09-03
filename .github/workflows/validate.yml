@@ -98,6 +98,9 @@ jobs:
           find plugins .github/scripts -name '*.py' -not -path '*__pycache__*' -print0 \
             | xargs -0 python3 -m py_compile && echo "Todos compilan."
 
+      - name: El hook de actividad registra igual en Claude Code y en Codex
+        run: python3 .github/scripts/check_activity_hook.py
+
       - name: Sin mojibake en los markdown
         run: |
           find . -name '*.md' -not -path './.git/*' -not -path './native-ai-specs-v*' -print0 \

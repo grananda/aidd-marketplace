@@ -45,7 +45,7 @@ LOG_REL="docs/aidd-activity.md"
 input="$(cat 2>/dev/null)" || exit 0
 [ -n "${input:-}" ] || exit 0
 
-event=""; tool=""; uid=""; sid=""; pid=""; cwd=""; file=""; skill=""; sargs=""
+event=""; tool=""; uid=""; sid=""; pid=""; cwd=""; file=""; wrote=""; skill=""; sargs=""
 
 if command -v jq >/dev/null 2>&1; then
   eval "$(printf '%s' "$input" | jq -r '
@@ -56,7 +56,14 @@ if command -v jq >/dev/null 2>&1; then
     "sid="   + (.session_id | q),
     "pid="   + (.prompt_id | q),
     "cwd="   + (.cwd | q),
-    "file="  + ((.tool_input.file_path // .tool_input.notebook_path // (.tool_input.edits[0].file_path)) | q),
+    "file="  + ((.tool_input.file_path // .tool_input.notebook_path
+                 // (.tool_input.edits[0].file_path)
+                 // .tool_input.path // .tool_input.filePath // .tool_input.file) | q),
+    "wrote=" + ((if (.tool_input | type) == "object" then
+                   ([.tool_input.content, .tool_input.new_string, .tool_input.new_str,
+                     .tool_input.contents, .tool_input.patch, .tool_input.diff,
+                     .tool_input.edits] | map(select(. != null)) | length)
+                 else 0 end) | if . > 0 then "1" else "" end | q),
     "skill=" + (.tool_input.skill | q),
     "sargs=" + (.tool_input.args | q)
   ' 2>/dev/null)"
@@ -68,11 +75,18 @@ try:
 except Exception:
     sys.exit(0)
 ti = d.get("tool_input") or {}
-f = ti.get("file_path") or ti.get("notebook_path")
+if not isinstance(ti, dict):
+    ti = {}
+f = (ti.get("file_path") or ti.get("notebook_path")
+     or ti.get("path") or ti.get("filePath") or ti.get("file"))
 if not f:
     edits = ti.get("edits") or []
-    if isinstance(edits, list) and edits:
-        f = (edits[0] or {}).get("file_path")
+    if isinstance(edits, list) and edits and isinstance(edits[0], dict):
+        f = edits[0].get("file_path")
+# Senal de escritura: la ruta sola no distingue leer de escribir.
+wrote = "1" if any(ti.get(k) is not None for k in
+                   ("content", "new_string", "new_str", "contents",
+                    "patch", "diff", "edits")) else ""
 def p(k, v):
     print(k + "=" + shlex.quote("" if v is None else str(v)))
 p("event", d.get("hook_event_name"))
@@ -82,6 +96,7 @@ p("sid", d.get("session_id"))
 p("pid", d.get("prompt_id"))
 p("cwd", d.get("cwd"))
 p("file", f)
+p("wrote", wrote)
 p("skill", ti.get("skill"))
 p("sargs", ti.get("args"))
 ' 2>/dev/null)"
@@ -90,16 +105,43 @@ else
   exit 0
 fi
 
+# Nombres normalizados: cada plataforma escribe el suyo. Claude Code manda
+# `PostToolUse`; Codex normaliza a `post_tool_use`. Comparar literales dejaba
+# fuera media plataforma **en silencio** -- el hook se disparaba, no reconocia
+# el evento y salia con 0, asi que el registro quedaba vacio y `aiba metrics`
+# publicaba ceros sin ninguna senal de que faltara nada.
+# Sin subprocesos: esto corre en cada llamada a una tool.
+norm() { local s="${1:-}"; s="${s//[-_ ]/}"; printf '%s' "${s,,}"; }
+event_n="$(norm "${event:-}")"
+tool_n="$(norm "${tool:-}")"
+
 # Que hacemos con este evento.
 kind=""
-case "${event:-}" in
-  UserPromptSubmit) kind="turn-start" ;;
-  Stop)             kind="turn-end" ;;
+case "$event_n" in
+  userpromptsubmit) kind="turn-start" ;;
+  stop|sessionend)  kind="turn-end" ;;
   *)
-    case "${tool:-}" in
-      Skill)                             kind="skill" ;;
-      Write|Edit|MultiEdit|NotebookEdit) kind="file" ;;
-      *)                                 exit 0 ;;
+    case "$tool_n" in
+      skill)
+        kind="skill" ;;
+      # Escrituras conocidas. Claude Code: Write/Edit/MultiEdit/NotebookEdit.
+      # Otros agentes usan sus propios nombres; se anaden los habituales.
+      write|edit|multiedit|notebookedit|applypatch|patch|editfile|writefile|createfile|strreplaceeditor)
+        kind="file" ;;
+      # Lecturas y busquedas: nunca son actividad sobre el codigo. Van
+      # explicitas para que el fallback de abajo no las cuele.
+      read|grep|glob|search|list|ls|find|view|bash|shell|exec|task|todowrite)
+        exit 0 ;;
+      *)
+        # Herramienta desconocida: solo cuenta si el payload trae **una ruta de
+        # fichero y una senal de escritura**. Con la ruta sola no basta -- una
+        # lectura tambien la trae--, y contarla inflaria el registro.
+        if [ -n "${file:-}" ] && [ -n "${wrote:-}" ]; then
+          kind="file"
+        else
+          exit 0
+        fi
+        ;;
     esac
     ;;
 esac

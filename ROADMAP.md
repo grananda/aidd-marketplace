@@ -30,6 +30,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 | F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
 | F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
+| F-25 | El hook de actividad deja de ser de una sola plataforma: mismos eventos en Claude Code y Codex, con prueba | todos | **implementada** | 2026-09-03 |
 
 ---
 
@@ -477,3 +478,30 @@ Decisiones que sostienen el diseño:
 `aidd style-guide` conserva la extracción ligera —paleta, tipografía, espaciado, tokens—, **emite `tokens.json` y `tokens.css`** en vez de dejar las custom properties como prosa que alguien reteclea, y ofrece encadenar con `aifg capture`. Los tokens tienen **un solo dueño**: los emite la guía y los consume quien haga falta.
 
 **Queda fuera, dicho a propósito:** remediar HU cerradas cuando cambia el diseño contra el que se implementaron. Se reporta cuáles son y ahí para — la salida natural es otra HU o una tarea, y la metodología no contempla hoy ese camino.
+
+## F-25 — El registro de actividad no era de una sola plataforma por decisión, sino por descuido
+
+**Estado:** implementada · **Versión:** `VERSION` 1.36.0 · **Añadida:** 2026-09-03
+
+Se comprobó sobre Codex CLI 0.151.0, con el marketplace instalado de verdad.
+
+**Codex ya instala este repositorio tal cual.** Lee `.claude-plugin/marketplace.json` y los `plugin.json` sin traducción, y registra los hooks normalizando los nombres de evento a los suyos (`post_tool_use`, `user_prompt_submit`, `stop`). No hacía falta ningún manifiesto nuevo — el supuesto de que sí era falso.
+
+**Pero el registro de actividad quedaba vacío.** El `case` del hook comparaba literales en PascalCase, así que con los nombres de Codex no reconocía ningún evento, salía con 0, y `aiba metrics` publicaba ceros. No fallaba: mentía, que es peor.
+
+Medido aislando el hook con la misma secuencia escrita de las dos formas:
+
+| Nombres de evento | Línea `file:` | Línea `turn` |
+|---|---|---|
+| `UserPromptSubmit` / `PostToolUse` / `Stop` | 1 | 1 |
+| `user_prompt_submit` / `post_tool_use` / `stop` | 1 | **0** |
+
+**Qué cambia.** El hook normaliza el nombre del evento y de la herramienta antes de decidir —minúsculas, sin guiones ni espacios— con expansión de bash y sin subprocesos, porque esto corre en cada llamada a una tool. La detección de escritura deja de ser una lista blanca de nombres de Claude Code: cubre también los habituales de otros agentes y, para una herramienta desconocida, exige **ruta de fichero y señal de escritura** (`content`, `new_string`, `patch`, `diff`, `edits`). Con la ruta sola no basta — una lectura también la trae, y contarla inflaría el registro.
+
+**Y una prueba, porque esto se rompió en silencio y podía volver a hacerlo.** `check_activity_hook.py` dispara el hook con la misma secuencia en los dos vocabularios y exige que produzca las mismas líneas, más un caso negativo: una lectura no puede quedar registrada como actividad.
+
+**Un hallazgo operativo que va al README:** Codex guarda un `trusted_hash` por entrada de hook, así que **cualquier release que cambie el hook detiene el registro hasta que el usuario vuelva a confiarlo**. No da error. Si tras actualizar las métricas se quedan planas, es eso.
+
+**Lo que queda sin verificar:** que en Codex el registro se llene de extremo a extremo. Al cambiar el fichero deja de coincidir con su hash de confianza, y aprobarlo de nuevo exige una sesión interactiva. Los nombres exactos de herramienta que envía Codex siguen sin capturar; por eso la detección se apoya en la forma del payload y no solo en una lista de nombres.
+
+**Cline** queda documentado y sin tocar: los skills funcionan —lee `.claude/skills/` de forma nativa— pero su modelo de plugin es un módulo TypeScript sobre su SDK, así que **no hay hooks y no hay KPIs**. Portarlo es otro proyecto.

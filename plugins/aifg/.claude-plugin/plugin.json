@@ -1,7 +1,7 @@
 {
   "name": "aifg",
   "displayName": "AIFG — AI Figma (diseno hasta la HU)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lleva el diseno de Figma hasta la historia de usuario que lo implementa. `aifg capture` extrae los nodos del archivo de Figma, los normaliza en definiciones de componente reutilizables y un mapa de composicion por HU, exporta la imagen de cada frame y componente, y vincula HU y disenos presentando al humano solo lo que no admite duda. `aifg update` re-captura piezas concretas cuando el diseno cambia, detecta los overrides que quedan huerfanos y reporta que HU quedan afectadas separando las ya cerradas. El modelo esta normalizado a proposito --el mapa es corto y las definiciones se cargan solo si el change las toca-- para que implementar una pantalla no cueste abrir el arbol entero. Ningun JSON se edita a mano: todo cambio de diseno pasa por el skill que lo regenera. Habla con Figma **solo por MCP**, sin llamadas REST ni gestion de credenciales. Es un plugin opcional y aditivo: sin el, `aisdd implement change` tira de `docs/guia-estilos.md` y, si tampoco la hay, improvisa. Premisa: cuando el dev trabaja, el diseno esta aprobado y cerrado.",
   "author": {
     "name": "NTT DATA Spain GDN-e"
