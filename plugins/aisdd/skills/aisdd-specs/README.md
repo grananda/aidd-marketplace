@@ -143,6 +143,8 @@ Comportamientos clave del pre-flight:
 
 Implementa un cambio en dos fases:
 
+> **Si el change toca front, lee antes la fuente de diseno.** Se deduce del contexto de la HU --y, si el proyecto lleva artefactos de diseno, de que haya alguno para esa HU--. Lee los artefactos de `docs/design/` si estan (los produce el plugin opcional `aifg`, que extrae el diseno de Figma y lo deja colgando de cada HU), `docs/guia-estilos.md` si no, e improvisa si no hay ninguno. **Degrada sin error en los tres casos**, y no carga el arbol entero: el mapa de la HU es corto y las definiciones de componente se abren una a una, solo las que el change toca.
+
 1. **Pre-flight de dudas**: antes de tocar codigo, el agente lee `design.md`, `proposal.md`, los `spec.md` y, si existen, `tasks.md` y `decisions.md` previos del cambio. Detecta dudas reales que afecten a la implementacion y las clasifica como `bloqueante`, `preferencia` o `confirmacion`. **El pre-flight es el mismo para ambos comandos**: una sola seccion del `SKILL.md` con variantes `[APERTURA]` / `[IMPLEMENTACION]`, para que las reglas no se desincronicen. Las respuestas se persisten en `openspec/changes/<change>/decisions.md`.
 2. **Aplicacion de instrucciones**:
 
@@ -232,6 +234,8 @@ aisdd close change alta-clientes-portal
 ## Scripts del skill
 
 Cuatro scripts en `scripts/`, solo con biblioteca estandar de Python 3:
+
+> **La ruta se resuelve, no se asume.** Los skills los invocan con `${CLAUDE_PLUGIN_ROOT}`, que define Claude Code; **otros agentes la dejan vacia** --medido en Codex y en Cline-- y entonces la orden falla con `No such file or directory`. La regla, que viaja en el indice del skill y en cada sitio que manda ejecutar uno: si la variable no resuelve, localiza el script con **`find -L`** --el `-L` no es opcional: si los skills estan instalados por enlace simbolico, un `find` a secas no los sigue y devuelve vacio con el fichero delante-- y usa su ruta absoluta. Si no aparece, degrada a la prosa y dilo.
 
 | Script | Que hace |
 |---|---|
