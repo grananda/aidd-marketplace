@@ -374,10 +374,10 @@ El marketplace está pensado para Claude Code, pero **Codex ya lo instala tal cu
 
 | | Claude Code | Codex | Cline |
 |---|---|---|---|
-| **Skills** | Sí | Sí (avisa si acorta descripciones para caber en su presupuesto) | Sí — lee `.claude/skills/` de forma nativa |
+| **Skills** | Sí | Sí (avisa si acorta descripciones para caber en su presupuesto) | Sí, **pero hay que enlazarlos**: ver abajo |
 | **Hooks** | Sí | Sí, se registran y se confían por hash | **No** — su modelo de plugin es un módulo TypeScript sobre su SDK |
-| **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí, **resolviendo la ruta** (la variable llega vacía) | Por verificar |
-| **Auditoría** (`audit.py`) | Sí | Sí, por lo anterior | Por verificar |
+| **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí, **resolviendo la ruta** (la variable llega vacía) | Sí, igual que Codex |
+| **Auditoría** (`audit.py`) | Sí | Sí, por lo anterior | Sí, por lo anterior |
 | **Registro de actividad** | Sí | **Todavía no** — ver abajo | **No**, al no haber hooks |
 | **KPIs de `aiba metrics`** | Sí | Parcial: la parte que sale de la auditoría, sí; el tiempo atendido, no | No |
 
@@ -391,7 +391,18 @@ Con eso el hook llega a dispararse, pero **no hemos conseguido verificar que el 
 
 **Y cuando funcione, cualquier cambio del hook exigirá volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
 
-**En Cline no hay registro de actividad**, así que `aiba metrics` no tiene de dónde calcular los KPIs de uso. Los skills funcionan; la medición no.
+**En Cline no se instala como plugin.** `cline plugin install` falla, y con razón: sus plugins son módulos TypeScript y los nuestros son markdown. Lo que Cline sí lee son **skills**, así que hay que enlazarlos donde los busca — `~/.cline/skills/` o el `.clinerules/skills/` del proyecto:
+
+```bash
+mkdir -p ~/.cline/skills
+for s in <ruta-a-los-plugins>/*/skills/*/; do
+  ln -sfn "${s%/}" ~/.cline/skills/"$(basename "$s")"
+done
+```
+
+No los enlaces a `~/.claude/skills/`: ahí también mira Claude Code y cargaría cada skill dos veces.
+
+Con eso, en Cline funcionan los skills, la auditoría, el sellado y los KPIs calculados. **Lo que no hay es registro de actividad**, así que a `aiba metrics` le falta el tiempo atendido: el modelo de plugin de Cline es un módulo TypeScript sobre su SDK y no hay dónde enganchar el hook.
 
 ## Registro de actividad (opt-in)
 

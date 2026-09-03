@@ -522,7 +522,7 @@ F-25 dejó aislado el problema y sin resolver: fuera de Claude Code, `${CLAUDE_P
 
 **El script está en el disco en las dos plataformas.** Los 21 documentos que mandan ejecutar uno llevan ahora la regla: si la variable no resuelve, se localiza el script una vez con `find`, se usa su ruta absoluta durante la sesión, y si no aparece se aplica la degradación que ya estaba escrita —hacer el trabajo según la prosa y decirlo—.
 
-**Verificado en vivo.** En una sesión de Codex, aplicando la regla, `audit.py` se localiza y se ejecuta:
+**Verificado en vivo, en las dos plataformas.** En Codex y en Cline la variable llega vacía (`ROOT=[]`) y, aplicando la regla, `audit.py` se localiza y se ejecuta:
 
 ```
 usage: audit.py [-h] [--root ROOT] [--entry ENTRY]
@@ -530,6 +530,8 @@ Entrada de auditoria de aisdd-specs.
 ```
 
 Con eso vuelven a funcionar fuera de Claude Code la **auditoría**, el **sellado de documentos**, el cálculo de **KPIs** y las **vistas HTML**.
+
+**Y la regla dice `find -L`, no `find`.** Lo destapó la prueba en Cline: sus skills se montan por **enlace simbólico**, y `find` no los sigue por defecto — devolvía vacío con el script delante. Un agente menos insistente habría concluido que no estaba y habría degradado a prosa sin necesidad. Es la clase de fallo que este método persigue: no falla, hace de menos y no lo dice.
 
 **Nada cambia en Claude Code.** Ninguna invocación se ha tocado: la nota es aditiva y, con la variable definida, no aplica. `check_script_resolution.py` fija que ningún fichero pueda invocar un script sin llevarla — un documento nuevo que copie la forma de invocación sin la nota reabriría el agujero, y no fallaría: simplemente no se ejecutaría lo que hacía falta.
 
