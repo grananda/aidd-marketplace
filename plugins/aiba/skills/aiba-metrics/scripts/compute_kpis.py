@@ -352,6 +352,12 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
         lambda: {"commands": 0, "decisions": 0, "corrections": 0, "auto_defaults": 0,
                  "opened": None, "closed": None, "status_issues": 0})
     corrections = decisions_total = auto_defaults = status_issues = 0
+    # Retrabajo: changes abiertos para corregir algo ya archivado. Es lo mas
+    # caro que hay y hasta ahora se contaba como trabajo nuevo, asi que un
+    # equipo que vuelve sobre lo entregado se leia igual que uno que entrega
+    # limpio. Se guarda que change corrige a cual, no solo cuantos: sin eso el
+    # numero no se puede auditar.
+    retrabajo: list[dict] = []
 
     for e in in_window:
         command = str(e.get("command") or "desconocido")
@@ -368,6 +374,10 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
                 c["status_issues"] += 1
             if command.endswith("open change"):
                 c["opened"] = min(c["opened"], e["_ts"]) if c["opened"] else e["_ts"]
+                if e.get("corrects_archived"):
+                    retrabajo.append({"change": slug,
+                                      "corrige": str(e["corrects_archived"]),
+                                      "fecha": e["_ts"].strftime("%Y-%m-%d")})
             elif command.endswith("close change"):
                 c["closed"] = max(c["closed"], e["_ts"]) if c["closed"] else e["_ts"]
 
@@ -401,6 +411,13 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
         "changes_tracked": tracked,
         "changes_closed": sum(1 for c in changes.values() if c["closed"]),
         "changes_open": sorted(s for s, c in changes.items() if not c["closed"]),
+        # Cuanto de lo abierto es volver sobre lo entregado. El porcentaje se
+        # calcula sobre los changes **abiertos en la ventana**, que es la unica
+        # base honesta: un change abierto antes y corregido ahora no estaba
+        # disponible para contarse.
+        "rework": retrabajo,
+        "rework_total": len(retrabajo),
+        "rework_pct": (len(retrabajo) / tracked * 100) if tracked else 0.0,
         "corrections_total": corrections,
         "corrections_per_change": (corrections / tracked) if tracked else 0.0,
         "changes_with_corrections": sum(1 for c in changes.values() if c["corrections"]),
@@ -500,7 +517,7 @@ def build_facts(act: Activity, baseline_days: float, sized_items: int, git: dict
     attended = float(sum(durations))
     attended_days = attended / 3600.0 / HOURS_PER_DAY
     # De donde sale el tiempo atendido, para que el informe pueda decirlo.
-    ambitos = {x.get("scope", "turno") for x in log.turns if x.get("dur") is not None}
+    ambitos = {x.get("scope", "turno") for x in act.turns if x.get("dur") is not None}
     if ambitos == {"comando"}:
         base_atendido = "comandos"
     elif "comando" in ambitos:
