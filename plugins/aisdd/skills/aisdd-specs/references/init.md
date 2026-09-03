@@ -85,6 +85,8 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    El registro (`docs/aidd-activity.md`) es de donde `aiba metrics` saca el tiempo atendido. Lo escribe el hook `aidd-activity-hook.sh` que traen los plugins, y es **opt-in**: sin el fichero no se registra nada.
 
    - **Ofrece crearlo.** Preguntalo aqui y no despues: la ventana de medicion **no se reconstruye**. Si el usuario dice que no, no insistas y dilo en el resumen.
+
+     > **Y sigue siendo opt-in a proposito.** Se propuso que el hook creara el fichero solo al dispararse, convirtiendolo en opt-out. **Se descarta**: el registro es un fichero **visible en el arbol del repositorio**, y crearlo sin permiso lo hace aparecer en repos de cliente donde nadie lo ha pedido --y donde puede ser justo el rastro que no debe estar--. Preguntar una vez aqui cuesta una pregunta; registrar sin permiso no se deshace.
    - **Declara quien escribe el registro** en `openspec/config.yaml`. Es lo que evita que se registre por duplicado:
 
      ```yaml

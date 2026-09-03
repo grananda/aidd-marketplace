@@ -30,7 +30,8 @@ Uso:
 
 Campos admitidos en el JSON de entrada: command, change_id, repo, skill_version,
 prompt_version, model, platform, user, input_files[], output_files[],
-decisions[], status, errors[], correction_of, id, timestamp, **started_at**,
+decisions[], status, errors[], correction_of, **corrects_archived**, id,
+timestamp, **started_at**,
 **preflight_rounds**, **turns**, **interventions**, **verification{}**.
 
 ``attempt``, el bloque ``preflight`` y ``verification.first_run_green`` **no se
@@ -519,6 +520,27 @@ def main() -> int:
     }
     if entry.get("correction_of"):
         record["correction_of"] = entry["correction_of"]
+
+    # Retrabajo sobre lo ya entregado. Es lo mas caro que hay --el change se
+    # declaro terminado, sus specs se promovieron y alguien lo dio por bueno--
+    # y hasta ahora entraba en el registro **como cualquier otro**: un equipo
+    # que abre tres changes al mes para arreglar lo del mes pasado se leia igual
+    # que uno que entrega limpio.
+    #
+    # No confundir con `correction_of`, que corrige **una entrada de auditoria**
+    # mal escrita: eso es higiene de un log append-only, no retrabajo.
+    corrige = entry.get("corrects_archived")
+    if corrige:
+        archivo = root / "openspec" / "changes" / "archive" / str(corrige)
+        if not archivo.is_dir():
+            # No se descarta: el dato del agente vale mas que nuestra
+            # comprobacion --el change pudo archivarse en otro repo, o el
+            # nombre pudo cambiar--. Pero se avisa, porque un slug inventado
+            # ensuciaria el KPI de retrabajo sin que nadie lo notara.
+            warnings.append(
+                f"corrects_archived '{corrige}' no aparece en openspec/changes/archive/: "
+                f"se registra igual, pero comprueba el identificador")
+        record["corrects_archived"] = str(corrige)
 
     audit_dir = root / "openspec" / "audit"
     audit_dir.mkdir(parents=True, exist_ok=True)

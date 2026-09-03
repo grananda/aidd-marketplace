@@ -33,6 +33,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-25 | El hook de actividad, endurecido para otras plataformas: `turn_id`, detección de escritura sin lista blanca y prueba de paridad | todos | **parcial** | 2026-09-03 |
 | F-26 | Los scripts se resuelven en vez de asumir la ruta: la auditoría vuelve a funcionar fuera de Claude Code | todos | **implementada** | 2026-09-03 |
 | F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
+| F-28 | El retrabajo se distingue del trabajo nuevo, y `close change` comprueba antes de archivar | aisdd, aiba | **implementada** | 2026-09-03 |
 
 ---
 
@@ -557,3 +558,35 @@ F-26 dejó funcionando fuera de Claude Code todo menos una cosa: el registro de 
 **Y la base se declara en el informe.** Un comando solo se ve a sí mismo; el hook ve el turno, que incluye revisar, conversar e iterar. Con `source: skills` el tiempo atendido es **una cota inferior**, la línea lleva `scope=comando` y `compute_kpis.py` lo distingue —`base: turnos | comandos | mixta`— con una nota que lo explica. Un proyecto que cambie de agente a mitad sale como `mixta`, y el informe advierte de que las dos partes no son comparables.
 
 **`check_activity_source.py`** fija las tres ramas en CI: sin clave no escribe, con `hooks` no escribe, con `skills` escribe tres líneas y la de turno declara su base. Es lo que impide que alguien active las dos fuentes sin enterarse.
+
+## F-28 — Lo que la auditoría no dejaba medir
+
+**Estado:** implementada · **Versión:** `aisdd` 3.12.0 · `aiba` 1.13.0 · **Añadida:** 2026-09-03
+
+Tres huecos del issue #32. Dos se cierran; el tercero se decide que **no**.
+
+### El retrabajo se distingue del trabajo nuevo
+
+Cuando algo archivado está mal, la corrección va en un change nuevo — y entraba en el registro **como cualquier otro**. Un equipo que abre tres changes al mes para arreglar lo del mes pasado se leía igual que uno que entrega limpio.
+
+`open change` pasa ahora `corrects_archived: <slug>` cuando el change nace para eso, y de ahí salen `rework_total` y `rework_pct` en `aiba metrics`, con el detalle de qué change corrige a cuál — sin eso el número no se puede auditar. **No se pregunta de rutina**: sale de lo que el usuario ya dijo al pedir el change, y en la duda se pregunta una vez.
+
+No confundir con `correction_of`, que corrige **una entrada de auditoría** mal escrita: eso es higiene de un log append-only, no retrabajo.
+
+### `close change` comprueba antes de archivar
+
+Archivar promueve los `spec.md` a línea base y da el trabajo por entregado, y entre implementar y cerrar puede haber pasado de todo: correcciones de nivel 2, un `amend`, el merge de otra rama. **El único verde registrado era el del momento de implementar**, que puede ser de días antes.
+
+Ahora ejecuta build y tests antes de archivar y registra el resultado en `verification`. Si falla, **se detiene y dice desde cuándo falla** —si ya fallaba en `implement change`, no es una regresión de este cierre, y eso cambia a quién le toca—.
+
+**Y se puede archivar igualmente**, porque a veces se debe: un test roto por el entorno no puede bloquear un cierre cuyo código ya está mergeado. Pero la excepción se declara: se pide explícitamente, se registra en `decisions.md` y la auditoría sale con `status: partial` y el fallo en `errors[]`. **Un cierre en rojo con constancia es información; uno en rojo en silencio es una línea base sucia que nadie sabe que lo está.**
+
+### El opt-in del registro se queda como está
+
+Se propuso que el hook creara `docs/aidd-activity.md` al dispararse, convirtiendo el opt-in en opt-out. **Se descarta.** El registro es un fichero **visible en el árbol del repositorio**, y crearlo sin permiso lo hace aparecer en repos de cliente donde nadie lo ha pedido — y donde puede ser justo el rastro que no debe estar. Preguntar una vez en `init` cuesta una pregunta; registrar sin permiso no se deshace.
+
+### Y un fallo propio que llegó a una release
+
+`compute_kpis.py` referenciaba una variable inexistente en el bloque de la base del tiempo atendido, así que **`aiba metrics` no se podía ejecutar** desde v1.38.1. `py_compile` no ve un `NameError`: el fichero compila y revienta al usarlo, y ninguna de las nueve comprobaciones llamaba al script.
+
+`check_scripts_run.py` lo ejecuta ahora de punta a punta sobre un proyecto mínimo —en los dos formatos de salida— junto con `audit.py`. Es el humo que faltaba, y es el que lo habría cazado.

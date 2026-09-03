@@ -101,6 +101,9 @@ jobs:
       - name: Toda invocacion de script dice como resolver su ruta
         run: python3 .github/scripts/check_script_resolution.py
 
+      - name: Los scripts que producen entregables se ejecutan
+        run: python3 .github/scripts/check_scripts_run.py
+
       - name: El registro de actividad lo escribe uno solo
         run: python3 .github/scripts/check_activity_source.py
 
