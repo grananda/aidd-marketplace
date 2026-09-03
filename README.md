@@ -376,12 +376,18 @@ El marketplace está pensado para Claude Code, pero **Codex ya lo instala tal cu
 |---|---|---|---|
 | **Skills** | Sí | Sí (avisa si acorta descripciones para caber en su presupuesto) | Sí — lee `.claude/skills/` de forma nativa |
 | **Hooks** | Sí | Sí, se registran y se confían por hash | **No** — su modelo de plugin es un módulo TypeScript sobre su SDK |
-| **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí | Por verificar |
-| **Registro de actividad y KPIs** | Sí | **Todavía no** — ver abajo | **No**, al no haber hooks |
+| **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí, **resolviendo la ruta** (la variable llega vacía) | Por verificar |
+| **Auditoría** (`audit.py`) | Sí | Sí, por lo anterior | Por verificar |
+| **Registro de actividad** | Sí | **Todavía no** — ver abajo | **No**, al no haber hooks |
+| **KPIs de `aiba metrics`** | Sí | Parcial: la parte que sale de la auditoría, sí; el tiempo atendido, no | No |
 
-**En Codex el registro de actividad no funciona, y no depende de nosotros.** Comprobado sobre Codex CLI 0.151.0: los hooks de un plugin se **registran** —aparecen en `hooks.state` de `~/.codex/config.toml` con su hash de confianza— pero **no se ejecutan**. El mismo script, con la misma ruta absoluta y el mismo evento, sí se ejecuta declarado en un `.codex/hooks.json` de proyecto. Así que en Codex **los skills funcionan y la medición no**: `aiba metrics` no tiene de dónde calcular los KPIs de uso.
+**En Codex fallan dos cosas, y ninguna se arregla desde aquí.**
 
-Si necesitas el registro en Codex hoy, la salida es declarar el hook **a mano en `.codex/hooks.json`** del proyecto, apuntando con ruta absoluta al script del plugin instalado y **sin comillas** — Codex no pasa el comando por un shell, así que unas comillas se convierten en parte de la ruta.
+**1. Los scripts: resueltos.** `${CLAUDE_PLUGIN_ROOT}` **llega vacía** en Codex, así que un `python3 "${CLAUDE_PLUGIN_ROOT}/…/audit.py"` se convertiría en `/…/audit.py` y fallaría. Los 21 documentos que mandan ejecutar un script llevan ahora la **regla de resolución**: si la variable no resuelve, el script sigue en el disco — se localiza una vez con `find` y se usa su ruta absoluta. Con eso funcionan la auditoría, el sellado de documentos, los KPIs y las vistas HTML.
+
+**2. El registro de actividad sigue sin funcionar.** Los hooks empaquetados en un plugin **se registran y no se ejecutan** — comprobado sobre Codex CLI 0.151.0: el mismo script, con la misma ruta absoluta y el mismo evento, sí se ejecuta declarado en un `.codex/hooks.json` de proyecto. `aisdd init` escribe ese fichero cuando detecta que el agente no ejecuta los hooks de plugin, con ruta absoluta y **sin comillas** — el comando no pasa por un shell, así que unas comillas se convierten en parte de la ruta.
+
+Con eso el hook llega a dispararse, pero **no hemos conseguido verificar que el registro se llene de extremo a extremo en Codex**: falta averiguar qué eventos emite y con qué nombre de herramienta. Hasta entonces, en Codex `aiba metrics` funciona con lo que sale de la **auditoría** y le falta el **tiempo atendido**.
 
 **Y cuando funcione, cualquier cambio del hook exigirá volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
 

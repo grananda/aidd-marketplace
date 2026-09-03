@@ -44,6 +44,8 @@ El tipo de documento se **auto-detecta** por el nombre del fichero o el `# H1`; 
 
 Ejecutar el script incluido en este skill. Preferir `--input <markdown-file>` (evita degradacion de `stdin` por la shell en Windows con acentos, enes o signos invertidos):
 
+> **Antes de ejecutar cualquiera de estos scripts, comprueba que la ruta resuelve.** `${CLAUDE_PLUGIN_ROOT}` la define Claude Code; **otros agentes la dejan vacia**, y entonces la orden se convierte en `/skills/...` y falla con `No such file or directory`. Si eso pasa, el script **sigue estando en el disco**: localizalo una vez con `find` --por ejemplo en `~/.claude/plugins` o en el directorio de plugins del agente que uses--, quedate con la **ruta absoluta** y usala en todas las invocaciones de esta sesion. Si no aparece, aplica la degradacion descrita mas abajo: haz el trabajo segun la prosa y dilo. **Nunca des por hecho que se ejecuto un script que no ejecutaste.**
+
 ```bash
 # Linux / macOS — --open abre el HTML en el navegador por defecto al terminar
 python "${CLAUDE_PLUGIN_ROOT}/skills/booster-docs/scripts/render_docs_html.py" \

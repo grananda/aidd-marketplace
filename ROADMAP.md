@@ -31,6 +31,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
 | F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
 | F-25 | El hook de actividad, endurecido para otras plataformas: `turn_id`, detección de escritura sin lista blanca y prueba de paridad | todos | **parcial** | 2026-09-03 |
+| F-26 | Los scripts se resuelven en vez de asumir la ruta: la auditoría vuelve a funcionar fuera de Claude Code | todos | **implementada** | 2026-09-03 |
 
 ---
 
@@ -510,3 +511,28 @@ La prueba que lo cierra: un script **que sí escribe** declarado en un `.codex/h
 **Un hallazgo operativo que va al README:** Codex confía los hooks por hash, así que **cualquier release que cambie el hook detiene el registro** hasta que el usuario vuelva a confiarlo. No da error. Si tras actualizar las métricas se quedan planas, es eso. Existe `--dangerously-bypass-hook-trust` para automatizaciones que ya validan el origen.
 
 **Cline** queda documentado y sin tocar: los skills funcionan —lee `.claude/skills/` de forma nativa— pero su modelo de plugin es un módulo TypeScript sobre su SDK, así que no hay hooks y no hay KPIs.
+
+## F-26 — Resolver la ruta de los scripts en vez de asumirla
+
+**Estado:** implementada · **Versión:** `VERSION` 1.37.0 · **Añadida:** 2026-09-03
+
+F-25 dejó aislado el problema y sin resolver: fuera de Claude Code, `${CLAUDE_PLUGIN_ROOT}` llega vacía y las 42 invocaciones de script se convierten en `/skills/…` y fallan. Entre ellas `audit.py`, que escribe **la entrada de auditoría que el método declara obligatoria en todos los comandos**.
+
+**La suposición era nuestra.** Se buscó una variable equivalente en Codex y no existe —solo expone `CODEX_CI`, `CODEX_SESSION_ID`, `CODEX_THREAD_ID` y `CODEX_SANDBOX_NETWORK_DISABLED`—, así que la salida no era pedirle la ruta a la plataforma: era **dejar de asumirla**.
+
+**El script está en el disco en las dos plataformas.** Los 21 documentos que mandan ejecutar uno llevan ahora la regla: si la variable no resuelve, se localiza el script una vez con `find`, se usa su ruta absoluta durante la sesión, y si no aparece se aplica la degradación que ya estaba escrita —hacer el trabajo según la prosa y decirlo—.
+
+**Verificado en vivo.** En una sesión de Codex, aplicando la regla, `audit.py` se localiza y se ejecuta:
+
+```
+usage: audit.py [-h] [--root ROOT] [--entry ENTRY]
+Entrada de auditoria de aisdd-specs.
+```
+
+Con eso vuelven a funcionar fuera de Claude Code la **auditoría**, el **sellado de documentos**, el cálculo de **KPIs** y las **vistas HTML**.
+
+**Nada cambia en Claude Code.** Ninguna invocación se ha tocado: la nota es aditiva y, con la variable definida, no aplica. `check_script_resolution.py` fija que ningún fichero pueda invocar un script sin llevarla — un documento nuevo que copie la forma de invocación sin la nota reabriría el agujero, y no fallaría: simplemente no se ejecutaría lo que hacía falta.
+
+**Y `aisdd init` deja preparado el registro de actividad** en agentes que no ejecutan los hooks de plugin: ofrece crear `docs/aidd-activity.md` —la ventana de medición no se reconstruye, así que se pregunta al principio y no al medir— y escribe un `.codex/hooks.json` de proyecto con la ruta absoluta del hook, sin comillas.
+
+**Lo que queda pendiente:** verificar de extremo a extremo que ese registro se llena en Codex. El hook llega a dispararse, pero falta saber qué eventos emite y con qué nombre de herramienta. Hasta entonces, en Codex `aiba metrics` trabaja con lo que sale de la auditoría y le falta el tiempo atendido.

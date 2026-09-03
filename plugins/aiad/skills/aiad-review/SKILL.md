@@ -169,6 +169,8 @@ Always produce a **standalone HTML report** of the review so the human can follo
 
 2. **Render** the HTML with the bundled script (Python 3 standard library only, no dependencies):
 
+> **Antes de ejecutar cualquiera de estos scripts, comprueba que la ruta resuelve.** `${CLAUDE_PLUGIN_ROOT}` la define Claude Code; **otros agentes la dejan vacia**, y entonces la orden se convierte en `/skills/...` y falla con `No such file or directory`. Si eso pasa, el script **sigue estando en el disco**: localizalo una vez con `find` --por ejemplo en `~/.claude/plugins` o en el directorio de plugins del agente que uses--, quedate con la **ruta absoluta** y usala en todas las invocaciones de esta sesion. Si no aparece, aplica la degradacion descrita mas abajo: haz el trabajo segun la prosa y dilo. **Nunca des por hecho que se ejecuto un script que no ejecutaste.**
+
    ```bash
    python "${CLAUDE_PLUGIN_ROOT}/skills/aiad-review/scripts/render_review_html.py" \
      --input docs/aiad-reviews/aiad-review-<focus>-<date>.json \

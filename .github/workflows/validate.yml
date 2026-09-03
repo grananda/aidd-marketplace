@@ -98,6 +98,9 @@ jobs:
           find plugins .github/scripts -name '*.py' -not -path '*__pycache__*' -print0 \
             | xargs -0 python3 -m py_compile && echo "Todos compilan."
 
+      - name: Toda invocacion de script dice como resolver su ruta
+        run: python3 .github/scripts/check_script_resolution.py
+
       - name: El hook de actividad registra igual en Claude Code y en Codex
         run: python3 .github/scripts/check_activity_hook.py
 
