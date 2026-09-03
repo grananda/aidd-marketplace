@@ -54,6 +54,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -388,16 +389,24 @@ def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | 
         return re.sub(r"[|\r\n\t]+", " ", str(v or "-")).strip()[:120] or "-"
 
     ts = record.get("timestamp") or ""
-    usuario = limpio(record.get("user"))
+    # El mismo identificador que escribe el hook, para que la misma persona no
+    # salga como dos usuarios distintos en un proyecto que cambie de fuente.
+    usuario = limpio(record.get("user") or os.environ.get("USER")
+                     or os.environ.get("USERNAME") or quien_escribe(root, {}))
     comando = limpio(record.get("command"))
+    # `compute_kpis.py` clasifica por **nombre de skill**, no por comando: con el
+    # comando entero cada linea caeria en "Otros" y se perderia el desglose por
+    # etapa. El comando se conserva en la nota, que no se pierde nada.
+    skill = "aisdd-amend" if comando.startswith("aisdd amend") else "aisdd-specs"
     ctx = limpio(record.get("change_id") or record.get("hu") or "-")
-    lineas = [f"- {ts} | user:{usuario} | skill:{comando} | ctx:{ctx} | run | note:-"]
+    lineas = [f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | "
+              f"run | note:{comando}"]
 
     escritos = [f.get("path") for f in (record.get("output_files") or []) if f.get("path")]
     for ruta in escritos:
         if str(ruta).replace("\\", "/") == LOG_ACTIVIDAD.as_posix():
             continue                      # nunca registrar la escritura del propio registro
-        lineas.append(f"- {ts} | user:{usuario} | skill:{comando} | ctx:{ctx} | "
+        lineas.append(f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | "
                       f"file:{limpio(ruta)} | note:-")
 
     dur = "-"
@@ -411,7 +420,7 @@ def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | 
                 dur = f"{segundos}s"
         except ValueError:
             warnings.append("started_at o timestamp no son fechas ISO: duracion sin calcular")
-    lineas.append(f"- {ts} | user:{usuario} | skill:{comando} | ctx:{ctx} | turn | "
+    lineas.append(f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | turn | "
                   f"note:dur={dur} skills=1 files={len(escritos)} scope=comando")
 
     with log.open("a", encoding="utf-8", newline="\n") as fh:

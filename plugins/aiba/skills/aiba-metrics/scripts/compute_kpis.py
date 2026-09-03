@@ -71,6 +71,7 @@ SKILL_STAGE = {
     "aiba-sprint-planning": ("Entrega", "Fase 3.5.2"),
     "aiba-metrics": ("Soporte", "KPIs"),
     "aisdd-specs": ("Ejecucion", "Fase 3"),
+    "aisdd-amend": ("Ejecucion", "Fase 3"),
     "booster-docs": ("Soporte", "Booster"),
     "booster-uml": ("Soporte", "Booster"),
     "booster-ux": ("Soporte", "Booster"),

@@ -69,6 +69,19 @@ for nombre, (cfg, esperadas) in casos.items():
         errors.append(f"{nombre}: {len(lineas)} lineas en el registro, se esperaban "
                       f"{esperadas} ({'duplicaria al hook' if lineas else 'no registra nada'})")
         continue
+    if esperadas:
+        # La linea lleva el **nombre del skill**, no el comando: `compute_kpis`
+        # clasifica por skill, y con el comando entero cada linea caeria en
+        # "Otros" y se perderia el desglose por etapa sin que nada avisara.
+        sys.path.insert(0, str(ROOT / "plugins/aiba/skills/aiba-metrics/scripts"))
+        import compute_kpis                                     # noqa: PLC0415
+        for l in lineas:
+            skill = l.split("| skill:")[1].split("|")[0].strip()
+            if compute_kpis.stage_of(skill)[0] == "Otros":
+                errors.append(f"{nombre}: la linea usa skill '{skill}', que "
+                              f"`compute_kpis` no sabe clasificar (cae en 'Otros')")
+                break
+
     if esperadas and not any("scope=comando" in l for l in lineas):
         errors.append(f"{nombre}: la linea de turno no declara `scope=comando`, "
                       f"asi que se leeria como un turno completo y el tiempo "
