@@ -362,14 +362,60 @@ En `.claude/settings.json` de un proyecto puedes registrar el marketplace y prea
     "aisdd@aidd-sdd": true,
     "aiba@aidd-sdd": true,
     "boosters@aidd-sdd": true,
-    "aiad@aidd-sdd": true
+    "aiad@aidd-sdd": true,
+    "aifg@aidd-sdd": true
   }
 }
 ```
 
+## Otras plataformas: Codex y Cline
+
+El marketplace está pensado para Claude Code, pero **Codex ya lo instala tal cual** desde este mismo repositorio: lee `.claude-plugin/marketplace.json` y los `plugin.json` sin traducción, y no hace falta ningún manifiesto adicional.
+
+| | Claude Code | Codex | Cline |
+|---|---|---|---|
+| **Skills** | Sí | Sí (avisa si acorta descripciones para caber en su presupuesto) | Sí, **pero hay que enlazarlos**: ver abajo |
+| **Hooks** | Sí | Sí, se registran y se confían por hash | **No** — su modelo de plugin es un módulo TypeScript sobre su SDK |
+| **Scripts** (`${CLAUDE_PLUGIN_ROOT}`) | Sí | Sí, **resolviendo la ruta** (la variable llega vacía) | Sí, igual que Codex |
+| **Auditoría** (`audit.py`) | Sí | Sí, por lo anterior | Sí, por lo anterior |
+| **Registro de actividad** | Sí, por hook | Sí, **lo escribe `audit.py`** | Sí, **lo escribe `audit.py`** |
+| **KPIs de `aiba metrics`** | Sí | Sí, con la base declarada | Sí, con la base declarada |
+
+**En Codex fallan dos cosas, y ninguna se arregla desde aquí.**
+
+**1. Los scripts: resueltos.** `${CLAUDE_PLUGIN_ROOT}` **llega vacía** en Codex, así que un `python3 "${CLAUDE_PLUGIN_ROOT}/…/audit.py"` se convertiría en `/…/audit.py` y fallaría. Los 21 documentos que mandan ejecutar un script llevan ahora la **regla de resolución**: si la variable no resuelve, el script sigue en el disco — se localiza una vez con `find` y se usa su ruta absoluta. Con eso funcionan la auditoría, el sellado de documentos, los KPIs y las vistas HTML.
+
+**2. El registro de actividad lo escribe el comando, no el hook.** Los hooks empaquetados en un plugin **se registran y no se ejecutan** en Codex, y en Cline no hay mecanismo compatible. Así que donde no corren, lo escribe **`audit.py`**, que ya se ejecuta en todos los comandos `aisdd` y ya sabe cuándo empezó y acabó cada uno.
+
+Quién escribe **se declara**, no se adivina, y lo fija `aisdd init` en `openspec/config.yaml`:
+
+```yaml
+activity:
+  source: hooks   # hooks | skills
+```
+
+Con `hooks` manda el hook y `audit.py` no toca el registro; con `skills` es al revés. **Nunca los dos** — duplicar cada línea no falla: infla el tiempo atendido y la aceleración sale mejor de lo que fue. Sin la clave se asume `hooks`.
+
+**Y la base se declara en el informe.** Un comando solo se ve a sí mismo; el hook ve el turno entero, incluido revisar, conversar e iterar. Con `source: skills` el tiempo atendido es **una cota inferior**, y `aiba metrics` lo dice en vez de presentarlo como equivalente.
+
+**En Codex, cualquier cambio del hook exige volver a confiarlo.** Codex guarda un `trusted_hash` por entrada de hook; cuando una versión nueva del marketplace cambia `aidd-activity-hook.sh`, **el registro se detiene hasta que lo apruebes** en una sesión interactiva. No da error: simplemente deja de escribir. Si actualizas y las métricas se quedan planas, mira ahí primero.
+
+**En Cline no se instala como plugin.** `cline plugin install` falla, y con razón: sus plugins son módulos TypeScript y los nuestros son markdown. Lo que Cline sí lee son **skills**, así que hay que enlazarlos donde los busca — `~/.cline/skills/` o el `.clinerules/skills/` del proyecto:
+
+```bash
+mkdir -p ~/.cline/skills
+for s in <ruta-a-los-plugins>/*/skills/*/; do
+  ln -sfn "${s%/}" ~/.cline/skills/"$(basename "$s")"
+done
+```
+
+No los enlaces a `~/.claude/skills/`: ahí también mira Claude Code y cargaría cada skill dos veces.
+
+Con eso, en Cline funcionan los skills, la auditoría, el sellado y los KPIs calculados. **Lo que no hay es registro de actividad**, así que a `aiba metrics` le falta el tiempo atendido: el modelo de plugin de Cline es un módulo TypeScript sobre su SDK y no hay dónde enganchar el hook.
+
 ## Registro de actividad (opt-in)
 
-Los cinco plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
+Los seis plugins traen un hook `PostToolUse` (`hooks/aidd-activity-hook.sh`) que deja una traza de qué se ha hecho sobre el código: **fecha y hora, usuario, skill ejecutado y fichero trabajado**, una línea por acción.
 
 **Se activa por proyecto creando el fichero de registro** (sin él no se escribe nada, en ningún proyecto):
 
@@ -391,7 +437,7 @@ A partir de ahí, `docs/aidd-activity.md` se va llenando solo:
 - El campo `ctx:` es la **historia de usuario o el change** en curso: se detecta de los argumentos (`HU-07`) o de trabajar dentro de `openspec/changes/<id>/`. Es lo que permite dar tiempo de ciclo por HU.
 - Marcas de tiempo en **UTC** (`Z`), como el journal de AIAD, para que ordenen bien entre máquinas y zonas horarias.
 - **Pasivo**: solo registra. Nunca bloquea una acción, nunca edita código y nunca hace fallar la sesión.
-- **Sin duplicados**: el hook viaja en los cinco plugins —incluido `aiba`, que es quien luego lo consume— así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
+- **Sin duplicados**: el hook viaja en los seis plugins —incluido `aiba`, que es quien luego lo consume— así que con varios instalados se dispara varias veces por la misma acción; deduplica por `tool_use_id` y solo escribe la primera.
 - Lo que escribes tú a mano en tu editor **no pasa por las tools de la IA y por tanto no se registra**. El log es traza de la IA, no vigilancia del humano.
 - No registra el contenido de tus prompts ni del código: solo el skill, el fichero y los argumentos del comando.
 
@@ -540,13 +586,13 @@ Y el de las rutas, porque **la carga de los skills es en diferido**: `SKILL.md` 
   curl -sS -o /tmp/m.js https://cdn.jsdelivr.net/npm/mermaid@<version>/dist/mermaid.min.js
   wc -c /tmp/m.js && sha256sum /tmp/m.js   # tamaño y hash que van a los dos scripts
   ```
-- **Hook de actividad compartido**: `hooks/aidd-activity-hook.sh` es el **mismo fichero** en los cuatro plugins (cada plugin instalado es autónomo, no pueden compartir ficheros). Si lo tocas, cópialo a los cuatro y comprueba que coinciden:
+- **Hook de actividad compartido**: `hooks/aidd-activity-hook.sh` es el **mismo fichero** en los **seis** plugins (cada plugin instalado es autónomo, no pueden compartir ficheros). Si lo tocas, cópialo a los seis y comprueba que coinciden — y pasa `check_activity_hook.py`, que verifica que sigue registrando lo mismo en Claude Code y en Codex:
 
   ```bash
   cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aisdd/hooks/
   cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/aiad/hooks/
   cp plugins/aidd/hooks/aidd-activity-hook.sh plugins/boosters/hooks/
-  sha256sum plugins/*/hooks/aidd-activity-hook.sh   # los cuatro deben coincidir
+  sha256sum plugins/*/hooks/aidd-activity-hook.sh   # los seis deben coincidir
   ```
 - **Hacerlo público** (si algún día procede): `gh repo edit grananda/aidd-marketplace --visibility public`. La instalación entonces no requeriría credenciales.
 - **Desarrollo local** antes de publicar: `claude --plugin-dir ./plugins/aidd` (un plugin suelto) o `/plugin marketplace add ./` (marketplace local); validar con `claude plugin validate ./`.

@@ -83,6 +83,8 @@ Lee y consolida, en este orden:
 1. `docs/detalle-historias-usuario.md` — la HU, su prioridad, sus criterios de aceptacion Dado/Cuando/Entonces, los marcados como imprescindibles, y sus notas tecnicas.
 2. **`docs/df/*.docx` de esa HU, si existe** — es mejor fuente que los criterios: sus tablas de validaciones, mensajes y campos son casos de prueba casi literales, y sus puntos abiertos dicen que **no** se puede probar todavia. Un `.docx` no se lee de un vistazo, asi que **volcalo a JSON primero**:
 
+> **Antes de ejecutar cualquiera de estos scripts, comprueba que la ruta resuelve.** `${CLAUDE_PLUGIN_ROOT}` la define Claude Code; **otros agentes la dejan vacia**, y entonces la orden se convierte en `/skills/...` y falla con `No such file or directory`. Si eso pasa, el script **sigue estando en el disco**: localizalo una vez con `find -L` --por ejemplo en `~/.claude/plugins` o en el directorio de plugins del agente que uses--, quedate con la **ruta absoluta** y usala en todas las invocaciones de esta sesion. **El `-L` no es opcional**: si los skills estan instalados por enlace simbolico --como se montan en algunos agentes-- un `find` a secas no los sigue y devuelve vacio, y concluirias que el script no esta cuando si esta. Si no aparece, aplica la degradacion descrita mas abajo: haz el trabajo segun la prosa y dilo. **Nunca des por hecho que se ejecuto un script que no ejecutaste.**
+
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" \
      --extraer "docs/df/<fichero>.docx"

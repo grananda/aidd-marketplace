@@ -115,6 +115,8 @@ Es el dato que faltaba, y ya existe: el equipo lo imputa en Jira. Sacarlo de ahi
 
 Por eso `--activity` y `--repo` son **repetibles**:
 
+> **Antes de ejecutar cualquiera de estos scripts, comprueba que la ruta resuelve.** `${CLAUDE_PLUGIN_ROOT}` la define Claude Code; **otros agentes la dejan vacia**, y entonces la orden se convierte en `/skills/...` y falla con `No such file or directory`. Si eso pasa, el script **sigue estando en el disco**: localizalo una vez con `find -L` --por ejemplo en `~/.claude/plugins` o en el directorio de plugins del agente que uses--, quedate con la **ruta absoluta** y usala en todas las invocaciones de esta sesion. **El `-L` no es opcional**: si los skills estan instalados por enlace simbolico --como se montan en algunos agentes-- un `find` a secas no los sigue y devuelve vacio, y concluirias que el script no esta cuando si esta. Si no aparece, aplica la degradacion descrita mas abajo: haz el trabajo segun la prosa y dilo. **Nunca des por hecho que se ejecuto un script que no ejecutaste.**
+
 ```bash
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-metrics/scripts/compute_kpis.py" \
   --activity repo-front/docs/aidd-activity.md \

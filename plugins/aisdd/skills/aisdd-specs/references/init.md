@@ -80,6 +80,37 @@ Inicializa AISDD (OpenSpec) en el proyecto.
     El registro es append-only y **un fichero por escritor** ya evita el conflicto normal; esta linea cubre el que queda: la misma persona trabajando dos ramas. Sin ella, git para el merge por dos lineas que solo hay que concatenar. Hazlo siempre, tambien en `atomic`: es idempotente y evita tener que acordarse el dia que entra un segundo dev.
 
 14. **Ignora el puntero de lane.** Asegura que el `.gitignore` **de este repo** --el que contiene `openspec/`-- lleva una linea `openspec/.lane`. (En topologia `fraccionado` ese puntero no se usa —el lane es el repo—, pero anadela igual: es idempotente y no cuesta nada.) Si el fichero `.gitignore` no existe, crealo con esa unica linea; si existe y ya la contiene, no lo toques. Ese fichero es el lane activo de **cada dev** y no debe versionarse (ver "Lanes"). Hazlo siempre, tambien en proyectos que arrancan en modo `atomic`: es idempotente y evita tener que recordarlo si mas adelante se pasa a multilane.
+14.bis. **Deja el registro de actividad funcionando, tambien fuera de Claude Code.**
+
+   El registro (`docs/aidd-activity.md`) es de donde `aiba metrics` saca el tiempo atendido. Lo escribe el hook `aidd-activity-hook.sh` que traen los plugins, y es **opt-in**: sin el fichero no se registra nada.
+
+   - **Ofrece crearlo.** Preguntalo aqui y no despues: la ventana de medicion **no se reconstruye**. Si el usuario dice que no, no insistas y dilo en el resumen.
+   - **Declara quien escribe el registro** en `openspec/config.yaml`. Es lo que evita que se registre por duplicado:
+
+     ```yaml
+     activity:
+       source: hooks   # hooks | skills
+     ```
+
+     Con `hooks` manda el hook y `audit.py` no toca el registro; con `skills` lo escribe `audit.py` en cada comando. **Nunca los dos**: duplicar cada linea no falla, infla el tiempo atendido y la aceleracion sale mejor de lo que fue. Sin la clave se asume `hooks`, que es el comportamiento historico.
+
+   - **Comprueba si el agente ejecuta los hooks de los plugins.** Claude Code si. **Codex no**: los registra en su `config.toml` y no llega a ejecutarlos --comprobado sobre 0.151.0--, asi que el registro quedaria vacio sin que nada avisara.
+   - **Si no los ejecuta, pon `source: skills`.** Con eso `audit.py` registra lo que dura cada comando y `aiba metrics` recupera el tiempo atendido — **con una base mas estrecha**, que el informe declara: un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si.
+
+   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
+
+     ```json
+     {"hooks": {
+       "PostToolUse":      [{"matcher": "*", "hooks": [{"type": "command", "command": "/ruta/absoluta/al/aidd-activity-hook.sh"}]}],
+       "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "/ruta/absoluta/al/aidd-activity-hook.sh"}]}],
+       "Stop":             [{"hooks": [{"type": "command", "command": "/ruta/absoluta/al/aidd-activity-hook.sh"}]}]
+     }}
+     ```
+
+   - **Si ya existe `.codex/hooks.json`, no lo pises**: anade solo lo que falte y di que habia.
+   - **Avisa de que hay que confiar el hook una vez.** Codex guarda un hash de confianza por entrada y no lo ejecuta hasta que el usuario lo aprueba; ademas, **cada actualizacion del plugin que cambie el script exige volver a aprobarlo**, y hasta entonces el registro se para **sin dar error**. Es la primera cosa que mirar si las metricas se quedan planas.
+   - **En Claude Code no escribas nada de esto**: sus hooks de plugin ya funcionan y un `.codex/hooks.json` ahi solo seria ruido.
+
 15. Registra los comandos del skill en el `AGENTS.md` del proyecto segun la seccion siguiente.
 
 16. **Comprueba el mojibake de lo que has escrito.** Es **obligatorio**, no opcional. Pasa `check_mojibake.py --fix` (ver `references/scripts.md`) sobre los artefactos **documentales** que este comando haya escrito: `openspec/config.yaml`, `AGENTS.md` y las specs base **si las sembraste** (en proyecto nuevo no hay). **Va aqui, antes de la entrada de auditoria, porque `audit.py` calcula el hash de cada fichero**: reparar despues dejaria registrado el hash de la version corrupta. Si algun fichero queda con `U+FFFD`, no se puede reparar — hay que regenerarlo; dilo en la verificacion final y no lo escondas.

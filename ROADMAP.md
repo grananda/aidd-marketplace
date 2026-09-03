@@ -30,6 +30,9 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 | F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
 | F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
+| F-25 | El hook de actividad, endurecido para otras plataformas: `turn_id`, detección de escritura sin lista blanca y prueba de paridad | todos | **parcial** | 2026-09-03 |
+| F-26 | Los scripts se resuelven en vez de asumir la ruta: la auditoría vuelve a funcionar fuera de Claude Code | todos | **implementada** | 2026-09-03 |
+| F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
 
 ---
 
@@ -477,3 +480,80 @@ Decisiones que sostienen el diseño:
 `aidd style-guide` conserva la extracción ligera —paleta, tipografía, espaciado, tokens—, **emite `tokens.json` y `tokens.css`** en vez de dejar las custom properties como prosa que alguien reteclea, y ofrece encadenar con `aifg capture`. Los tokens tienen **un solo dueño**: los emite la guía y los consume quien haga falta.
 
 **Queda fuera, dicho a propósito:** remediar HU cerradas cuando cambia el diseño contra el que se implementaron. Se reporta cuáles son y ahí para — la salida natural es otra HU o una tarea, y la metodología no contempla hoy ese camino.
+
+## F-25 — El registro de actividad no escribe fuera de Claude Code
+
+**Estado:** parcial · **Versión:** `VERSION` 1.36.0 · **Añadida:** 2026-09-03
+
+Comprobado sobre Codex CLI 0.151.0 con el marketplace instalado de verdad, capturando payloads reales.
+
+**Codex ya instala este repositorio tal cual.** Lee `.claude-plugin/marketplace.json` y los `plugin.json` sin traducción, y registra los hooks en su `config.toml` con un `trusted_hash` por entrada. No hacía falta ningún manifiesto nuevo — el supuesto de que sí, era falso.
+
+**Y el vocabulario del payload también coincide.** Capturado literal de una sesión de Codex:
+
+```json
+{"session_id":"…","turn_id":"…","transcript_path":"…","cwd":"…",
+ "hook_event_name":"Stop","model":"…","permission_mode":"bypassPermissions",
+ "stop_hook_active":false,"last_assistant_message":"¡Hola!"}
+```
+
+`hook_event_name` viene en **PascalCase**, igual que en Claude Code. El snake_case (`post_tool_use`) son solo las **claves de configuración** de Codex, no lo que envía. Una hipótesis anterior decía lo contrario y era falsa.
+
+**La diferencia real capturada es otra: no hay `prompt_id`, hay `turn_id`.** El hook deduplica los eventos de turno por ese identificador entre sus seis copias, así que sin él no hay deduplicación. Corregido: se acepta `turn_id` cuando `prompt_id` no viene.
+
+**El bloqueo, aislado.** Con el hook del plugin instalado el registro queda vacío. Se descartaron una por una las causas plausibles: el entrecomillado del comando --Codex no pasa el comando por un shell, así que unas comillas acaban formando parte de la ruta, pero la copia instalada ya venía sin ellas--, la variable `${CLAUDE_PLUGIN_ROOT}` --sustituida por ruta absoluta, sigue sin escribir-- y el flag `async`.
+
+La prueba que lo cierra: un script **que sí escribe** declarado en un `.codex/hooks.json` de proyecto deja de escribir en cuanto se declara en el `hooks/hooks.json` de un plugin. Mismo script, misma ruta absoluta, mismo evento.
+
+> **En Codex CLI 0.151.0 los hooks empaquetados en un plugin se registran pero no se ejecutan.** Aparecen en `hooks.state` de `config.toml` con su hash de confianza, y no llegan a correr. Los de proyecto sí. **No hay nada en este repositorio que lo arregle**: está del lado de Codex.
+
+**Qué entrega entonces esta versión.** No el registro en Codex, que no depende de nosotros — sino quitarnos de encima nuestras propias suposiciones de plataforma, para que el día que Codex ejecute los hooks de plugin no haya que volver a investigar: `turn_id` además de `prompt_id`, detección de escritura que ya no es una lista blanca de nombres de Claude Code, normalización defensiva de los nombres de evento, y **una prueba en CI** que fija que las dos formas produzcan las mismas líneas.
+
+**Un hallazgo operativo que va al README:** Codex confía los hooks por hash, así que **cualquier release que cambie el hook detiene el registro** hasta que el usuario vuelva a confiarlo. No da error. Si tras actualizar las métricas se quedan planas, es eso. Existe `--dangerously-bypass-hook-trust` para automatizaciones que ya validan el origen.
+
+**Cline** queda documentado y sin tocar: los skills funcionan —lee `.claude/skills/` de forma nativa— pero su modelo de plugin es un módulo TypeScript sobre su SDK, así que no hay hooks y no hay KPIs.
+
+## F-26 — Resolver la ruta de los scripts en vez de asumirla
+
+**Estado:** implementada · **Versión:** `VERSION` 1.37.0 · **Añadida:** 2026-09-03
+
+F-25 dejó aislado el problema y sin resolver: fuera de Claude Code, `${CLAUDE_PLUGIN_ROOT}` llega vacía y las 42 invocaciones de script se convierten en `/skills/…` y fallan. Entre ellas `audit.py`, que escribe **la entrada de auditoría que el método declara obligatoria en todos los comandos**.
+
+**La suposición era nuestra.** Se buscó una variable equivalente en Codex y no existe —solo expone `CODEX_CI`, `CODEX_SESSION_ID`, `CODEX_THREAD_ID` y `CODEX_SANDBOX_NETWORK_DISABLED`—, así que la salida no era pedirle la ruta a la plataforma: era **dejar de asumirla**.
+
+**El script está en el disco en las dos plataformas.** Los 21 documentos que mandan ejecutar uno llevan ahora la regla: si la variable no resuelve, se localiza el script una vez con `find`, se usa su ruta absoluta durante la sesión, y si no aparece se aplica la degradación que ya estaba escrita —hacer el trabajo según la prosa y decirlo—.
+
+**Verificado en vivo, en las dos plataformas.** En Codex y en Cline la variable llega vacía (`ROOT=[]`) y, aplicando la regla, `audit.py` se localiza y se ejecuta:
+
+```
+usage: audit.py [-h] [--root ROOT] [--entry ENTRY]
+Entrada de auditoria de aisdd-specs.
+```
+
+Con eso vuelven a funcionar fuera de Claude Code la **auditoría**, el **sellado de documentos**, el cálculo de **KPIs** y las **vistas HTML**.
+
+**Y la regla dice `find -L`, no `find`.** Lo destapó la prueba en Cline: sus skills se montan por **enlace simbólico**, y `find` no los sigue por defecto — devolvía vacío con el script delante. Un agente menos insistente habría concluido que no estaba y habría degradado a prosa sin necesidad. Es la clase de fallo que este método persigue: no falla, hace de menos y no lo dice.
+
+**Nada cambia en Claude Code.** Ninguna invocación se ha tocado: la nota es aditiva y, con la variable definida, no aplica. `check_script_resolution.py` fija que ningún fichero pueda invocar un script sin llevarla — un documento nuevo que copie la forma de invocación sin la nota reabriría el agujero, y no fallaría: simplemente no se ejecutaría lo que hacía falta.
+
+**Y `aisdd init` deja preparado el registro de actividad** en agentes que no ejecutan los hooks de plugin: ofrece crear `docs/aidd-activity.md` —la ventana de medición no se reconstruye, así que se pregunta al principio y no al medir— y escribe un `.codex/hooks.json` de proyecto con la ruta absoluta del hook, sin comillas.
+
+**La regla vive tambien en el indice de `aisdd-specs`, no solo en su ficha de scripts.** Los otros 19 sitios la llevan dentro del propio `SKILL.md`; `aisdd` la tenia unicamente en `references/scripts.md`, y no todos los agentes cargan ese directorio --Cline documenta `docs/`, `templates/` y `scripts/` como subdirectorios de un skill, y no menciona `references/`--. Como la entrada de auditoria es obligatoria en todos los comandos, esa regla no puede depender de que se lea un fichero de segundo nivel.
+
+**Lo que queda pendiente:** verificar de extremo a extremo que ese registro se llena en Codex. El hook llega a dispararse, pero falta saber qué eventos emite y con qué nombre de herramienta. Hasta entonces, en Codex `aiba metrics` trabaja con lo que sale de la auditoría y le falta el tiempo atendido.
+
+## F-27 — El registro de actividad, sin depender de los hooks
+
+**Estado:** implementada · **Versión:** `aisdd` 3.11.0 · `aiba` 1.12.0 · **Añadida:** 2026-09-03
+
+F-26 dejó funcionando fuera de Claude Code todo menos una cosa: el registro de actividad, y con él el **tiempo atendido**, que es de donde sale el ahorro. Los hooks de plugin se registran y no se ejecutan en Codex, y en Cline no hay mecanismo compatible.
+
+**Los hooks se quedan.** Donde corren son la vía preferente: ven el turno entero, incluido el trabajo que no es una invocación de comando.
+
+**Donde no corren, escribe `audit.py`.** Ya se ejecuta en todos los comandos `aisdd` y ya sabe cuándo empezó y acabó cada uno (`started_at` + `timestamp`, de F-21), así que no hace falta maquinaria nueva: se aprovecha lo que ya se medía.
+
+**Quién escribe se declara, no se adivina.** `aisdd init` lo fija en `activity.source` de `openspec/config.yaml` (`hooks` | `skills`), y sin la clave se asume `hooks` —el comportamiento histórico—. La razón de declararlo en vez de deducirlo por plataforma en cada ejecución es que **el fallo peligroso no es perder una línea, es duplicarla**: dos escritores no dan error, inflan el tiempo atendido y la aceleración sale mejor de lo que fue.
+
+**Y la base se declara en el informe.** Un comando solo se ve a sí mismo; el hook ve el turno, que incluye revisar, conversar e iterar. Con `source: skills` el tiempo atendido es **una cota inferior**, la línea lleva `scope=comando` y `compute_kpis.py` lo distingue —`base: turnos | comandos | mixta`— con una nota que lo explica. Un proyecto que cambie de agente a mitad sale como `mixta`, y el informe advierte de que las dos partes no son comparables.
+
+**`check_activity_source.py`** fija las tres ramas en CI: sin clave no escribe, con `hooks` no escribe, con `skills` escribe tres líneas y la de turno declara su base. Es lo que impide que alguien active las dos fuentes sin enterarse.

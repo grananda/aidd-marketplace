@@ -54,6 +54,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -315,6 +316,120 @@ def purge(audit_dir: Path, retention_days: int, now: datetime, warnings: list[st
     return removed
 
 
+LOG_ACTIVIDAD = Path("docs") / "aidd-activity.md"
+CABECERA_ACTIVIDAD = """# Registro de actividad AIDD
+
+Traza automatica de las acciones sobre el codigo: que skill se ejecuta, que
+ficheros toca la IA y cuanto dura cada turno. La consume `aiba metrics` para
+calcular los KPIs. Es opt-in: existe este fichero, se registra; borralo y el
+registro se apaga en este proyecto.
+
+No se guarda el texto de los prompts ni el contenido del codigo.
+
+Formato (marcas de tiempo en UTC):
+
+`- <fecha-hora> | user:<usuario> | skill:<skill> | ctx:<HU o change> | <accion> | note:<nota>`
+
+Acciones: `run` (skill invocado), `file:<ruta>` (fichero escrito por la IA),
+`turn` (fin de turno, con duracion y numero de acciones).
+
+"""
+
+
+def fuente_actividad(root: Path) -> str:
+    """Quien escribe el registro de actividad: `hooks` o `skills`.
+
+    Los hooks de plugin **no se ejecutan en todas partes** --medido en Codex CLI
+    0.151.0: se registran con su hash de confianza y no llegan a correr, y Cline
+    ni siquiera tiene un mecanismo compatible--. Donde no corren, el registro lo
+    escribe este script.
+
+    **La decision se declara, no se adivina en cada ejecucion**: la fija
+    `aisdd init` en `activity.source` de `openspec/config.yaml`. Sin esa clave se
+    asume `hooks`, que es el comportamiento historico: preferimos perder una
+    linea a **duplicarla**, porque un registro con lo mismo dos veces infla el
+    tiempo atendido y nadie lo nota.
+    """
+    cfg = root / "openspec" / "config.yaml"
+    if not cfg.is_file():
+        return "hooks"
+    dentro = False
+    for line in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line[:1].isspace():
+            dentro = line.strip().rstrip(":") == "activity"
+            continue
+        if dentro and line.strip().startswith("source:"):
+            valor = line.split(":", 1)[1].strip().strip('"\'')
+            return valor if valor in ("hooks", "skills") else "hooks"
+    return "hooks"
+
+
+def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | None:
+    """Escribe en el registro de actividad lo que este comando ha hecho.
+
+    Solo cuando `activity.source` es `skills`. Es el plan B para agentes que no
+    ejecutan los hooks: sin esto, `aiba metrics` se queda sin **tiempo atendido**
+    y el ahorro no se puede calcular.
+
+    **Lo que anota no es un turno, es un comando.** El hook ve el turno entero
+    --incluido revisar, conversar e iterar-- y un comando solo se ve a si mismo.
+    Por eso la linea lleva `scope=comando`: es una base mas estrecha y quien lea
+    el informe tiene que poder saberlo. Sustituir una por otra en silencio daria
+    un tiempo atendido menor y una aceleracion inflada.
+    """
+    if fuente_actividad(root) != "skills":
+        return None
+    log = root / LOG_ACTIVIDAD
+    if not log.is_file():                 # opt-in: sin fichero no se registra
+        return None
+
+    def limpio(v) -> str:
+        return re.sub(r"[|\r\n\t]+", " ", str(v or "-")).strip()[:120] or "-"
+
+    ts = record.get("timestamp") or ""
+    # El mismo identificador que escribe el hook, para que la misma persona no
+    # salga como dos usuarios distintos en un proyecto que cambie de fuente.
+    usuario = limpio(record.get("user") or os.environ.get("USER")
+                     or os.environ.get("USERNAME") or quien_escribe(root, {}))
+    comando = limpio(record.get("command"))
+    # `compute_kpis.py` clasifica por **nombre de skill**, no por comando: con el
+    # comando entero cada linea caeria en "Otros" y se perderia el desglose por
+    # etapa. El comando se conserva en la nota, que no se pierde nada.
+    skill = "aisdd-amend" if comando.startswith("aisdd amend") else "aisdd-specs"
+    ctx = limpio(record.get("change_id") or record.get("hu") or "-")
+    lineas = [f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | "
+              f"run | note:{comando}"]
+
+    escritos = [f.get("path") for f in (record.get("output_files") or []) if f.get("path")]
+    for ruta in escritos:
+        if str(ruta).replace("\\", "/") == LOG_ACTIVIDAD.as_posix():
+            continue                      # nunca registrar la escritura del propio registro
+        lineas.append(f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | "
+                      f"file:{limpio(ruta)} | note:-")
+
+    dur = "-"
+    inicio, fin = record.get("started_at"), record.get("timestamp")
+    if inicio and fin:
+        try:
+            a = datetime.fromisoformat(str(inicio).replace("Z", "+00:00"))
+            b = datetime.fromisoformat(str(fin).replace("Z", "+00:00"))
+            segundos = int((b - a).total_seconds())
+            if segundos >= 0:
+                dur = f"{segundos}s"
+        except ValueError:
+            warnings.append("started_at o timestamp no son fechas ISO: duracion sin calcular")
+    lineas.append(f"- {ts} | user:{usuario} | skill:{skill} | ctx:{ctx} | turn | "
+                  f"note:dur={dur} skills=1 files={len(escritos)} scope=comando")
+
+    with log.open("a", encoding="utf-8", newline="\n") as fh:
+        if log.stat().st_size == 0:
+            fh.write(CABECERA_ACTIVIDAD)
+        fh.write("\n".join(lineas) + "\n")
+    return str(LOG_ACTIVIDAD.as_posix())
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Entrada de auditoria de aisdd-specs.")
     ap.add_argument("--root", default=".", help="raíz del proyecto (default: cwd)")
@@ -415,10 +530,13 @@ def main() -> int:
     with audit_file.open("a", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
+    actividad = registrar_actividad(root, record, warnings)
+
     print(json.dumps({
         "audit_file": str(audit_file.relative_to(root)),
         "id": record["id"],
         "purged": removed,
+        "activity_log": actividad,
         "warnings": warnings,
     }, ensure_ascii=False))
     return 0
