@@ -535,4 +535,6 @@ Con eso vuelven a funcionar fuera de Claude Code la **auditoría**, el **sellado
 
 **Y `aisdd init` deja preparado el registro de actividad** en agentes que no ejecutan los hooks de plugin: ofrece crear `docs/aidd-activity.md` —la ventana de medición no se reconstruye, así que se pregunta al principio y no al medir— y escribe un `.codex/hooks.json` de proyecto con la ruta absoluta del hook, sin comillas.
 
+**La regla vive tambien en el indice de `aisdd-specs`, no solo en su ficha de scripts.** Los otros 19 sitios la llevan dentro del propio `SKILL.md`; `aisdd` la tenia unicamente en `references/scripts.md`, y no todos los agentes cargan ese directorio --Cline documenta `docs/`, `templates/` y `scripts/` como subdirectorios de un skill, y no menciona `references/`--. Como la entrada de auditoria es obligatoria en todos los comandos, esa regla no puede depender de que se lea un fichero de segundo nivel.
+
 **Lo que queda pendiente:** verificar de extremo a extremo que ese registro se llena en Codex. El hook llega a dispararse, pero falta saber qué eventos emite y con qué nombre de herramienta. Hasta entonces, en Codex `aiba metrics` trabaja con lo que sale de la auditoría y le falta el tiempo atendido.
