@@ -13,6 +13,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd`, `aisdd` y `aiba`.** |
 | `aiba` | 5 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
+| `aifg` | `aifg-capture` + `aifg-update` | **AI Figma**: lleva el diseño de Figma **hasta la HU que lo implementa**. Extrae los nodos, los normaliza en definiciones de componente reutilizables más un mapa de composición por historia, y re-captura lo que cambia diciendo a qué HU afecta. **Opcional y aditivo**: sin él, `aisdd implement change` tira de la guía de estilos. |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
 ## Índice de comandos por skill y fase
@@ -230,6 +231,15 @@ Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto
 
 **Reedita sin destruir.** Si el `.docx` ya existe, regenera solo las secciones afectadas, conserva lo que el analista escribió a mano y **añade** una fila al control de versiones en vez de sobrescribirla.
 
+### `aifg` — El diseño de Figma hasta la HU (plugin `aifg`, 2 comandos, opcional)
+
+| Fase | Comando | Qué hace |
+|------|---------|----------|
+| 2.3+ | `aifg capture` | Extrae los nodos del archivo de Figma, los normaliza (definiciones de componente + mapa de composición por HU), exporta las imágenes y resuelve el vínculo HU ↔ diseño presentando solo lo que no es obvio |
+| — | `aifg update [componente\|hu]` | Re-captura una pieza concreta cuando el diseño cambia, detecta los overrides que quedan huérfanos y reporta qué HU quedan afectadas, separando las ya cerradas |
+
+Sin este plugin no falta nada: `aisdd implement change` lee `docs/guia-estilos.md` y, si tampoco la hay, improvisa. Con él, lee además el diseño de **su** HU.
+
 ### `aiad` — Ejecución human-first, *ia-in-the-loop* (plugin `aiad`, 11 comandos)
 
 Cubren la **fase de ejecución** (alternativa human-first a `aisdd`); no siguen la numeración de fases AIDD, se agrupan por intención.
@@ -316,6 +326,9 @@ Si usas SSH en vez de HTTPS, vale igual siempre que tu clave tenga acceso al rep
 # Opcional e independiente: ejecución human-first (ia-in-the-loop)
 /plugin install aiad@aidd-sdd
 
+# Opcional: el diseño de Figma hasta la HU
+/plugin install aifg@aidd-sdd
+
 # Comprobar
 /plugin list
 /plugin            # menú interactivo (Discover / Installed / Marketplaces / Errors)
@@ -331,6 +344,7 @@ Tras instalar, cada skill queda *namespaced* por su plugin:
 - `/aisdd:aisdd-specs` (comandos `aisdd …`; alias legacy `native-ai …`)
 - `/boosters:booster-ux`, `/boosters:booster-uml`, `/boosters:booster-docs`
 - `/aiad:aiad-tdd`, `/aiad:aiad-review`, `/aiad:aiad-save`, …
+- `/aifg:aifg-capture`, `/aifg:aifg-update` (comandos `aifg capture`, `aifg update`)
 
 También se activan por lenguaje natural y por sus comandos internos (`aiba sprint-planning`, `aisdd open change`, `aiad tdd`, `aiad review`, …).
 
@@ -415,7 +429,7 @@ Los skills integran dos servicios externos vía **MCP**. Ambos son **opcionales*
 | MCP | Quién lo usa | Para qué |
 |-----|--------------|----------|
 | **Atlassian (Jira)** | `aiba-sprint-planning` · `aisdd-specs` | Volcado del sprint-plan (sprints + Stories), sub-tareas por change, transiciones In Progress/Done, re-faseado y reconstrucción del enlace |
-| **Figma** | `aidd-style-guide` | Extraer la identidad visual real de un diseño (paleta, tipografía, espaciado, tokens) en vez de inferirla |
+| **Figma** | `aidd-style-guide` · `aifg-capture` · `aifg-update` | Extraer del diseño real la identidad visual (paleta, tipografía, espaciado, tokens) y, con `aifg`, la composición nodo a nodo de cada pantalla |
 
 **Atlassian.** ⚠️ **El MCP remoto oficial de Atlassian NO expone las operaciones Agile** (crear sprints, añadir/mover issues de sprint): cubre issues y transiciones, pero **no basta para el volcado de `aiba sprint-planning`** — lo comprobamos en un proyecto real y hubo que instalar otro. Recomendación según lo que necesites:
 
@@ -444,7 +458,9 @@ Requisitos en Jira: un proyecto con **board Scrum** (los sprints viven en el boa
 claude mcp add figma -- npx -y figma-developer-mcp --figma-api-key=<TU_TOKEN> --stdio
 ```
 
-Si no hay MCP, `aidd style-guide` ofrece alternativas: API REST de Figma o un export de design tokens a JSON.
+**Sin MCP no hay llamadas REST**, aquí tampoco: la regla del principio de este apartado no tiene excepción para Figma. La única alternativa es un **export de design tokens a JSON** (Tokens Studio, «Design Tokens»), que no maneja credenciales — y que da tokens, **no datos de nodo**, así que sirve para `aidd style-guide` y no sustituye a `aifg`.
+
+Los skills de `aifg` necesitan además poder **exportar la imagen de un nodo**. Si el servidor disponible no lo expone, la captura funciona igual pero **sin canal de verificación**: se implementa desde el JSON y no hay contra qué comparar.
 
 ## Metodología
 

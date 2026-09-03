@@ -3,7 +3,7 @@
   "owner": {
     "name": "NTT DATA Spain GDN-e"
   },
-  "description": "Marketplace de los conjuntos AIDD (definicion y diseno asistidos por IA), AISDD (AI Spec-Driven Development sobre OpenSpec), AIBA (AI Business Analyst: analisis funcional, entrega y medicion) y AIAD (ejecucion human-first), con sus boosters de UX, UML y documentacion HTML.",
+  "description": "Marketplace de los conjuntos AIDD (definicion y diseno asistidos por IA), AISDD (AI Spec-Driven Development sobre OpenSpec), AIBA (AI Business Analyst: analisis funcional, entrega y medicion) AIAD (ejecucion human-first) y AIFG (el diseno de Figma hasta la HU), con sus boosters de UX, UML y documentacion HTML.",
   "plugins": [
     {
       "name": "aidd",
@@ -29,6 +29,11 @@
       "name": "aiba",
       "source": "./plugins/aiba",
       "description": "AIBA — AI Business Analyst: la capa que da la cara ante el negocio. Diseno funcional en Word (`aiba functional-design`), plan de revision de HU (`aiba hu-review-plan`), plan de recursos (`aiba project-plan`), plan de sprints con volcado a Jira (`aiba sprint-planning`) y KPIs medidos del uso de IA (`aiba metrics`). Metodologia propia."
+    },
+    {
+      "name": "aifg",
+      "source": "./plugins/aifg",
+      "description": "AIFG — AI Figma: lleva el diseno de Figma hasta la HU que lo implementa. `aifg capture` extrae y normaliza los nodos (definiciones de componente reutilizables mas un mapa de composicion por HU) y `aifg update` re-captura lo que cambia y dice a que historias afecta. Opcional y aditivo: sin el, `aisdd implement change` tira de la guia de estilos."
     }
   ]
 }

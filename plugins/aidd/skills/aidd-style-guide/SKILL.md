@@ -1,9 +1,9 @@
 ---
 name: aidd-style-guide
-description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma (via el MCP `figma-developer-mcp` con token, API REST o export de design tokens a JSON). Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
+description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos --emitidos ademas como `docs/design/tokens.json` y `tokens.css`, para que el valor exista en un solo sitio en vez de retecleado a mano--, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma **solo via MCP** (`figma-developer-mcp`) o desde un export de design tokens a JSON; nunca por llamadas REST ni gestionando el token. De ahi sale lo basico --paleta, tipografia, espaciado, tokens--: la composicion de cada pantalla es trabajo del plugin `aifg`, y este skill ofrece encadenar con el. Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-style-guide (AIDD · Fase 2 · paso 2.3)
@@ -40,7 +40,7 @@ Como complemento opcional, al final del comando se genera una **vista HTML** de 
 
 > Actua como experto en diseno de producto, sistemas de diseno y arquitectura frontend. Tu objetivo es definir la guia de estilos del producto a partir del detalle de historias y de la identidad visual o de marca indicada. Es la base visual para el AI Lead y los AI Developers.
 
-Criterio de salida del paso: existe `docs/guia-estilos.md` con design tokens CSS concretos (no descripciones vagas), paleta, tipografia, componentes base y reglas de accesibilidad WCAG 2.1 AA. Lo que falte de identidad visual se marca como pendiente; no inventes una marca.
+Criterio de salida del paso: existe `docs/guia-estilos.md` con design tokens CSS concretos (no descripciones vagas), paleta, tipografia, componentes base y reglas de accesibilidad WCAG 2.1 AA, **y esos tokens emitidos ademas como `docs/design/tokens.json` y `docs/design/tokens.css`**. Lo que falte de identidad visual se marca como pendiente; no inventes una marca.
 
 ## Reglas generales
 
@@ -48,6 +48,7 @@ Criterio de salida del paso: existe `docs/guia-estilos.md` con design tokens CSS
 - **Entrada principal**: `docs/detalle-historias-usuario.md` (Fase 1) y la **referencia visual / marca** que aporte el usuario (URL, guia de marca, HTML, capturas o un **diseno en Figma**). Si no hay referencia visual, preguntala o marca esa parte como pendiente.
 - Si el usuario tiene el diseno en **Figma**, ofrece extraer de ahi la identidad visual (paleta, tipografia, espaciado, tokens) en lugar de inferirla. No inventes valores que puedas extraer del diseno real. Ver "Extraccion desde Figma".
 - Si ya existe un prototipo implementado (paso 2.2), usalo como fuente de pistas visuales, pero la guia manda sobre el prototipo.
+- **Los tokens tienen un solo dueno, y es este skill.** Los emite la guia y los consume quien haga falta --el prototipo, `aifg`, el front--. Si los generase tambien otro, dos extracciones del mismo Figma acabarian discrepando sin que nadie lo note.
 - Antes de preguntar, **lee primero** el detalle de historias, `docs/requisitos.md` (NFR de accesibilidad), `docs/cliente-requisitos.md` y cualquier referencia visual aportada.
 - No inventes identidad de marca. Si no hay referencia, propon una base neutra y marcala explicitamente como provisional.
 - Los design tokens deben ser **concretos**: custom properties CSS con valores reales (colores hex, escalas de espaciado, familias tipograficas).
@@ -75,30 +76,32 @@ Resuelve solo lo imprescindible.
 
 ### 3. Extraccion desde Figma (opcional)
 
-Ejecuta este paso solo si el usuario confirma que quiere extraer la identidad visual de un diseno en Figma. El objetivo es obtener valores reales (colores hex, tipografia, escalas de espaciado, tokens) en vez de inferirlos. Propon los metodos en este orden y usa el primero que el usuario pueda aplicar; explicale como hacerlo:
+Ejecuta este paso solo si el usuario confirma que quiere extraer la identidad visual de un diseno en Figma. El objetivo es obtener **valores reales** --colores hex, tipografia, escalas de espaciado, tokens-- en vez de inferirlos.
 
-1. **MCP `figma-developer-mcp` (Framelink) — recomendado.** Servidor MCP de la comunidad que se ejecuta por npx, **lee los archivos desde la web** a partir de un enlace de Figma y se autentica con un **Figma API token** (personal access token). No requiere la app de escritorio.
-   - Requisitos: el usuario necesita Node/npx y un personal access token de Figma (Settings / Account / Personal access tokens, con permiso de lectura de archivos).
-   - Para anadirlo a Claude Code (stdio), pasando el token por el flag `--figma-api-key` (el token de Figma empieza por `figd_`):
-     ```
-     claude mcp add figma-developer-mcp -- npx -y figma-developer-mcp --figma-api-key=figd_XXXX --stdio
-     ```
-   - **Seguridad del token**: el token quedara guardado en la config del MCP. Usa scope de usuario (no un `.mcp.json` de proyecto commiteado), y avisa de que **no debe subirse al repo**. No escribas el token en la guia ni en ningun documento generado.
-   - Ofrece ejecutar el comando `claude mcp add` por el usuario solo si te da el token y lo confirma; si no, dejale el comando para que lo ejecute el.
-   - Pide al usuario el **enlace al archivo, frame o grupo** de Figma (Copy link). El servidor obtiene del enlace los metadatos de layout y estilo via el API token.
-   - Comprueba si hay herramientas MCP de `figma-developer-mcp` disponibles (busca con la herramienta de descubrimiento de MCP) y usalas para leer colores, tipografia, espaciado y propiedades del nodo enlazado.
+> **Aqui se saca lo basico, no el diseno entero.** Paleta, tipografia, espaciado y tokens, que es lo que alimenta esta guia y el prototipo. **La composicion de cada pantalla --que va donde, con cuanto espacio, con que estados-- es trabajo del plugin `aifg`**, que la extrae nodo a nodo y la deja colgando de cada HU. Ver el paso 3.bis.
 
-2. **API REST de Figma (sin MCP).** Alternativa directa con el mismo tipo de token, si el usuario prefiere no instalar el MCP.
-   - Pide el **file key** de la URL (`figma.com/file/<file_key>/...` o `figma.com/design/<file_key>/...`) y el personal access token. Aplica las mismas reglas de seguridad del token (no commitear, usar `FIGMA_API_KEY` en memoria).
-   - Consulta `GET https://api.figma.com/v1/files/{file_key}` y `.../styles` con la cabecera `X-Figma-Token`. Extrae colores, estilos de texto y espaciado.
+**Solo por MCP.** El recomendado es `figma-developer-mcp` (Framelink), que se ejecuta por npx, lee los archivos desde la web a partir de un enlace y se autentica con un token personal de Figma.
 
-3. **Export de design tokens a JSON (plugin).** Alternativa sin token ni MCP.
-   - Indica al usuario: usar un plugin de Figma (por ejemplo Tokens Studio o "Design Tokens") para exportar los tokens (color, tipografia, espaciado) a un JSON.
-   - Pide la **ruta del JSON exportado** y leelo para mapear los tokens a la guia.
+```
+claude mcp add figma-developer-mcp -- npx -y figma-developer-mcp --figma-api-key=figd_XXXX --stdio
+```
 
-Notas:
-- Si ningun metodo es viable (sin token, sin Node, sin plugin), continua con la referencia visual que haya aportado el usuario (URL, capturas, marca) y registra en el documento que los valores no se extrajeron de Figma.
-- Anota en la seccion de decisiones del documento que la identidad visual se extrajo de Figma y por que metodo.
+- **No hay camino REST.** Nada de llamar a `api.figma.com` ni de manejar el token desde el skill: es la regla que ya rige la integracion con Jira, y por los mismos motivos --un token en un flag acaba en el historial del shell y en los logs de CI--.
+- **Ofrece el comando para que lo ejecute el usuario**; no lo ejecutes tu con un token que te acaben de dar por chat. Scope de usuario, nunca un `.mcp.json` de proyecto commiteado. **No escribas el token en ningun documento generado.**
+- Pide el **enlace al archivo, frame o grupo** (Copy link).
+- **Localiza las tools por funcion, no por nombre**: varian entre versiones y entre servidores equivalentes.
+
+**Alternativa sin MCP: export de design tokens a JSON.** Un plugin de Figma (Tokens Studio, "Design Tokens") exporta los tokens a un JSON; pide la **ruta del fichero exportado** y mapealo. No maneja credenciales, asi que no cae por la regla anterior. Da tokens, **no datos de nodo**: no sustituye a `aifg`.
+
+Si ningun metodo es viable, continua con la referencia visual que haya aportado el usuario --URL, capturas, marca-- y **registra en el documento que los valores no se extrajeron de Figma**. Anota en la seccion de decisiones por que metodo se obtuvieron.
+
+### 3.bis. Ofrecer la captura del diseno con AIFG
+
+Si el usuario trabaja con Figma, **preguntale si quiere lanzar `aifg capture` ahora o hacerlo el mas tarde**. Ese comando extrae la composicion nodo a nodo y la vincula a cada HU, que es lo que permite luego implementar una pantalla pareciendose al diseno y no solo respetando su paleta.
+
+El orden lo permite: las historias existen desde el paso 1.3, asi que hay a que vincular los nodos.
+
+**Degradacion elegante**: si el plugin `aifg` no esta instalado, **dilo y no lo ofrezcas como si existiera** --puede instalarse desde el mismo marketplace--, y continua. La guia sola es suficiente para seguir: sin arbol de diseno, `aisdd implement change` tira de ella.
 
 ### 4. Generacion de `docs/guia-estilos.md`
 
@@ -117,7 +120,9 @@ Genera (o actualiza) `docs/guia-estilos.md` con esta estructura:
 - Valores hex por rol (primario, secundario, superficie, estados, etc.). Escribe **siempre el codigo del color** (`#RRGGBB`, o `rgb()`/`hsl()`) junto a cada rol; la vista HTML de `booster-docs` pinta automaticamente una **muestra del color al lado de su codigo**, asi que no hace falta describir el color con palabras: basta el codigo.
 
 ## 3. Tipografia, espaciado e iconografia
-- Familias y escalas tipograficas, escala de espaciado, set de iconografia.
+- **Tipografia**: familias, escala de tamanos y pesos, con valores reales.
+- **Espaciado**: la **escala completa con sus valores** (`4px`, `8px`, `16px`...), no "espaciado generoso". Es lo que mas delata que un front no es el diseno, y no cabe en media linea.
+- **Iconografia**: set, tamanos y grosor de trazo.
 
 ## 4. Design tokens CSS
 - Custom properties concretas (`--color-...`, `--space-...`, `--font-...`) con valores reales.
@@ -138,8 +143,21 @@ Genera (o actualiza) `docs/guia-estilos.md` con esta estructura:
 Reglas de contenido:
 
 - Los design tokens deben ser usables tal cual por el frontend (valores reales, no placeholders).
+- **La seccion 4 se emite ademas como fichero**, no solo como prosa dentro del `.md`. Ver "Emision de los tokens".
 - Marca como provisional todo lo que dependa de una identidad de marca aun no aportada.
 - La seccion 8 sustituye a la auditoria estructurada e incluye decisiones resueltas por default.
+
+### Emision de los tokens
+
+Escribe **`docs/design/tokens.json`** y **`docs/design/tokens.css`** con los mismos valores de la seccion 4. Crea `docs/design/` si no existe.
+
+Hoy esos valores viven solo dentro del markdown y alguien los reteclea en el CSS del proyecto: una copia a mano, sin ningun vinculo entre las dos. Emitirlos como fichero deja **un solo sitio donde existe el valor**.
+
+**El front no los importa.** El CSS y el JS que se generan son **del prototipo**, no del entregable final: el CSS final se genera cuando las HU lo dictaminan, con los valores apropiados, y despues no se toca. Un cambio de estilo posterior es una tarea aparte y no es asunto de este skill.
+
+Son, por tanto, **entrada de generacion y no dependencia de runtime**. El `.json` sirve ademas para que `aifg` resuelva los colores de cada nodo contra **nombres de token** (`--color-primary`) en vez de contra hex sueltos.
+
+**La seccion 4 del `.md` no desaparece** --una persona quiere leer la guia y ver la tabla de rol a valor--, pero pasa a ser una **vista**: la fuente es el fichero.
 
 ### Sello de version y fecha-hora (antes de renderizar)
 
@@ -169,7 +187,9 @@ Al terminar, informa:
 - Comando AIDD ejecutado (`aidd style-guide`) y fase/paso (2 / 2.3).
 - Ruta del documento generado o actualizado (`docs/guia-estilos.md`).
 - Ruta de la vista HTML generada (`docs/html/guia-estilos.html`), o aviso si no se pudo generar el HTML.
+- **Rutas de los tokens emitidos** (`docs/design/tokens.json` y `docs/design/tokens.css`), y cuantos tokens llevan.
 - Si hay design tokens concretos y si la identidad visual es definitiva o provisional.
+- Si se ofrecio `aifg capture` y que respondio el usuario, o que el plugin `aifg` no estaba instalado.
 - Recordatorio: pendiente de **aprobacion humana**.
 - Siguiente paso sugerido: `aidd architecture-proposal` (si no se hizo) y despues `aidd architecture` (arquitectura tecnica definitiva).
 - **Como se aprueba**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/stamp_doc.py" --input <documento> --approve "<nombre>"`. Anota la version actual como aprobada, y a partir de ahi el sello distingue tres estados: sin aprobar, aprobada, y **cambiada despues de aprobarse** — que es el que importa.

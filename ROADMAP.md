@@ -29,6 +29,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-21 | Esfuerzo humano del worklog de Jira, y desviaciones atribuidas a la auditoría | aiba | **implementada** | 2026-09-01 |
 | F-22 | Tres topologías de documentación, preguntadas y no deducidas | aidd, aisdd, aiba | **implementada** | 2026-09-01 |
 | F-23 | La migración de topología la ejecuta el skill, no el humano | aisdd | **implementada** | 2026-09-02 |
+| F-24 | El diseño llega hasta la HU: `implement` lee la guía de estilos, y el plugin `aifg` trae Figma nodo a nodo | aisdd, aidd, aifg | **implementada** | 2026-09-03 |
 
 ---
 
@@ -443,3 +444,36 @@ F-22 dejó las tres topologías descritas y la migración entre ellas contada co
 **Lo que no hace nunca**: reescribir la historia de un repo —da el comando y explica que cambia todos los hashes, pero lo ejecuta el humano—, borrar el `openspec/` de origen antes de que el destino esté subido, migrar con un change abierto, y tocar el `.gitignore` versionado del repo de código para esconder cosas.
 
 **El caso incómodo, dicho antes y no después:** volviendo de `externalizado`, los changes archivados que tocaron varios repos no tienen un sitio único.
+
+## F-24 — El diseño llega hasta la HU
+
+**Estado:** implementada · **Versión:** `aisdd` 3.8.0 · `aidd` 2.6.0 · `aifg` 0.1.0 · **Añadida:** 2026-09-03
+
+El front implementado no se parecía al diseñado. La causa no era capturar poca información, sino que **lo capturado era un vocabulario y no un diseño**, y lo poco que había se perdía tres veces por el camino.
+
+**`aisdd implement change` no mencionaba `guia-estilos.md` ni una vez.** Quien escribía el front no tenía ningún paso que le dijera que abriera la guía; la única mención estaba en el prompt del Outcome Validator, dentro de la metodología en prosa, que no es un paso ejecutable. Un documento que ningún paso manda leer no se lee, y eso explicaba el grueso del síntoma.
+
+Ahora `implement change` **deduce del contexto de la HU** si el change toca front y lee la fuente que haya: los artefactos de `docs/design/` si el proyecto los tiene, `docs/guia-estilos.md` si no, e improvisa si no hay ninguno. Degrada sin error en los tres casos, y **no sabe de Figma**: solo lee una convención de ruta.
+
+**`close change` no verifica nada de diseño** — eso es del dev o del validator. Puede dejar constancia en la auditoría de qué fuente usó, a su criterio; al ser discrecional no servirá para medir después, que es el precio de no imponer ruido.
+
+## AIFG, el sexto plugin
+
+`guia-estilos.md` describe un sistema, no unas pantallas: ningún conjunto de tokens correctos reproduce una composición. **`aifg capture`** extrae los nodos de Figma y los deja colgando de la HU que los implementa; **`aifg update`** re-captura lo que cambia y dice a quién afecta.
+
+**El modelo está normalizado para que cargue poco**: definiciones de componente una sola vez, un mapa corto por HU que las referencia, y las definiciones se abren **solo si el change las toca**. El ahorro grande no es la deduplicación — es que el fraccionamiento permite cargar bajo demanda, el mismo principio que ya gobierna los skills de este repo.
+
+Decisiones que sostienen el diseño:
+
+- **Los overrides se separan por tipo, no por cantidad.** Contenido y estilo se capturan en silencio (es el uso normal de un componente, y un Figma real trae cientos); estructura se captura **y se señala**, porque casi siempre falta una variante. El umbral es programable y no hay que calibrarlo.
+- **La identidad es la `key` del componente publicado**, y node id para las instancias. Sin librería publicada, node id para todo y rehacer las referencias cuando se rompa: es el precio de un diseño mal construido, y **se reporta cuántos cayeron a ese modo** para estar en el frágil sabiéndolo.
+- **Los aglomerados existen solo si Figma los declara como componentes.** Lo que diseño no componentizó se repite inline. No se detectan subárboles repetidos: eso produce `grupo-17` y no le dice nada a nadie.
+- **Nada se edita a mano**, así que relanzar la extracción es rutina. El registro de vínculos HU ↔ frame es la excepción: lo confirma un humano y **sobrevive a cualquier regeneración**.
+- **La HU no guarda nada.** Ni puntero, ni referencia: la búsqueda va del id de la HU al registro. Así `detalle-historias-usuario.md` sigue client-ready y ningún skill de AIDD cambia.
+- **El disparo es humano.** No hay comprobación automática contra Figma, porque **cuando el dev trabaja el diseño está aprobado y cerrado**: un cambio a mitad de implementación es una incidencia, no una sincronización.
+
+**Y una contradicción que llevaba tiempo en el repo:** el README declaraba que los skills nunca caen a llamadas REST ni gestionan credenciales, y treinta líneas después ofrecía la API REST de Figma como alternativa. La excepción estaba escrita solo para Figma y sin justificarla. Fuera del README y del skill: **solo MCP**, como Jira.
+
+`aidd style-guide` conserva la extracción ligera —paleta, tipografía, espaciado, tokens—, **emite `tokens.json` y `tokens.css`** en vez de dejar las custom properties como prosa que alguien reteclea, y ofrece encadenar con `aifg capture`. Los tokens tienen **un solo dueño**: los emite la guía y los consume quien haga falta.
+
+**Queda fuera, dicho a propósito:** remediar HU cerradas cuando cambia el diseño contra el que se implementaron. Se reporta cuáles son y ahí para — la salida natural es otra HU o una tarea, y la metodología no contempla hoy ese camino.
