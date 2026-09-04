@@ -34,7 +34,7 @@ ENTRADA = {
 }
 
 
-def corre(config: str | None) -> list[str]:
+def corre(config: str | None, plugin_root: str = "") -> list[str]:
     """Ejecuta audit.py en un proyecto limpio y devuelve las lineas del registro."""
     with tempfile.TemporaryDirectory() as d:
         raiz = Path(d)
@@ -45,8 +45,10 @@ def corre(config: str | None) -> list[str]:
         (raiz / "docs" / "aidd-activity.md").touch()
         if config is not None:
             (raiz / "openspec" / "config.yaml").write_text(config, encoding="utf-8")
+        import os                                               # noqa: PLC0415
         subprocess.run([sys.executable, str(AUDIT), "--root", str(raiz)],
                        input=json.dumps(ENTRADA), text=True,
+                       env=dict(os.environ, CLAUDE_PLUGIN_ROOT=plugin_root),
                        capture_output=True, timeout=60)
         log = raiz / "docs" / "aidd-activity.md"
         return [l for l in log.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
@@ -54,14 +56,22 @@ def corre(config: str | None) -> list[str]:
 
 errors: list[str] = []
 
+# `plugin_root` no vacio simula un agente que **si** ejecuta los hooks de plugin
+# (Claude Code); vacio simula Codex o Cline, donde no se ejecutan.
 casos = {
-    "sin config (historico)": (None, 0),
-    "activity.source: hooks": ("activity:\n  source: hooks\n", 0),
-    "activity.source: skills": ("activity:\n  source: skills\n", 3),
+    # Sin clave se resuelve por ejecucion: es el caso de todos los proyectos ya
+    # inicializados, y el que dejaba a Cline y a Codex sin registrar nada.
+    "sin config, agente con hooks":  (None, "/ruta/plugin", 0),
+    "sin config, agente sin hooks":  (None, "", 3),
+    "auto, agente con hooks":        ("activity:\n  source: auto\n", "/ruta/plugin", 0),
+    "auto, agente sin hooks":        ("activity:\n  source: auto\n", "", 3),
+    # Anulaciones explicitas: se respetan, aunque contradigan a la plataforma.
+    "hooks explicito":               ("activity:\n  source: hooks\n", "/ruta/plugin", 0),
+    "skills explicito":              ("activity:\n  source: skills\n", "", 3),
 }
-for nombre, (cfg, esperadas) in casos.items():
+for nombre, (cfg, root, esperadas) in casos.items():
     try:
-        lineas = corre(cfg)
+        lineas = corre(cfg, root)
     except Exception as exc:                                    # noqa: BLE001
         errors.append(f"{nombre}: audit.py no se pudo ejecutar ({exc})")
         continue

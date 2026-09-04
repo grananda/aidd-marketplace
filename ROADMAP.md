@@ -35,6 +35,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-28 | El retrabajo se distingue del trabajo nuevo, y `close change` comprueba antes de archivar | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-29 | El DF sale con la plantilla del cliente, numerado, en español natural y con la pantalla dentro | aiba | **implementada** | 2026-09-03 |
+| F-30 | Quién registra la actividad se resuelve por ejecución: ni doble en Claude Code ni vacío en Cline | aisdd | **implementada** | 2026-09-04 |
 
 ---
 
@@ -609,3 +610,24 @@ Seis comentarios del equipo sobre los DF que genera `aiba functional-design` (#3
 **La pantalla, dentro.** El generador **ya sabía insertar imágenes**; lo que faltaba era decirle dónde está la pantalla. Desde F-24 la deja `aifg` en `docs/design/hu/<HU-XX>/referencia.png`, y ahí se lee. Se inserta la pantalla, no el identificador del nodo, que fuera del equipo no le dice nada a nadie.
 
 **Y la CI ejecuta el generador.** `check_scripts_run.py` lo corre con plantilla y sin ella, y comprueba que los apartados salen numerados y que el contenido de ejemplo de la plantilla **no** acaba dentro del DF. Verificado que caza la regresión: al desactivar la numeración a propósito, falla. Si `python-docx` no está, **lo dice** en vez de pasar en silencio.
+
+## F-30 — Quién registra la actividad se decide por ejecución, no por proyecto
+
+**Estado:** implementada · **Versión:** `aisdd` 3.13.0 · **Añadida:** 2026-09-04
+
+F-27 dejó la fuente del registro declarada en `activity.source` de `openspec/config.yaml`, con `hooks` por defecto. **La escala estaba mal**: un mismo proyecto se abre desde agentes distintos según quién lo trabaje, así que la decisión no es del proyecto sino de la ejecución.
+
+Las dos averías que producía, y ninguna daba error:
+
+| Situación | Qué pasaba |
+|---|---|
+| Proyecto ya inicializado, sin la clave, abierto en **Codex o Cline** | El default `hooks` no escribía nada, y ahí los hooks de plugin **no se ejecutan**: registro vacío |
+| `init` corrió en Codex y dejó `skills`, y luego un dev abre en **Claude Code** | Escriben **los dos**: cada línea duplicada y el tiempo atendido inflado |
+
+**Ahora se resuelve en cada ejecución** por `CLAUDE_PLUGIN_ROOT`, que es exactamente la variable que las tres plataformas distinguen — la misma señal con la que los skills resuelven la ruta de los scripts desde F-26, no una heurística nueva. Si el agente ejecuta hooks, `audit.py` se aparta; si no, escribe él.
+
+**La clave sigue existiendo como anulación** (`hooks`, `skills`, `auto`) para quien sepa lo que hace, pero cuando contradice a la plataforma **`audit.py` lo avisa** en sus `warnings` en vez de dejar pasar un duplicado o un vacío. Las dos averías eran mudas; ahora hablan.
+
+**Y `aisdd init` deja de escribirla.** Lo mejor que puede hacer con esta clave es no ponerla.
+
+`check_activity_source.py` cubre ahora **seis casos**: sin clave y con `auto`, en un agente con hooks y en uno sin ellos, más las dos anulaciones explícitas.
