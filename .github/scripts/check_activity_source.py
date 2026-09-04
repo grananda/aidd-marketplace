@@ -97,6 +97,39 @@ for nombre, (cfg, root, esperadas) in casos.items():
                       f"asi que se leeria como un turno completo y el tiempo "
                       f"atendido saldria mal")
 
+# El autor no puede faltar, y tiene que ser **la misma cadena** en la entrada,
+# en el registro y en el nombre del fichero. Una auditoria sin autor no dice
+# quien hizo que, y tres cadenas distintas para la misma persona hacen que
+# cualquier agregado la cuente dos o tres veces.
+if not errors:
+    with tempfile.TemporaryDirectory() as d:
+        raiz = Path(d)
+        (raiz / "openspec").mkdir()
+        (raiz / "docs").mkdir()
+        (raiz / "docs" / "aidd-activity.md").touch()
+        (raiz / "openspec" / "config.yaml").write_text(
+            "activity:\n  source: skills\n", encoding="utf-8")
+        subprocess.run([sys.executable, str(AUDIT), "--root", str(raiz)],
+                       input=json.dumps(dict(ENTRADA, user="ana.lopez")),
+                       text=True, capture_output=True, timeout=60)
+        jsonl = list((raiz / "openspec" / "audit").glob("*/*.jsonl"))
+        if not jsonl:
+            errors.append("no se escribio ninguna entrada de auditoria")
+        else:
+            registro = json.loads(jsonl[0].read_text(encoding="utf-8").strip())
+            if not registro.get("user"):
+                errors.append("la entrada de auditoria no registra el autor "
+                              "(`user` vacio): no dice quien hizo que")
+            lineas = [l for l in (raiz / "docs" / "aidd-activity.md")
+                      .read_text(encoding="utf-8").splitlines()
+                      if l.startswith("- 20")]
+            en_log = {l.split("| user:")[1].split("|")[0].strip() for l in lineas}
+            if en_log and {str(registro.get("user"))} != en_log:
+                errors.append(
+                    f"el autor difiere entre la entrada ({registro.get('user')!r}) "
+                    f"y el registro de actividad ({en_log}): la misma persona "
+                    f"contaria como dos")
+
 if errors:
     print("El registro de actividad no reparte bien quien escribe:", file=sys.stderr)
     for e in errors:

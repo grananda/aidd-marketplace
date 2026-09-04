@@ -662,4 +662,10 @@ Salieron dos cosas de ese repaso:
 
 **Y `aisdd amend change` estaba fuera del guardián.** Vive en otro skill y no en `references/`, así que `check_audit_mandatory.py` no lo miraba — es exactamente por donde se cuelan estos fallos. Ahora entra, y verificado que lo caza.
 
+**Y el autor no puede faltar.** La entrada dejaba `user` en `null` cuando quien la componía no lo declaraba, y una auditoría sin autor sirve para poco: es el campo que responde **quién hizo esto**, y sin él no se puede repartir el trabajo ni detectar que un módulo entero lo cerró siempre la misma persona --que es una señal de riesgo de traspaso, no una curiosidad--.
+
+Ahora se resuelve siempre, y con **la misma cadena en los tres sitios**: la entrada, el registro de actividad y el nombre del fichero. Antes eran tres para la misma persona, así que cualquier agregado la contaba dos o tres veces. El orden pone `$USER` por delante de la identidad de git a propósito, porque es lo que escribe el hook y los dos registros tienen que coincidir.
+
+`check_activity_source.py` lo fija: el autor no puede venir vacío ni diferir entre la entrada y el registro. Verificado que caza las dos cosas.
+
 **Y un defecto de otro guardián, encontrado de paso.** `check_script_resolution.py` buscaba su marca sensible a mayúsculas, así que la regla escrita al principio de un párrafo no contaba. Habría dejado pasar un fichero que sí cumple, o peor, empujado a alguien a duplicar la nota para contentarlo.

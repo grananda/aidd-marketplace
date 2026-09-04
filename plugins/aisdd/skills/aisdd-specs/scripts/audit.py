@@ -127,6 +127,26 @@ SLUG_RE = re.compile(r"[^a-z0-9._-]+")
 EMAIL_RE = re.compile(r"[^\s<>@]+@[^\s<>@]+")
 
 
+def resolver_usuario(root: Path, entry: dict) -> str:
+    """Quien ejecuto el comando. **Nunca vacio.**
+
+    Se dejaba en `null` cuando la entrada no lo declaraba, y una auditoria sin
+    autor sirve para poco: es el campo que responde **quien hizo esto**, y sin el
+    no se puede repartir el trabajo ni detectar que un modulo entero lo cerro
+    siempre la misma persona.
+
+    El orden pone primero `$USER` sobre la identidad de git para que **coincida
+    con el registro de actividad**, que es lo que escribe el hook. La misma
+    persona en los dos registros tiene que ser la misma cadena, o cualquier
+    agregado la cuenta dos veces.
+    """
+    for candidato in (entry.get("user"), os.environ.get("USER"),
+                      os.environ.get("USERNAME"), _git_email(root)):
+        if candidato and str(candidato).strip():
+            return str(candidato).strip()
+    return "desconocido"
+
+
 def quien_escribe(root: Path, entry: dict) -> str:
     """Identificador del escritor, estable y valido como nombre de fichero.
 
@@ -440,8 +460,7 @@ def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | 
     ts = record.get("timestamp") or ""
     # El mismo identificador que escribe el hook, para que la misma persona no
     # salga como dos usuarios distintos en un proyecto que cambie de fuente.
-    usuario = limpio(record.get("user") or os.environ.get("USER")
-                     or os.environ.get("USERNAME") or quien_escribe(root, {}))
+    usuario = limpio(record.get("user"))
     comando = limpio(record.get("command"))
     # `compute_kpis.py` clasifica por **nombre de skill**, no por comando: con el
     # comando entero cada linea caeria en "Otros" y se perderia el desglose por
@@ -536,7 +555,7 @@ def main() -> int:
         "prompt_version": entry.get("prompt_version", "desconocido"),
         "model": entry.get("model", "desconocido"),
         "platform": entry.get("platform", "desconocido"),
-        "user": entry.get("user"),
+        "user": resolver_usuario(root, entry),
         "input_hash": f"sha256:{in_hash}",
         "input_files": in_files,
         "output_hash": f"sha256:{out_hash}",
