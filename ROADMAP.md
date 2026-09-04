@@ -36,6 +36,7 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-28 | El retrabajo se distingue del trabajo nuevo, y `close change` comprueba antes de archivar | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-29 | El DF sale con la plantilla del cliente, numerado, en español natural y con la pantalla dentro | aiba | **implementada** | 2026-09-03 |
 | F-30 | Quién registra la actividad se resuelve por ejecución: ni doble en Claude Code ni vacío en Cline | aisdd | **implementada** | 2026-09-04 |
+| F-31 | La carga bajo demanda dejaba proyectos sin una sola entrada de auditoría | aisdd | **implementada** | 2026-09-04 |
 
 ---
 
@@ -631,3 +632,25 @@ Las dos averías que producía, y ninguna daba error:
 **Y `aisdd init` deja de escribirla.** Lo mejor que puede hacer con esta clave es no ponerla.
 
 `check_activity_source.py` cubre ahora **seis casos**: sin clave y con `auto`, en un agente con hooks y en uno sin ellos, más las dos anulaciones explícitas.
+
+## F-31 — La carga bajo demanda se comía la auditoría
+
+**Estado:** implementada · **Versión:** `aisdd` 3.14.0 · **Añadida:** 2026-09-04
+
+En una auditoría real de un proyecto se descubrió que **no había ni una entrada hasta la fase 5**. La auditoría es obligatoria en todos los comandos, y ninguno la había escrito durante cuatro fases.
+
+**La causa era una cláusula del propio índice.** `SKILL.md` decía:
+
+> El detalle de cada comando vive en `references/`, y **se lee bajo demanda**: no cargues un fichero que no necesitas para el comando en curso.
+
+Y cada comando ordena su entrada *«según `references/audit.md`»* — un puntero a un **segundo** fichero. El agente aplicó la carga diferida también a ese fichero, se quedó sin el esquema, y no escribió nada. **No falló nada**: por eso tardó cinco fases en verse.
+
+Es exactamente el modo de fallo que el propio `check_skill_refs.py` describe en su cabecera: *«la regla que contenía simplemente no se aplica… se parece exactamente a que todo funciona»*.
+
+**Tres cosas para que no vuelva:**
+
+1. **La carga bajo demanda deja de alcanzar a la auditoría.** El índice dice ahora, explícitamente, que `audit.md` y `scripts.md` se leen **siempre** — y cuenta este caso, porque una regla con su cicatriz al lado se respeta más que una regla sola.
+2. **El contrato mínimo vive en el índice.** El comando completo y las tres cosas que no se negocian —se escribe también al detenerse, si el script falla se compone a mano, y se reporta su ruta y su `id`— están donde el agente ya está mirando. Con eso se escribe una entrada válida aunque nunca se abra `audit.md`.
+3. **`check_audit_mandatory.py`** comprueba que cada ficha que documenta un comando ordena su entrada con su `prompt_version` —siete fichas, con `lane` como única excepción declarada— y que el índice acota la carga diferida. Verificado que caza la regresión: quitando la acotación, falla.
+
+**Y un defecto de otro guardián, encontrado de paso.** `check_script_resolution.py` buscaba su marca sensible a mayúsculas, así que la regla escrita al principio de un párrafo no contaba. Habría dejado pasar un fichero que sí cumple, o peor, empujado a alguien a duplicar la nota para contentarlo.

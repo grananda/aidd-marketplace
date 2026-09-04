@@ -22,7 +22,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Una invocacion real: `python3 "${CLAUDE_PLUGIN_ROOT}/..../algo.py"`.
 INVOCA = re.compile(r'python3? "\$\{CLAUDE_PLUGIN_ROOT\}[^"]*\.py"')
-# La nota que explica que hacer si la variable llega vacia.
+# La nota que explica que hacer si la variable llega vacia. Se compara en
+# minusculas: la frase abre parrafo en unos sitios y va dentro de la linea en
+# otros, y una mayuscula no puede ser la diferencia entre pasar y fallar.
 MARCA = "comprueba que la ruta resuelve"
 
 errors: list[str] = []
@@ -34,7 +36,7 @@ for f in sorted(ROOT.glob("plugins/**/*.md")):
     texto = f.read_text(encoding="utf-8", errors="replace")
     if not INVOCA.search(texto):
         continue
-    if MARCA in texto:
+    if MARCA in texto.lower():
         con_nota += 1
     else:
         errors.append(
