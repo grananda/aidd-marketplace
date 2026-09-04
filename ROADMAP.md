@@ -653,4 +653,13 @@ Es exactamente el modo de fallo que el propio `check_skill_refs.py` describe en 
 2. **El contrato mínimo vive en el índice.** El comando completo y las tres cosas que no se negocian —se escribe también al detenerse, si el script falla se compone a mano, y se reporta su ruta y su `id`— están donde el agente ya está mirando. Con eso se escribe una entrada válida aunque nunca se abra `audit.md`.
 3. **`check_audit_mandatory.py`** comprueba que cada ficha que documenta un comando ordena su entrada con su `prompt_version` —siete fichas, con `lane` como única excepción declarada— y que el índice acota la carga diferida. Verificado que caza la regresión: quitando la acotación, falla.
 
+**El camino de Cline, verificado de punta a punta.** Con `CLAUDE_PLUGIN_ROOT` vacía y ejecutando `audit.py` por ruta absoluta, como lo hace Cline: se escribe la entrada con sus hashes y `platform: cline`, y las tres líneas del registro de actividad. Sin avisos.
+
+Salieron dos cosas de ese repaso:
+
+- **El contrato del índice usaba `${CLAUDE_PLUGIN_ROOT}` sin decir qué hacer si llega vacía.** La regla de resolución estaba en el mismo fichero pero veinte líneas más arriba, y el punto de todo esto era no depender de atar dos sitios distantes. Ahora va repetida justo ahí.
+- **`platform` no se podía resolver, así que se quedaba en `desconocido` en todas partes.** Ahora hay una tabla que lo deduce del entorno --`CLAUDE_PLUGIN_ROOT` para Claude Code, `CODEX_SESSION_ID` para Codex-- y el esquema admite `cline`. Sin eso, el campo que dice **desde qué agente se trabajó** no valía para nada, que es justo el que hace legible la auditoría de un equipo con varias herramientas.
+
+**Y `aisdd amend change` estaba fuera del guardián.** Vive en otro skill y no en `references/`, así que `check_audit_mandatory.py` no lo miraba — es exactamente por donde se cuelan estos fallos. Ahora entra, y verificado que lo caza.
+
 **Y un defecto de otro guardián, encontrado de paso.** `check_script_resolution.py` buscaba su marca sensible a mayúsculas, así que la regla escrita al principio de un párrafo no contaba. Habría dejado pasar un fichero que sí cumple, o peor, empujado a alguien a duplicar la nota para contentarlo.

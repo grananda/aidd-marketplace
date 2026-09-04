@@ -53,6 +53,22 @@ for ficha in sorted(REFS.glob("*.md")):
                       f"`prompt_version` usar; sin el no se sabe que instrucciones "
                       f"produjeron la entrada")
 
+# El skill hermano documenta `aisdd amend change`, que tambien audita --incluidas
+# sus cuatro paradas-- y no vive en `references/`: sin esto se quedaba fuera del
+# guardian, que es como se cuelan justo estos fallos.
+AMEND = ROOT / "plugins/aisdd/skills/aisdd-amend/SKILL.md"
+if not AMEND.is_file():
+    errors.append("no existe el SKILL.md de aisdd-amend")
+else:
+    amend = AMEND.read_text(encoding="utf-8", errors="replace")
+    comprobadas += 1
+    if "entrada de auditoria" not in amend.lower():
+        errors.append("aisdd-amend/SKILL.md: documenta un comando y no ordena la "
+                      "entrada de auditoria")
+    elif "prompt_version" not in amend:
+        errors.append("aisdd-amend/SKILL.md: ordena la auditoria pero no dice que "
+                      "`prompt_version` usar")
+
 if not SKILL.is_file():
     errors.append("no existe el SKILL.md de aisdd-specs")
 else:

@@ -76,6 +76,8 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
     | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
   ```
 
+  **Si `${CLAUDE_PLUGIN_ROOT}` llega vacia** --Codex y Cline la dejan asi-- resuelve la ruta como dice "Antes de ejecutar cualquier script", ahi arriba: `find -L` y ruta absoluta. Va repetido aqui a proposito: el que llega a este punto esta a punto de ejecutar el comando, y **la auditoria es lo ultimo que puede quedarse sin escribir** por no haber atado dos parrafos distantes.
+
   Y las tres cosas que **no** se negocian, pase lo que pase:
 
   1. **Se escribe siempre**, tambien cuando el comando se detiene: entonces con `status: aborted` o `partial`. Detenerse es un resultado, no un no-evento.
