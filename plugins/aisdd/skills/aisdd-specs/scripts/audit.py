@@ -139,6 +139,13 @@ def resolver_usuario(root: Path, entry: dict) -> str:
     con el registro de actividad**, que es lo que escribe el hook. La misma
     persona en los dos registros tiene que ser la misma cadena, o cualquier
     agregado la cuenta dos veces.
+
+    **El nombre del fichero es otra cosa y no tiene por que coincidir.** Lo
+    resuelve ``quien_escribe``, que prefiere el correo de git: ahi el trabajo no
+    es identificar sino **separar escritores** para que dos devs no conflicten en
+    cada merge, y dos personas pueden compartir `$USER` --`developer` en dos
+    contenedores-- y acabar escribiendo en el mismo fichero. Que difieran es
+    deliberado; no lo "arregles".
     """
     for candidato in (entry.get("user"), os.environ.get("USER"),
                       os.environ.get("USERNAME"), _git_email(root)):

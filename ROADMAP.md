@@ -664,7 +664,9 @@ Salieron dos cosas de ese repaso:
 
 **Y el autor no puede faltar.** La entrada dejaba `user` en `null` cuando quien la componía no lo declaraba, y una auditoría sin autor sirve para poco: es el campo que responde **quién hizo esto**, y sin él no se puede repartir el trabajo ni detectar que un módulo entero lo cerró siempre la misma persona --que es una señal de riesgo de traspaso, no una curiosidad--.
 
-Ahora se resuelve siempre, y con **la misma cadena en los tres sitios**: la entrada, el registro de actividad y el nombre del fichero. Antes eran tres para la misma persona, así que cualquier agregado la contaba dos o tres veces. El orden pone `$USER` por delante de la identidad de git a propósito, porque es lo que escribe el hook y los dos registros tienen que coincidir.
+Ahora se resuelve siempre, y con **la misma cadena en los dos registros que se agregan**: la entrada de auditoría y el registro de actividad. El orden pone `$USER` por delante de la identidad de git a propósito, porque es lo que escribe el hook — y si los dos no coinciden, cualquier agregado cuenta a la misma persona dos veces.
+
+**El nombre del fichero sigue saliendo del correo de git, y es deliberado.** Ahí el trabajo no es identificar sino **separar escritores** para que dos devs no conflicten en cada merge, y dos personas pueden compartir `$USER` —`developer` en dos contenedores— y acabar escribiendo en el mismo fichero. Queda dicho en el código para que nadie lo "arregle".
 
 `check_activity_source.py` lo fija: el autor no puede venir vacío ni diferir entre la entrada y el registro. Verificado que caza las dos cosas.
 

@@ -99,9 +99,9 @@ Inicializa AISDD (OpenSpec) en el proyecto.
      La clave `activity.source` sigue admitiendo `hooks`, `skills` y `auto` como anulacion para quien sepa lo que hace, pero **el default es no escribirla**. Si la ves puesta y contradice a la plataforma, `audit.py` avisa en sus `warnings`: dilo en el resumen y propon quitarla.
 
    - **Comprueba si el agente ejecuta los hooks de los plugins.** Claude Code si. **Codex no**: los registra en su `config.toml` y no llega a ejecutarlos --comprobado sobre 0.151.0--, asi que el registro quedaria vacio sin que nada avisara.
-   - **Si no los ejecuta, pon `source: skills`.** Con eso `audit.py` registra lo que dura cada comando y `aiba metrics` recupera el tiempo atendido — **con una base mas estrecha**, que el informe declara: un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si.
+   - **Si no los ejecuta, no hay nada que configurar**: `audit.py` lo detecta solo y registra lo que dura cada comando. `aiba metrics` recupera asi el tiempo atendido, **con una base mas estrecha** que el informe declara --un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si--. Lo que si tiene sentido es lo del punto siguiente.
 
-   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
+   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find -L`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
 
      ```json
      {"hooks": {
