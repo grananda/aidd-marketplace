@@ -34,7 +34,7 @@ ENTRADA = {
 }
 
 
-def corre(config: str | None) -> list[str]:
+def corre(config: str | None, plugin_root: str = "") -> list[str]:
     """Ejecuta audit.py en un proyecto limpio y devuelve las lineas del registro."""
     with tempfile.TemporaryDirectory() as d:
         raiz = Path(d)
@@ -45,8 +45,10 @@ def corre(config: str | None) -> list[str]:
         (raiz / "docs" / "aidd-activity.md").touch()
         if config is not None:
             (raiz / "openspec" / "config.yaml").write_text(config, encoding="utf-8")
+        import os                                               # noqa: PLC0415
         subprocess.run([sys.executable, str(AUDIT), "--root", str(raiz)],
                        input=json.dumps(ENTRADA), text=True,
+                       env=dict(os.environ, CLAUDE_PLUGIN_ROOT=plugin_root),
                        capture_output=True, timeout=60)
         log = raiz / "docs" / "aidd-activity.md"
         return [l for l in log.read_text(encoding="utf-8").splitlines() if l.startswith("- ")]
@@ -54,14 +56,22 @@ def corre(config: str | None) -> list[str]:
 
 errors: list[str] = []
 
+# `plugin_root` no vacio simula un agente que **si** ejecuta los hooks de plugin
+# (Claude Code); vacio simula Codex o Cline, donde no se ejecutan.
 casos = {
-    "sin config (historico)": (None, 0),
-    "activity.source: hooks": ("activity:\n  source: hooks\n", 0),
-    "activity.source: skills": ("activity:\n  source: skills\n", 3),
+    # Sin clave se resuelve por ejecucion: es el caso de todos los proyectos ya
+    # inicializados, y el que dejaba a Cline y a Codex sin registrar nada.
+    "sin config, agente con hooks":  (None, "/ruta/plugin", 0),
+    "sin config, agente sin hooks":  (None, "", 3),
+    "auto, agente con hooks":        ("activity:\n  source: auto\n", "/ruta/plugin", 0),
+    "auto, agente sin hooks":        ("activity:\n  source: auto\n", "", 3),
+    # Anulaciones explicitas: se respetan, aunque contradigan a la plataforma.
+    "hooks explicito":               ("activity:\n  source: hooks\n", "/ruta/plugin", 0),
+    "skills explicito":              ("activity:\n  source: skills\n", "", 3),
 }
-for nombre, (cfg, esperadas) in casos.items():
+for nombre, (cfg, root, esperadas) in casos.items():
     try:
-        lineas = corre(cfg)
+        lineas = corre(cfg, root)
     except Exception as exc:                                    # noqa: BLE001
         errors.append(f"{nombre}: audit.py no se pudo ejecutar ({exc})")
         continue
@@ -86,6 +96,39 @@ for nombre, (cfg, esperadas) in casos.items():
         errors.append(f"{nombre}: la linea de turno no declara `scope=comando`, "
                       f"asi que se leeria como un turno completo y el tiempo "
                       f"atendido saldria mal")
+
+# El autor no puede faltar, y tiene que ser **la misma cadena** en la entrada,
+# en el registro y en el nombre del fichero. Una auditoria sin autor no dice
+# quien hizo que, y tres cadenas distintas para la misma persona hacen que
+# cualquier agregado la cuente dos o tres veces.
+if not errors:
+    with tempfile.TemporaryDirectory() as d:
+        raiz = Path(d)
+        (raiz / "openspec").mkdir()
+        (raiz / "docs").mkdir()
+        (raiz / "docs" / "aidd-activity.md").touch()
+        (raiz / "openspec" / "config.yaml").write_text(
+            "activity:\n  source: skills\n", encoding="utf-8")
+        subprocess.run([sys.executable, str(AUDIT), "--root", str(raiz)],
+                       input=json.dumps(dict(ENTRADA, user="ana.lopez")),
+                       text=True, capture_output=True, timeout=60)
+        jsonl = list((raiz / "openspec" / "audit").glob("*/*.jsonl"))
+        if not jsonl:
+            errors.append("no se escribio ninguna entrada de auditoria")
+        else:
+            registro = json.loads(jsonl[0].read_text(encoding="utf-8").strip())
+            if not registro.get("user"):
+                errors.append("la entrada de auditoria no registra el autor "
+                              "(`user` vacio): no dice quien hizo que")
+            lineas = [l for l in (raiz / "docs" / "aidd-activity.md")
+                      .read_text(encoding="utf-8").splitlines()
+                      if l.startswith("- 20")]
+            en_log = {l.split("| user:")[1].split("|")[0].strip() for l in lineas}
+            if en_log and {str(registro.get("user"))} != en_log:
+                errors.append(
+                    f"el autor difiere entre la entrada ({registro.get('user')!r}) "
+                    f"y el registro de actividad ({en_log}): la misma persona "
+                    f"contaria como dos")
 
 if errors:
     print("El registro de actividad no reparte bien quien escribe:", file=sys.stderr)

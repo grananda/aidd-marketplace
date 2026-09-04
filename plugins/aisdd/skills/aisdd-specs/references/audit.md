@@ -35,7 +35,7 @@ Cada linea es un objeto JSON con estos campos:
   "skill_version": "<version del skill, p.ej. 1.2.0>",
   "prompt_version": "<skill_version>:<command-slug>[@variante]",
   "model": "<id del modelo, p.ej. claude-opus-4-7[1m] o desconocido>",
-  "platform": "<claude-code | codex | otra>",
+  "platform": "<claude-code | codex | cline | otra>",
   "user": "<email o identificador disponible, o null>",
   "input_hash": "sha256:<hex>",
   "input_files": [
@@ -96,6 +96,17 @@ Reglas para los campos:
 - `decisions`: solo para los comandos que recogen decisiones humanas, que son **`open change` e `implement change`** (los dos ejecutan el pre-flight). Incluye tanto las decisiones del pre-flight como las entradas de `Tipo: correccion` registradas durante la implementacion: son las que permiten contar correcciones por change como indicador de la calidad de los specs. En el resto de comandos, lista vacia.
 - `notes`: lista opcional de notas cortas y factuales sobre acciones con efecto externo que no son ficheros y por tanto no caben en `output_files`. Hoy su unico uso son las **acciones de Jira** (claves de issue afectadas y transicion aplicada, p. ej. `"ABC-45 -> In Progress"`). Sin datos personales ni texto libre del usuario. Lista vacia u omitida si no hubo ninguna.
 - `model` y `platform`: si no puedes resolverlos con fiabilidad, usa `"desconocido"`. No inventes valores.
+
+  **`platform` si se puede resolver, y sin preguntar.** Las tres plataformas medidas se distinguen por el entorno, que es dato y no suposicion:
+
+  | Senal | `platform` |
+  |---|---|
+  | `CLAUDE_PLUGIN_ROOT` con valor | `claude-code` |
+  | `CODEX_SESSION_ID` o `CODEX_THREAD_ID` con valor | `codex` |
+  | Ninguna de las anteriores, y sabes que agente eres | `cline`, o el que corresponda |
+  | Ninguna, y no lo sabes | `desconocido` |
+
+  Sin esto el campo se queda en `desconocido` en todas partes y deja de servir para nada — y es justo el que dice **desde que agente se trabajo**, que es lo que permite leer una auditoria de un equipo con varias herramientas.
 - `user`: si la plataforma expone email del usuario, registra el email; si no, `null`. No registres datos personales adicionales.
 - `prompt_version`: la version del skill (frontmatter, sin fijarla aqui) seguida de `:` y el slug del comando. Los slugs son `init`, `roadmap`, `open-change/preflight`, `implement-change/preflight`, `close-change`, `prototype-ux`, `uml` y `amend-change`. Cada ficha de `references/` declara el suyo en su paso final. El comando `aisdd lane` **no escribe auditoria**: no modifica artefactos del proyecto, solo un puntero local del dev.
 

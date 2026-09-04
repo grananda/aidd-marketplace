@@ -3,7 +3,7 @@ name: aisdd-specs
 description: AISDD (AI Spec-Driven Development) — gestiona especificaciones sobre OpenSpec mediante los comandos `aisdd init`, `aisdd roadmap`, `aisdd open change`, `aisdd implement change`, `aisdd close change`, `aisdd lane`, `aisdd prototype-ux` y `aisdd uml`, con los alias legacy equivalentes de prefijo `native-ai ...`. Coordina la documentacion de diseno que produce AIDD y la capa de entrega de AIBA (planificacion-proyecto, sprint-plan, plan-revision-hu), genera roadmaps, y delega diagramas en booster-uml y prototipos en booster-ux. Ofrece tres modos de faseado —`atomic`, `waves` (oleadas) y `multilane` (lanes)— que se eligen en el pre-flight de `aisdd roadmap` y condicionan a los demas comandos; la **topologia** --donde viven `openspec/` y `docs/`-- la pregunta `aisdd init`, que es quien los crea, y **`aisdd roadmap` la migra** --resuelve el destino con dos preguntas, cuantos repos y si el registro va dentro o en un repo aparte, y ejecuta el movimiento, dejando al humano solo lo irreversible--: `fraccionado` (uno por repo, `multilane` forzado con un lane por repo, sin barreras y una PR por change) o `externalizado` (en un **repositorio git de gobierno aparte**, valido con uno o varios repos de codigo, con el modo decidido con normalidad, el campo `repo` en cada entrada de auditoria y commit+push del repo de gobierno al final de cada comando): primero se recoge la preferencia del usuario y despues un **pre-flight de optimizacion** calcula el calendario de cada modo y cada numero de developers y presenta los caminos enfrentados en un HTML, con sus barreras y sus tiempos, para decidir con la cifra delante. `open change` e `implement change` comparten un pre-flight de dudas configurable por proyecto. **`implement change` lee la fuente de diseno antes de tocar codigo** cuando el change toca front --deducido del contexto de la HU--: los artefactos de `docs/design/` si el proyecto los tiene, `docs/guia-estilos.md` si no, e improvisa si no hay ninguno; degrada sin error en los tres casos y no sabe de Figma. **Todos** los comandos escriben una entrada de auditoria estructurada en `openspec/audit/` —es obligatoria, y la unica excepcion es `aisdd lane`, que solo mueve un puntero local—; la integracion con Jira es opcional. Todos los comandos cierran sugiriendo el **proximo paso** con el comando ya resuelto, encadenando con la capa de entrega de AIBA cuando toca. Este `SKILL.md` es un **indice** con las reglas comunes y una tabla de enrutado; el detalle de cada comando vive en `references/*.md` y se lee **bajo demanda**. Usar cuando el usuario invoque `aisdd ...` o `native-ai ...`, o pida trabajar con especificaciones OpenSpec/Native AI.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "3.11.0"
+  version: "3.13.0"
 ---
 
 # aisdd-specs (AI Spec-Driven Development)
@@ -32,6 +32,10 @@ Responde y documenta en espanol siempre que sea posible. Conserva en ingles nomb
 ## Como usar este documento
 
 Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El detalle de cada comando vive en `references/`, y **se lee bajo demanda**: no cargues un fichero que no necesitas para el comando en curso.
+
+> **La carga bajo demanda no alcanza a la auditoria.** `references/audit.md` y `references/scripts.md` **se leen siempre**, en todos los comandos salvo `aisdd lane`, porque la entrada de auditoria es obligatoria y no se puede componer de memoria.
+>
+> Esto no es teorico: en una auditoria real de un proyecto se descubrio que **no habia ni una entrada hasta la fase 5**, porque el agente aplico la carga bajo demanda tambien al fichero que explica como escribirla. No fallo nada --por eso tardo cinco fases en verse--. Si dudas entre cargar de mas o quedarte sin auditoria, **carga de mas**.
 
 | Vas a... | Lee |
 |---|---|
@@ -62,6 +66,23 @@ Este `SKILL.md` es el **indice**: reglas comunes y que leer para cada cosa. El d
 - `roadmap.md` **requiere** `parallelism.md` si el proyecto tiene mas de un developer.
 - `open/implement/close-change.md` **requieren** `parallelism.md` solo si `roadmap.mode` es `waves` o `multilane`.
 - **Todos los comandos salvo `aisdd lane` requieren `audit.md`**: la entrada de auditoria es obligatoria y cada ficha la ordena en su paso final, con el `prompt_version` que le corresponde. Requieren ademas `scripts.md`, porque `audit.py` es la via preferente para componerla.
+
+  **El contrato minimo va aqui, en el indice, para que no dependa de abrir otro fichero.** Con esto se escribe una entrada valida aunque no llegues a leer `audit.md` --que igualmente debes leer, porque trae el esquema completo, las reglas de hashes y la retencion--:
+
+  ```bash
+  echo '{"command":"<el comando>","started_at":"<hora UTC al empezar>",
+         "prompt_version":"<skill_version>:<ficha>","status":"ok",
+         "input_files":[],"output_files":[],"decisions":[]}' \
+    | python3 "${CLAUDE_PLUGIN_ROOT}/skills/aisdd-specs/scripts/audit.py" --root <projectRoot>
+  ```
+
+  **Si `${CLAUDE_PLUGIN_ROOT}` llega vacia** --Codex y Cline la dejan asi-- resuelve la ruta como dice "Antes de ejecutar cualquier script", ahi arriba: `find -L` y ruta absoluta. Va repetido aqui a proposito: el que llega a este punto esta a punto de ejecutar el comando, y **la auditoria es lo ultimo que puede quedarse sin escribir** por no haber atado dos parrafos distantes.
+
+  Y las tres cosas que **no** se negocian, pase lo que pase:
+
+  1. **Se escribe siempre**, tambien cuando el comando se detiene: entonces con `status: aborted` o `partial`. Detenerse es un resultado, no un no-evento.
+  2. **Si el script no se puede ejecutar**, se compone la entrada a mano y **se dice en el resumen**. Nunca se omite.
+  3. **Se reporta su ruta y su `id`** en la verificacion final. Una entrada que nadie menciona es una entrada que nadie comprueba.
 
 ## Reglas generales
 

@@ -87,19 +87,21 @@ Inicializa AISDD (OpenSpec) en el proyecto.
    - **Ofrece crearlo.** Preguntalo aqui y no despues: la ventana de medicion **no se reconstruye**. Si el usuario dice que no, no insistas y dilo en el resumen.
 
      > **Y sigue siendo opt-in a proposito.** Se propuso que el hook creara el fichero solo al dispararse, convirtiendolo en opt-out. **Se descarta**: el registro es un fichero **visible en el arbol del repositorio**, y crearlo sin permiso lo hace aparecer en repos de cliente donde nadie lo ha pedido --y donde puede ser justo el rastro que no debe estar--. Preguntar una vez aqui cuesta una pregunta; registrar sin permiso no se deshace.
-   - **Declara quien escribe el registro** en `openspec/config.yaml`. Es lo que evita que se registre por duplicado:
+   - **No declares quien escribe el registro.** `audit.py` lo resuelve **en cada ejecucion**, mirando si el agente ejecuta los hooks de plugin: si los ejecuta se aparta y manda el hook; si no --Codex, Cline--, escribe el.
 
-     ```yaml
-     activity:
-       source: hooks   # hooks | skills
-     ```
+     La escala de esa decision es la ejecucion y **no el proyecto**, porque un mismo proyecto se abre desde agentes distintos segun quien lo trabaje. Fijarla en `config.yaml` produce las dos averias que hay que evitar, y ninguna da error:
 
-     Con `hooks` manda el hook y `audit.py` no toca el registro; con `skills` lo escribe `audit.py` en cada comando. **Nunca los dos**: duplicar cada linea no falla, infla el tiempo atendido y la aceleracion sale mejor de lo que fue. Sin la clave se asume `hooks`, que es el comportamiento historico.
+     | Lo fijado | Con quien no toca | Que pasa |
+     |---|---|---|
+     | `source: skills` | Claude Code | **Se registra dos veces** y el tiempo atendido sale inflado |
+     | `source: hooks` | Codex o Cline | **No se registra nada** y `aiba metrics` se queda sin tiempo atendido |
+
+     La clave `activity.source` sigue admitiendo `hooks`, `skills` y `auto` como anulacion para quien sepa lo que hace, pero **el default es no escribirla**. Si la ves puesta y contradice a la plataforma, `audit.py` avisa en sus `warnings`: dilo en el resumen y propon quitarla.
 
    - **Comprueba si el agente ejecuta los hooks de los plugins.** Claude Code si. **Codex no**: los registra en su `config.toml` y no llega a ejecutarlos --comprobado sobre 0.151.0--, asi que el registro quedaria vacio sin que nada avisara.
-   - **Si no los ejecuta, pon `source: skills`.** Con eso `audit.py` registra lo que dura cada comando y `aiba metrics` recupera el tiempo atendido — **con una base mas estrecha**, que el informe declara: un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si.
+   - **Si no los ejecuta, no hay nada que configurar**: `audit.py` lo detecta solo y registra lo que dura cada comando. `aiba metrics` recupera asi el tiempo atendido, **con una base mas estrecha** que el informe declara --un comando no ve el tiempo de revisar, conversar ni iterar, y el hook si--. Lo que si tiene sentido es lo del punto siguiente.
 
-   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
+   - **Y si el agente admite hooks de proyecto, declaralos tambien**, que ahi si corren. Localiza el script del plugin instalado (con `find -L`, ver la nota de resolucion en `references/scripts.md`) y escribe `.codex/hooks.json` con su **ruta absoluta y sin comillas** --el comando no pasa por un shell, asi que unas comillas se convierten en parte de la ruta--:
 
      ```json
      {"hooks": {

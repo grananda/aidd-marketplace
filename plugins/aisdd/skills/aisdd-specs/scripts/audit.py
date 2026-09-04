@@ -127,6 +127,33 @@ SLUG_RE = re.compile(r"[^a-z0-9._-]+")
 EMAIL_RE = re.compile(r"[^\s<>@]+@[^\s<>@]+")
 
 
+def resolver_usuario(root: Path, entry: dict) -> str:
+    """Quien ejecuto el comando. **Nunca vacio.**
+
+    Se dejaba en `null` cuando la entrada no lo declaraba, y una auditoria sin
+    autor sirve para poco: es el campo que responde **quien hizo esto**, y sin el
+    no se puede repartir el trabajo ni detectar que un modulo entero lo cerro
+    siempre la misma persona.
+
+    El orden pone primero `$USER` sobre la identidad de git para que **coincida
+    con el registro de actividad**, que es lo que escribe el hook. La misma
+    persona en los dos registros tiene que ser la misma cadena, o cualquier
+    agregado la cuenta dos veces.
+
+    **El nombre del fichero es otra cosa y no tiene por que coincidir.** Lo
+    resuelve ``quien_escribe``, que prefiere el correo de git: ahi el trabajo no
+    es identificar sino **separar escritores** para que dos devs no conflicten en
+    cada merge, y dos personas pueden compartir `$USER` --`developer` en dos
+    contenedores-- y acabar escribiendo en el mismo fichero. Que difieran es
+    deliberado; no lo "arregles".
+    """
+    for candidato in (entry.get("user"), os.environ.get("USER"),
+                      os.environ.get("USERNAME"), _git_email(root)):
+        if candidato and str(candidato).strip():
+            return str(candidato).strip()
+    return "desconocido"
+
+
 def quien_escribe(root: Path, entry: dict) -> str:
     """Identificador del escritor, estable y valido como nombre de fichero.
 
@@ -337,34 +364,79 @@ Acciones: `run` (skill invocado), `file:<ruta>` (fichero escrito por la IA),
 """
 
 
-def fuente_actividad(root: Path) -> str:
-    """Quien escribe el registro de actividad: `hooks` o `skills`.
+# Avisos que produce la resolucion de la fuente. Se vacia en cada ejecucion y se
+# vuelca en los `warnings` de la entrada, que es donde el usuario los va a leer.
+avisos_fuente: list[str] = []
 
-    Los hooks de plugin **no se ejecutan en todas partes** --medido en Codex CLI
-    0.151.0: se registran con su hash de confianza y no llegan a correr, y Cline
-    ni siquiera tiene un mecanismo compatible--. Donde no corren, el registro lo
-    escribe este script.
 
-    **La decision se declara, no se adivina en cada ejecucion**: la fija
-    `aisdd init` en `activity.source` de `openspec/config.yaml`. Sin esa clave se
-    asume `hooks`, que es el comportamiento historico: preferimos perder una
-    linea a **duplicarla**, porque un registro con lo mismo dos veces infla el
-    tiempo atendido y nadie lo nota.
+def hooks_se_ejecutan() -> bool:
+    """Si el agente de esta ejecucion ejecuta los hooks empaquetados en un plugin.
+
+    Se decide por `CLAUDE_PLUGIN_ROOT`, que es exactamente la variable que las
+    tres plataformas medidas distinguen: Claude Code la define y ejecuta sus
+    hooks; Codex la deja vacia --registra los hooks de plugin y no los ejecuta--
+    y Cline tampoco la define ni tiene un mecanismo compatible.
+
+    Es la misma senal con la que los skills resuelven la ruta de los scripts, no
+    una heuristica nueva.
     """
+    return bool(os.environ.get("CLAUDE_PLUGIN_ROOT", "").strip())
+
+
+def fuente_actividad(root: Path) -> str:
+    """Quien escribe el registro de actividad en **esta** ejecucion.
+
+    Devuelve `hooks` --no escribimos, ya lo hace el hook-- o `skills`.
+
+    **La escala de esta decision es la ejecucion, no el proyecto.** Un mismo
+    proyecto se trabaja desde agentes distintos segun quien lo abra, asi que
+    fijarla en `config.yaml` produce las dos averias que hay que evitar:
+
+    - Con `skills` escrito por un `init` que corrio en Codex, un dev que abra el
+      proyecto en Claude Code **audita dos veces**: el hook y este script. Y el
+      duplicado no falla, infla el tiempo atendido y nadie lo nota.
+    - Con `hooks` --el default historico-- en Codex o en Cline **no se registra
+      nada**, porque ahi los hooks de plugin no llegan a correr.
+
+    Por eso el default es `auto`: se resuelve por ejecucion mirando si el agente
+    ejecuta hooks. `hooks` y `skills` explicitos siguen valiendo como anulacion
+    para quien sepa lo que hace, pero **la mala configuracion deja de ser
+    silenciosa**: quien fuerce el valor equivocado obtiene duplicado o vacio, y
+    por eso ninguno de los dos es el default.
+    """
+    valor = "auto"
     cfg = root / "openspec" / "config.yaml"
-    if not cfg.is_file():
-        return "hooks"
-    dentro = False
-    for line in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if not line[:1].isspace():
-            dentro = line.strip().rstrip(":") == "activity"
-            continue
-        if dentro and line.strip().startswith("source:"):
-            valor = line.split(":", 1)[1].strip().strip('"\'')
-            return valor if valor in ("hooks", "skills") else "hooks"
-    return "hooks"
+    if cfg.is_file():
+        dentro = False
+        for line in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            if not line[:1].isspace():
+                dentro = line.strip().rstrip(":") == "activity"
+                continue
+            if dentro and line.strip().startswith("source:"):
+                leido = line.split(":", 1)[1].strip().strip('"\'')
+                if leido in ("hooks", "skills", "auto"):
+                    valor = leido
+                break
+    corren = hooks_se_ejecutan()
+    if valor == "auto":
+        return "hooks" if corren else "skills"
+    # Anulacion explicita que contradice a la plataforma: se respeta --quien la
+    # puso puede saber algo que aqui no se ve-- pero **se avisa**, porque las dos
+    # averias son mudas: una duplica cada linea e infla el tiempo atendido, y la
+    # otra deja el registro vacio. Ninguna da error por su cuenta.
+    if valor == "skills" and corren:
+        avisos_fuente.append(
+            "`activity.source: skills` con un agente que **si** ejecuta los hooks: "
+            "cada linea se registra dos veces y el tiempo atendido sale inflado. "
+            "Quita la clave para que se resuelva sola (`auto`)")
+    elif valor == "hooks" and not corren:
+        avisos_fuente.append(
+            "`activity.source: hooks` con un agente que **no** los ejecuta: no se "
+            "registra nada y `aiba metrics` se queda sin tiempo atendido. "
+            "Quita la clave para que se resuelva sola (`auto`)")
+    return valor
 
 
 def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | None:
@@ -380,7 +452,10 @@ def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | 
     el informe tiene que poder saberlo. Sustituir una por otra en silencio daria
     un tiempo atendido menor y una aceleracion inflada.
     """
-    if fuente_actividad(root) != "skills":
+    avisos_fuente.clear()
+    fuente = fuente_actividad(root)
+    warnings.extend(avisos_fuente)
+    if fuente != "skills":
         return None
     log = root / LOG_ACTIVIDAD
     if not log.is_file():                 # opt-in: sin fichero no se registra
@@ -392,8 +467,7 @@ def registrar_actividad(root: Path, record: dict, warnings: list[str]) -> str | 
     ts = record.get("timestamp") or ""
     # El mismo identificador que escribe el hook, para que la misma persona no
     # salga como dos usuarios distintos en un proyecto que cambie de fuente.
-    usuario = limpio(record.get("user") or os.environ.get("USER")
-                     or os.environ.get("USERNAME") or quien_escribe(root, {}))
+    usuario = limpio(record.get("user"))
     comando = limpio(record.get("command"))
     # `compute_kpis.py` clasifica por **nombre de skill**, no por comando: con el
     # comando entero cada linea caeria en "Otros" y se perderia el desglose por
@@ -488,7 +562,7 @@ def main() -> int:
         "prompt_version": entry.get("prompt_version", "desconocido"),
         "model": entry.get("model", "desconocido"),
         "platform": entry.get("platform", "desconocido"),
-        "user": entry.get("user"),
+        "user": resolver_usuario(root, entry),
         "input_hash": f"sha256:{in_hash}",
         "input_files": in_files,
         "output_hash": f"sha256:{out_hash}",

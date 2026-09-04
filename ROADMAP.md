@@ -35,6 +35,8 @@ Estados: `propuesta` → `aceptada` → `implementada` (con versión y commit) /
 | F-27 | El registro de actividad lo escribe el comando donde el hook no corre, sin duplicar donde sí | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-28 | El retrabajo se distingue del trabajo nuevo, y `close change` comprueba antes de archivar | aisdd, aiba | **implementada** | 2026-09-03 |
 | F-29 | El DF sale con la plantilla del cliente, numerado, en español natural y con la pantalla dentro | aiba | **implementada** | 2026-09-03 |
+| F-30 | Quién registra la actividad se resuelve por ejecución: ni doble en Claude Code ni vacío en Cline | aisdd | **implementada** | 2026-09-04 |
+| F-31 | La carga bajo demanda dejaba proyectos sin una sola entrada de auditoría | aisdd | **implementada** | 2026-09-04 |
 
 ---
 
@@ -609,3 +611,63 @@ Seis comentarios del equipo sobre los DF que genera `aiba functional-design` (#3
 **La pantalla, dentro.** El generador **ya sabía insertar imágenes**; lo que faltaba era decirle dónde está la pantalla. Desde F-24 la deja `aifg` en `docs/design/hu/<HU-XX>/referencia.png`, y ahí se lee. Se inserta la pantalla, no el identificador del nodo, que fuera del equipo no le dice nada a nadie.
 
 **Y la CI ejecuta el generador.** `check_scripts_run.py` lo corre con plantilla y sin ella, y comprueba que los apartados salen numerados y que el contenido de ejemplo de la plantilla **no** acaba dentro del DF. Verificado que caza la regresión: al desactivar la numeración a propósito, falla. Si `python-docx` no está, **lo dice** en vez de pasar en silencio.
+
+## F-30 — Quién registra la actividad se decide por ejecución, no por proyecto
+
+**Estado:** implementada · **Versión:** `aisdd` 3.13.0 · **Añadida:** 2026-09-04
+
+F-27 dejó la fuente del registro declarada en `activity.source` de `openspec/config.yaml`, con `hooks` por defecto. **La escala estaba mal**: un mismo proyecto se abre desde agentes distintos según quién lo trabaje, así que la decisión no es del proyecto sino de la ejecución.
+
+Las dos averías que producía, y ninguna daba error:
+
+| Situación | Qué pasaba |
+|---|---|
+| Proyecto ya inicializado, sin la clave, abierto en **Codex o Cline** | El default `hooks` no escribía nada, y ahí los hooks de plugin **no se ejecutan**: registro vacío |
+| `init` corrió en Codex y dejó `skills`, y luego un dev abre en **Claude Code** | Escriben **los dos**: cada línea duplicada y el tiempo atendido inflado |
+
+**Ahora se resuelve en cada ejecución** por `CLAUDE_PLUGIN_ROOT`, que es exactamente la variable que las tres plataformas distinguen — la misma señal con la que los skills resuelven la ruta de los scripts desde F-26, no una heurística nueva. Si el agente ejecuta hooks, `audit.py` se aparta; si no, escribe él.
+
+**La clave sigue existiendo como anulación** (`hooks`, `skills`, `auto`) para quien sepa lo que hace, pero cuando contradice a la plataforma **`audit.py` lo avisa** en sus `warnings` en vez de dejar pasar un duplicado o un vacío. Las dos averías eran mudas; ahora hablan.
+
+**Y `aisdd init` deja de escribirla.** Lo mejor que puede hacer con esta clave es no ponerla.
+
+`check_activity_source.py` cubre ahora **seis casos**: sin clave y con `auto`, en un agente con hooks y en uno sin ellos, más las dos anulaciones explícitas.
+
+## F-31 — La carga bajo demanda se comía la auditoría
+
+**Estado:** implementada · **Versión:** `aisdd` 3.14.0 · **Añadida:** 2026-09-04
+
+En una auditoría real de un proyecto se descubrió que **no había ni una entrada hasta la fase 5**. La auditoría es obligatoria en todos los comandos, y ninguno la había escrito durante cuatro fases.
+
+**La causa era una cláusula del propio índice.** `SKILL.md` decía:
+
+> El detalle de cada comando vive en `references/`, y **se lee bajo demanda**: no cargues un fichero que no necesitas para el comando en curso.
+
+Y cada comando ordena su entrada *«según `references/audit.md`»* — un puntero a un **segundo** fichero. El agente aplicó la carga diferida también a ese fichero, se quedó sin el esquema, y no escribió nada. **No falló nada**: por eso tardó cinco fases en verse.
+
+Es exactamente el modo de fallo que el propio `check_skill_refs.py` describe en su cabecera: *«la regla que contenía simplemente no se aplica… se parece exactamente a que todo funciona»*.
+
+**Tres cosas para que no vuelva:**
+
+1. **La carga bajo demanda deja de alcanzar a la auditoría.** El índice dice ahora, explícitamente, que `audit.md` y `scripts.md` se leen **siempre** — y cuenta este caso, porque una regla con su cicatriz al lado se respeta más que una regla sola.
+2. **El contrato mínimo vive en el índice.** El comando completo y las tres cosas que no se negocian —se escribe también al detenerse, si el script falla se compone a mano, y se reporta su ruta y su `id`— están donde el agente ya está mirando. Con eso se escribe una entrada válida aunque nunca se abra `audit.md`.
+3. **`check_audit_mandatory.py`** comprueba que cada ficha que documenta un comando ordena su entrada con su `prompt_version` —siete fichas, con `lane` como única excepción declarada— y que el índice acota la carga diferida. Verificado que caza la regresión: quitando la acotación, falla.
+
+**El camino de Cline, verificado de punta a punta.** Con `CLAUDE_PLUGIN_ROOT` vacía y ejecutando `audit.py` por ruta absoluta, como lo hace Cline: se escribe la entrada con sus hashes y `platform: cline`, y las tres líneas del registro de actividad. Sin avisos.
+
+Salieron dos cosas de ese repaso:
+
+- **El contrato del índice usaba `${CLAUDE_PLUGIN_ROOT}` sin decir qué hacer si llega vacía.** La regla de resolución estaba en el mismo fichero pero veinte líneas más arriba, y el punto de todo esto era no depender de atar dos sitios distantes. Ahora va repetida justo ahí.
+- **`platform` no se podía resolver, así que se quedaba en `desconocido` en todas partes.** Ahora hay una tabla que lo deduce del entorno --`CLAUDE_PLUGIN_ROOT` para Claude Code, `CODEX_SESSION_ID` para Codex-- y el esquema admite `cline`. Sin eso, el campo que dice **desde qué agente se trabajó** no valía para nada, que es justo el que hace legible la auditoría de un equipo con varias herramientas.
+
+**Y `aisdd amend change` estaba fuera del guardián.** Vive en otro skill y no en `references/`, así que `check_audit_mandatory.py` no lo miraba — es exactamente por donde se cuelan estos fallos. Ahora entra, y verificado que lo caza.
+
+**Y el autor no puede faltar.** La entrada dejaba `user` en `null` cuando quien la componía no lo declaraba, y una auditoría sin autor sirve para poco: es el campo que responde **quién hizo esto**, y sin él no se puede repartir el trabajo ni detectar que un módulo entero lo cerró siempre la misma persona --que es una señal de riesgo de traspaso, no una curiosidad--.
+
+Ahora se resuelve siempre, y con **la misma cadena en los dos registros que se agregan**: la entrada de auditoría y el registro de actividad. El orden pone `$USER` por delante de la identidad de git a propósito, porque es lo que escribe el hook — y si los dos no coinciden, cualquier agregado cuenta a la misma persona dos veces.
+
+**El nombre del fichero sigue saliendo del correo de git, y es deliberado.** Ahí el trabajo no es identificar sino **separar escritores** para que dos devs no conflicten en cada merge, y dos personas pueden compartir `$USER` —`developer` en dos contenedores— y acabar escribiendo en el mismo fichero. Queda dicho en el código para que nadie lo "arregle".
+
+`check_activity_source.py` lo fija: el autor no puede venir vacío ni diferir entre la entrada y el registro. Verificado que caza las dos cosas.
+
+**Y un defecto de otro guardián, encontrado de paso.** `check_script_resolution.py` buscaba su marca sensible a mayúsculas, así que la regla escrita al principio de un párrafo no contaba. Habría dejado pasar un fichero que sí cumple, o peor, empujado a alguien a duplicar la nota para contentarlo.
