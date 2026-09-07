@@ -28,6 +28,7 @@ import argparse
 import json
 import os
 import re
+import unicodedata
 import subprocess
 import sys
 from datetime import date
@@ -355,6 +356,86 @@ class Estilos:
         return self.mapa.get(logico, logico)
 
 
+# Los apartados del DF, y como se llaman en las plantillas que se han visto. Se
+# comparan por clave normalizada --sin tildes, sin la numeracion del titulo y en
+# minusculas-- porque cada cliente los escribe a su manera y el DF tiene que
+# servir para cualquiera.
+ALIAS = {
+    "introduccion": "introduccion",
+    "alcance": "alcance",
+    "filtros campos": "campos", "filtros y campos": "campos", "campos": "campos",
+    "integraciones otros aplicativos": "integraciones",
+    "integraciones con otros aplicativos": "integraciones",
+    "integraciones": "integraciones",
+    "validaciones reglas acciones": "validaciones",
+    "validaciones y reglas": "validaciones", "validaciones": "validaciones",
+    "especificas del frontal": "validaciones_frontal",
+    "especificas del core": "validaciones_core",
+    "mensajes y avisos": "mensajes", "mensajes": "mensajes",
+    "especificos del frontal": "mensajes_frontal",
+    "especificos de integracion no core": "mensajes_integracion",
+    "especificos del core": "mensajes_core",
+    "pantallas y prototipo": "pantallas", "pantallas": "pantallas",
+    "criterios de aceptacion": "criterios",
+    "especificaciones tecnicas": "especificaciones",
+    "puntos abiertos": "puntos_abiertos",
+    "control de versiones": "control_versiones",
+    "control de aprobaciones": "control_aprobaciones",
+}
+
+
+def clave(texto: str) -> str:
+    """`2.3 Validaciones / Reglas` -> `validaciones reglas`."""
+    t = unicodedata.normalize("NFKD", texto or "")
+    t = "".join(c for c in t if not unicodedata.combining(c)).lower()
+    t = re.sub(r"^[\d.\s]+", "", t.strip())
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
+
+
+def nivel_titulo(parrafo) -> int | None:
+    """El nivel del titulo, o None si el parrafo no es un titulo."""
+    m = re.match(r"^(?:Heading|T[ií]tulo)\s*([1-9])$", parrafo.style.name or "")
+    return int(m.group(1)) if m else None
+
+
+def plantilla_numera(doc) -> bool:
+    """True si los titulos de la plantilla ya se numeran solos.
+
+    Hay que mirar **el parrafo y no solo el estilo**: Word deja la numeracion
+    enganchada a cada parrafo (`numPr` directo) tan a menudo como en el estilo, y
+    mirando solo el estilo se concluye que no numera. Entonces el generador
+    antepone su `1.` al que Word ya pone y sale `1. 1. Introduccion`.
+    """
+    from docx.oxml.ns import qn
+
+    for p in doc.paragraphs:
+        if nivel_titulo(p) and p._p.find(".//" + qn("w:numPr")) is not None:
+            return True
+    for nombre in EQUIVALENTES["Heading 1"] + EQUIVALENTES["Heading 2"]:
+        try:
+            estilo = doc.styles[nombre]
+        except KeyError:
+            continue
+        if estilo.element.find(".//" + qn("w:numPr")) is not None:
+            return True
+    return False
+
+
+def localizar_apartados(doc) -> dict:
+    """Los apartados del DF que la plantilla ya trae, por clave.
+
+    Devuelve `{clave: parrafo}`. No exige que sean titulos: las plantillas
+    escriben "Control de Versiones" como parrafo normal encima de su tabla tan a
+    menudo como con estilo de titulo.
+    """
+    fuera: dict = {}
+    for p in doc.paragraphs:
+        k = ALIAS.get(clave(p.text))
+        if k and k not in fuera:
+            fuera[k] = p
+    return fuera
+
+
 def limpiar_cuerpo(doc) -> None:
     """Vacia la plantilla conservando estilos, cabecera, pie y formato de pagina.
 
@@ -405,10 +486,17 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     hoy = m.get("fecha") or date.today().isoformat()
 
     avisos: list[str] = []
+    numera_ella = False
+    apartados_plantilla: list[str] = []
     if plantilla:
         if not plantilla.is_file():
             raise SystemExit(f"No existe la plantilla '{plantilla}'.")
         doc = Document(str(plantilla))
+        # Se interroga a la plantilla **antes** de vaciarla: despues no queda
+        # nada que mirar. La numeracion vive en los parrafos de titulo y los
+        # apartados en su texto, y los dos desaparecen con el cuerpo.
+        numera_ella = plantilla_numera(doc)
+        apartados_plantilla = sorted(localizar_apartados(doc))
         limpiar_cuerpo(doc)
     else:
         doc = Document()
@@ -416,7 +504,17 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
                       + ", ".join(est.faltan))
-    h = titulador(doc, est, numerar=bool(m.get("numerar_apartados", True)))
+    # Si la plantilla ya numera sus titulos, numerar aqui saca `1. 1. Introduccion`.
+    # Se deduce en vez de preguntarse, porque **Word engancha la numeracion al
+    # parrafo tan a menudo como al estilo** y mirando solo el estilo se concluye
+    # que no numera. El manifiesto sigue mandando si lo dice explicitamente.
+    if numera_ella:
+        avisos.append("la plantilla ya numera sus titulos: el generador no antepone "
+                      "el suyo, o saldria '1. 1. Introduccion'")
+    numerar = m.get("numerar_apartados")
+    if numerar is None:
+        numerar = not numera_ella
+    h = titulador(doc, est, numerar=bool(numerar))
     if branding:
         marca.aplicar_estilos_word(doc, branding)
     # Con plantilla, la cabecera y el pie son suyos: escribir ahi borraria los
@@ -548,6 +646,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # generacion, pero el skill tiene que cantarlos: en el DF sobran.
             "codigos_internos": codigos_internos(m),
             "cabecera_pie": cabecera_pie,
+            # Los apartados del DF que la plantilla ya traia. Hoy es informacion;
+            # es la base para escribir dentro de ellos en vez de rehacer el cuerpo.
+            "apartados_plantilla": apartados_plantilla,
+            "plantilla_numera": numera_ella,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el
