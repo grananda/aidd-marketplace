@@ -32,23 +32,37 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     """
     fallos = []
 
-    # El campo TOC: un elemento por run, que es como lo escribe Word. Todo
-    # amontonado en un unico run parece equivalente y no lo es: al actualizar el
-    # indice, Word calcula mal el limite del campo y la sustitucion se lleva por
-    # delante los parrafos siguientes --Introduccion y Alcance--.
-    toc = [p for p in doc.paragraphs
-           if any("fldChar" in _campos(r._r) for r in p.runs)
-           and any("instrText" in _campos(r._r) for r in p.runs)]
-    if not toc:
-        fallos.append(f"gen_df_docx.py {etiqueta}: no hay campo TOC; el indice "
-                      "escrito a mano se desfasa en cuanto alguien anada una seccion")
+    # El campo TOC, montado como lo monta Word: envuelto en un `sdt` de galeria
+    # "Table of Contents" y **repartido entre varios parrafos**, con el `begin`
+    # en el primero y el `end` en el ultimo. Meterlos en el mismo parrafo obliga
+    # a Word, al actualizar, a convertir un campo de un parrafo en uno de
+    # treinta, y al reconstruir el rango se lleva las marcas de parrafo
+    # siguientes: desaparecia el principio de Introduccion y Alcance. Los
+    # parrafos de un `sdt` no salen en `doc.paragraphs`, asi que se mira el XML.
+    from docx.oxml.ns import qn                                # noqa: PLC0415
+
+    cuerpo = doc.element.body
+    sdt = next((x for x in cuerpo.findall(qn("w:sdt"))
+                if (g := x.find(".//" + qn("w:docPartGallery"))) is not None
+                and g.get(qn("w:val")) == "Table of Contents"), None)
+    if sdt is None:
+        fallos.append(f"gen_df_docx.py {etiqueta}: el indice no va en un sdt de "
+                      "galeria 'Table of Contents'; escrito a mano se desfasa y "
+                      "montado a medias Word se come el texto al actualizarlo")
     else:
-        amontonados = [r for r in toc[0].runs if len(_campos(r._r)) > 1]
-        if amontonados:
-            fallos.append(
-                f"gen_df_docx.py {etiqueta}: el campo TOC mete "
-                f"{_campos(amontonados[0]._r)} en un solo run. Word escribe uno por "
-                "elemento; junto, al actualizar el indice se come el texto de despues")
+        for parr in sdt.findall(".//" + qn("w:p")):
+            marcas = [f.get(qn("w:fldCharType")) for f in parr.iter(qn("w:fldChar"))]
+            if "begin" in marcas and "end" in marcas:
+                fallos.append(
+                    f"gen_df_docx.py {etiqueta}: el campo TOC abre y cierra en el "
+                    "mismo parrafo. Word lo reparte; junto, al actualizar el "
+                    "indice se come el contenido de despues")
+                break
+            for r in parr.findall(qn("w:r")):
+                if len(_campos(r)) > 1:
+                    fallos.append(f"gen_df_docx.py {etiqueta}: el campo TOC mete "
+                                  f"{_campos(r)} en un solo run")
+                    break
 
     # Lo que tiene que completar una persona, resaltado. Sin esto un hueco pasa
     # desapercibido en un documento de veinte paginas y acaba firmado.

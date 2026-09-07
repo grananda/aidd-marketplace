@@ -261,34 +261,64 @@ def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | No
 
 
 def add_toc(doc) -> None:
-    """Indice como campo TOC: Word lo actualiza solo, escrito a mano se desfasa."""
+    """Indice como campo TOC, montado **igual que lo monta Word**.
+
+    Word lo envuelve en un `w:sdt` de galeria "Table of Contents" y, sobre todo,
+    reparte el campo entre varios parrafos: el `begin` en el primero del
+    resultado y el `end` en el ultimo. No es decoracion.
+
+    Meter `begin` y `end` en el **mismo** parrafo --que es lo que hacia esto--
+    obliga a Word, al actualizar, a convertir un campo de un parrafo en uno de
+    treinta, y al reconstruir el rango se lleva por delante las marcas de
+    parrafo siguientes: desaparecia el principio de Introduccion y Alcance.
+    Repartir los runs no bastaba; lo que importa es que el campo **ya nazca**
+    abarcando mas de un parrafo, como el que escribe Word.
+    """
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
 
-    p = doc.add_paragraph()
-
-    def elemento(tag: str, **attrs):
-        """Cada pieza del campo en **su propio run**, que es como lo escribe Word.
-
-        Amontonarlas en un unico run parece equivalente y no lo es: al actualizar
-        el indice, Word tiene que sustituir el resultado del campo --que es
-        multiparrafo-- y para eso necesita partir ese run. Con todo junto el
-        limite del campo se calcula mal y la sustitucion se lleva por delante
-        los parrafos siguientes, que aqui son justo Introduccion y Alcance.
-        """
-        el = OxmlElement(tag)
+    def elem(tag: str, **attrs):
+        e = OxmlElement(tag)
         for k, v in attrs.items():
-            el.set(qn(k.replace("__", ":")), v)
-        p.add_run()._r.append(el)
-        return el
+            e.set(qn(k.replace("__", ":")), v)
+        return e
 
-    elemento("w:fldChar", w__fldCharType="begin")
-    instr = elemento("w:instrText", xml__space="preserve")
+    def run(hijo):
+        r = elem("w:r")
+        r.append(hijo)
+        return r
+
+    sdt = elem("w:sdt")
+    pr = elem("w:sdtPr")
+    dpo = elem("w:docPartObj")
+    dpo.append(elem("w:docPartGallery", w__val="Table of Contents"))
+    dpo.append(elem("w:docPartUnique"))
+    pr.append(dpo)
+    sdt.append(pr)
+    contenido = elem("w:sdtContent")
+    sdt.append(contenido)
+
+    # Primer parrafo: begin, el codigo del campo, separate y el texto provisional.
+    campo = elem("w:p")
+    campo.append(run(elem("w:fldChar", w__fldCharType="begin")))
+    instr = elem("w:instrText", xml__space="preserve")
     instr.text = r' TOC \o "1-3" \h \z \u '
-    elemento("w:fldChar", w__fldCharType="separate")
-    aviso = elemento("w:t")
+    campo.append(run(instr))
+    campo.append(run(elem("w:fldChar", w__fldCharType="separate")))
+    aviso = elem("w:t")
     aviso.text = "Actualiza el índice en Word: clic derecho > Actualizar campos."
-    elemento("w:fldChar", w__fldCharType="end")
+    campo.append(run(aviso))
+    contenido.append(campo)
+
+    # Y el `end` en **su propio parrafo**: ahi esta el arreglo.
+    cierre = elem("w:p")
+    cierre.append(run(elem("w:fldChar", w__fldCharType="end")))
+    contenido.append(cierre)
+
+    # `add_paragraph` sabe colocarse antes del `sectPr`; el sdt ocupa su sitio.
+    ancla = doc.add_paragraph()
+    ancla._p.addprevious(sdt)
+    ancla._p.getparent().remove(ancla._p)
 
 
 # --- Documento ---------------------------------------------------------------

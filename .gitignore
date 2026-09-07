@@ -14,3 +14,5 @@ Pruebas-Samples/
 # Informe de trabajo de la auditoria de skills. Se regenera; no es del marketplace.
 Auditoria/
 figma/
+# Documentos de cliente para depurar el DF. Nunca al repo.
+DF/
