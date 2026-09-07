@@ -3,7 +3,7 @@ name: aiad-review
 description: AIAD (AI-Augmented Development, ia-in-the-loop) skill. Didactic review of the code the human wrote, via the command `aiad review`. Three focuses. `correctness` checks behavior, edge cases, errors, and coverage of the user story's acceptance criteria. `quality` checks readability, naming, duplication, fit with the architecture and style guide. `perf` proposes performance/refactor improvements demanding measurement first and a test safety net, distinguishing performance from readability and rejecting premature micro-optimizations. It applies a comprehensive review checklist (DRY/KISS, cohesion/coupling, security, cyclomatic complexity, regressions, contract/compat breakage, observability, resource leaks, race conditions, dead code, out-of-scope changes) with per-layer checklists for backend, API and frontend, and can run in merge-readiness mode against a base branch (`aiad review develop`). Every finding is evidence-backed, ordered by criticality, notes whether a new/modified test is needed, and may include a concrete current-code -> suggested-code change. It explains the WHY so the human learns and decides, and by default does NOT apply fixes. As a deliverable it generates a standalone HTML report with the referenced code lines (line-numbered, highlighted) and the recommended before/after changes. Pull, not push. Complements AIDD/SDD without modifying them. Use when the user says "review my code", "take a look at this", "code review of my changes", "revisar cambios contra develop", "merge readiness", "this can be improved", "this is slow", "refactor this", "this smells", or similar.
 metadata:
   author: Julio Fernández
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # aiad-review (AIAD · ia-in-the-loop)

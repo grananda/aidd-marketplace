@@ -3,7 +3,7 @@ name: aidd-style-guide
 description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la guia de estilos del producto, mediante el comando `aidd style-guide` (alias `aidd fase 2.3 estilos`). Actua como experto en diseno de producto y sistemas de diseno que lee `docs/detalle-historias-usuario.md` y la referencia visual o de marca y genera `docs/guia-estilos.md` con principios de diseno y UX, paleta de colores con valores hex, tipografia, espaciado, iconografia, design tokens CSS concretos --emitidos ademas como `docs/design/tokens.json` y `tokens.css`, para que el valor exista en un solo sitio en vez de retecleado a mano--, componentes base y pautas de uso, reglas de responsive y accesibilidad WCAG 2.1 AA, y estructura de pantallas y criterios de navegacion. Si el usuario lo indica, ofrece extraer la identidad visual de un diseno en Figma **solo via MCP** (`figma-developer-mcp`) o desde un export de design tokens a JSON; nunca por llamadas REST ni gestionando el token. De ahi sale lo basico --paleta, tipografia, espaciado, tokens--: la composicion de cada pantalla es trabajo del plugin `aifg`, y este skill ofrece encadenar con el. Paso del Diseno (AI Architect), complementario a la propuesta de arquitectura. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # aidd-style-guide (AIDD · Fase 2 · paso 2.3)

@@ -3,7 +3,7 @@ name: aidd-architecture-proposal
 description: Fase 2 (paso 2.3) del conjunto AIDD (AI Driven Development). Genera la propuesta de arquitectura base del producto, mediante el comando `aidd architecture-proposal` (alias `aidd fase 2.3 arquitectura`). Actua como experto en arquitectura de software que lee `docs/detalle-historias-usuario.md` y genera `docs/propuesta-arquitectura-base.md` con stack tecnico recomendado y justificado, organizacion de modulos y capas, gestion de estado y flujo de datos, estrategia de testing, y consideraciones de seguridad y escalabilidad alineadas con las historias. Paso del Diseno (AI Architect), complementario a la guia de estilos y previo a la arquitectura tecnica definitiva. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-architecture-proposal (AIDD · Fase 2 · paso 2.3)
