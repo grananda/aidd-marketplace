@@ -66,6 +66,13 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
         fallos.append(f"gen_df_docx.py {etiqueta}: el control de versiones firma "
                       f"con el nombre del skill ({autores})")
 
+    # Lo enumerado sale como vineta de Word. Un parrafo con cinco reglas
+    # separadas por comas no se lee, no se revisa y no da casos de prueba.
+    vinetas = [p.text for p in doc.paragraphs if p.style.name in ("List Bullet", "Lista con viñetas")]
+    if not any("Node 20" in v for v in vinetas):
+        fallos.append(f"gen_df_docx.py {etiqueta}: las lineas que empiezan por '- ' "
+                      f"no salen como vineta ({vinetas[:3]})")
+
     # Los codigos internos se cazan y se dicen, con su seccion.
     codigos = salida_json.get("codigos_internos")
     if codigos is None:
@@ -183,7 +190,8 @@ with tempfile.TemporaryDirectory() as tmp:
                       "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",
                                    "core": "N/A"},
                       "pantallas": "[PENDIENTE: insertar la pantalla de Figma]",
-                      "especificaciones_tecnicas": "N/A"}
+                      # Lo que se enumera sale como vineta, no como parrafo corrido.
+                      "especificaciones_tecnicas": ["- Node 20", "- PostgreSQL 15"]}
         (d / "m.json").write_text(json.dumps(manifiesto), encoding="utf-8")
 
         # Plantilla como la de un cliente: estilo en espanol, relleno, y una

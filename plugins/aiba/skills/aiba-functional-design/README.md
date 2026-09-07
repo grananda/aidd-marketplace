@@ -34,6 +34,8 @@ Complementa con `mapa-historias-usuario.md` (persona y fase), `requisitos.md` (l
 
 **No inventa.** Un DF se firma y se desarrolla contra él, así que lo que no se deduce de la documentación se marca como `[PENDIENTE: ...]` y **genera una fila en Puntos abiertos**. Esa tabla convierte las lagunas en trabajo asignable en vez de en texto plausible. El resumen final dice cuántos puntos abiertos tiene cada documento, que es el mejor indicador de si está listo para revisarse.
 
+**Lo que se enumera sale como lista.** En cuanto hay más de dos elementos —validaciones, mensajes, campos, integraciones, pasos de un flujo— va uno por línea como viñeta de Word, no metido en un párrafo separado por comas. Quien revisa el DF necesita poder señalar el tercer elemento, y para eso tiene que existir como elemento.
+
 Cada `[PENDIENTE: ...]` sale **resaltado en amarillo**, también dentro de las tablas. Un DF de veinte páginas se lee en diagonal, y un hueco sin resaltar acaba firmado como si fuera contenido.
 
 Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay nada; el segundo admite que no se sabe.
