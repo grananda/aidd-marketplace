@@ -17,17 +17,34 @@ espera a que el humano lo apruebe** antes de pasar al siguiente:
    el primer commit --no al final-- y enlaza el issue. Trabajar en draft es lo
    que hace que el humano pueda ver el avance y cortar a tiempo si va por mal
    camino; un PR que aparece terminado ya no se puede redirigir.
-4. **Sube la version en el propio PR.** Todo cambio que entre en `main` tiene
-   que traer version nueva en el fichero `VERSION` de la raiz, y en el
-   `plugin.json` de cada plugin que hayas tocado. **Es lo que dispara el
-   release**: `release.yml` corre en cada push a `main` pero solo publica si la
-   etiqueta `v<VERSION>` no existe todavia, asi que un merge sin subir `VERSION`
-   **no publica nada y no falla** --el cambio se queda en `main` sin llegar a
-   quien tiene el marketplace instalado, y nadie se entera--. No lo dejes para
-   despues del merge: la version viaja en el mismo PR que el cambio.
-   > `validate.yml` solo caza el caso de un `plugin.json` subido con `VERSION`
-   > sin subir. Un cambio que no toque ningun `plugin.json` --documentacion,
-   > scripts de `.github/`-- pasa el CI en verde sin release. Ese es tuyo.
+4. **Sube las versiones en el propio PR, y actualiza los README.** No lo dejes
+   para despues del merge: viajan en el mismo PR que el cambio.
+
+   La regla de las versiones es una y tiene dos mitades:
+
+   - **`VERSION`, la global, sube siempre**, y **en la medida de lo cambiado**:
+     una averia corregida es `patch`, comportamiento nuevo es `minor`. **Es lo
+     que dispara el release**: `release.yml` corre en cada push a `main` pero
+     solo publica si la etiqueta `v<VERSION>` no existe, asi que un merge sin
+     subirla **no publica nada y tampoco falla** --el cambio se queda en `main`
+     en verde sin llegar a quien tiene el marketplace instalado--.
+   - **La del skill y la de su plugin suben solo cuando cambia ese skill o ese
+     plugin concreto.** No se tocan las de los demas. Y a la inversa: si tocas
+     un skill, su `metadata.version` sube, aunque el cambio te parezca menor.
+     Retocar solo un README no cuenta: no cambia lo que el skill hace.
+
+   **Y el README acompana al `SKILL.md`.** Si el skill tiene `README.md` --seis
+   de treinta y cinco lo tienen-- y cambias su `SKILL.md`, cambias tambien el
+   README: el README es lo que lee una persona y el `SKILL.md` lo que lee el
+   agente, y cuando divergen el skill hace una cosa y el repo promete otra. Si
+   el cambio altera lo que el marketplace promete, toca ademas el `README.md`
+   de la raiz y la `description` del `plugin.json`.
+
+   > Esto lo vigila `check_versions.py` en cada PR, y no por gusto: el commit
+   > `81fa321` modifico diecinueve `SKILL.md` --les metio el bloque entero sobre
+   > resolver `${CLAUDE_PLUGIN_ROOT}`-- y subio una sola version. Dieciocho
+   > skills cambiaron de comportamiento y siguen anunciando la version de antes.
+   > La regla escrita ya existia; lo que faltaba era quien la comprobara.
 
 5. **Draft a final y merge, solo cuando el humano lo diga.** No marques el PR
    como listo ni lo mergees por iniciativa propia, ni siquiera con el CI en
@@ -40,17 +57,11 @@ Si el humano pide saltarse un paso, se salta ese paso y no los demas.
 - **Los commits y los PR van en espanol**, con prefijo `feat(<plugin>)`,
   `fix(<plugin>)` o `docs`. El titulo dice el efecto para quien usa el skill, no
   el fichero que se ha tocado.
-- **Tres versiones, no una** (ver el paso 4): la del `SKILL.md` que hayas
-  tocado, la del `plugin.json` de su plugin y la de `VERSION`. Semver sobre el
-  efecto para quien usa el skill: comportamiento nuevo es `minor`, una averia
-  corregida es `patch`.
 - **Los `SKILL.md` se escriben sin acentos**, por compatibilidad entre
   plataformas de agentes. La regla es del codigo fuente: **el contenido que
   generan los skills --un `.docx` que firma un cliente-- va en espanol correcto,
   con sus tildes.**
-- **`SKILL.md` y `README.md` de un skill se cambian juntos.** El README es lo que
-  lee una persona y el SKILL lo que lee el agente; si divergen, el skill hace una
-  cosa y el repo promete otra.
 - **CI:** `.github/workflows/validate.yml` corre los `check_*.py` de
   `.github/scripts/` en cada PR. Ejecuta localmente el que cubra tu cambio antes
-  de empujar.
+  de empujar; `check_versions.py` acepta la base como argumento
+  (`python3 .github/scripts/check_versions.py main`).
