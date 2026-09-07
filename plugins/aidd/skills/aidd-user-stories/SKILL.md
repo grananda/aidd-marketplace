@@ -3,7 +3,7 @@ name: aidd-user-stories
 description: Fase 1 (paso 1.2) del conjunto AIDD (AI Driven Development). Descompone los requisitos formales en un mapa de historias de usuario, mediante el comando `aidd user-stories` (alias `aidd fase 1.2`). Actua como Product Owner experto que lee `docs/requisitos.md` y genera `docs/mapa-historias-usuario.md` con las personas/roles, un backbone de actividades principales, agrupacion por fases (F0 foundation, F1, F2...), historias con ID unico en formato Como/quiero/para, criterio de salida por fase, priorizacion MoSCoW para Fase 1 y referencia al RF correspondiente. Permite indicar opcionalmente el numero de fases deseado o un minimo (por ejemplo `aidd user-stories fases=4` o `fases>=3`); si no se indica, el numero emerge de la cohesion logica. F0 foundation es la fase de habilitadores (walking skeleton), nunca el nucleo funcional de valor (que va a F1+), y no debe confundirse con el change `foundation` de scaffolding del roadmap. Segundo paso de la Definicion (AI Architect), entre los requisitos formales y el detalle de historias. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # aidd-user-stories (AIDD · Fase 1 · paso 1.2)

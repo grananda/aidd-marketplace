@@ -3,7 +3,7 @@ name: aidd-client-requirements
 description: Fase 0 del conjunto AIDD (AI Driven Development). Captura y estructura el brief del cliente antes de que ningun rol de IA produzca contenido, mediante el comando `aidd client-requirements` (alias `aidd fase 0`). Actua como consultor tecnico experto que recopila contexto, stack, restricciones y documentacion aportada, formula las preguntas clave e identifica riesgos y ambiguedades, y genera `docs/cliente-requisitos.md` con suficiente contexto para que la Fase 1 (AI Architect) arranque sin preguntas. Opcionalmente crea o actualiza `AGENTS.md` con contexto, stack y convenciones del proyecto. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-client-requirements (AIDD · Fase 0)

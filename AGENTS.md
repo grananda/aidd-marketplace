@@ -43,8 +43,13 @@ espera a que el humano lo apruebe** antes de pasar al siguiente:
    > Esto lo vigila `check_versions.py` en cada PR, y no por gusto: el commit
    > `81fa321` modifico diecinueve `SKILL.md` --les metio el bloque entero sobre
    > resolver `${CLAUDE_PLUGIN_ROOT}`-- y subio una sola version. Dieciocho
-   > skills cambiaron de comportamiento y siguen anunciando la version de antes.
-   > La regla escrita ya existia; lo que faltaba era quien la comprobara.
+   > skills quedaron anunciando una version que ya no correspondia a lo que
+   > hacian. La regla escrita ya existia; lo que faltaba era quien la comprobara.
+   >
+   > **Y las versiones son independientes entre si.** La global no tiene por que
+   > coincidir con la de ningun skill ni con la de ningun plugin: cada uno lleva
+   > la suya y avanza a su ritmo. Que un skill vaya por `1.2.0` y el marketplace
+   > por `1.44.0` es lo normal, no un desajuste que haya que corregir.
 
 5. **Draft a final y merge, solo cuando el humano lo diga.** No marques el PR
    como listo ni lo mergees por iniciativa propia, ni siquiera con el CI en

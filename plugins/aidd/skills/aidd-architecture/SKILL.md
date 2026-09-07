@@ -3,7 +3,7 @@ name: aidd-architecture
 description: Fase 2 (paso 2.4) del conjunto AIDD (AI Driven Development). Consolida la arquitectura tecnica definitiva e implementable del producto, mediante el comando `aidd architecture` (alias `aidd fase 2.4`). Actua como arquitecto de software senior que analiza como fuentes de verdad `docs/detalle-historias-usuario.md`, `docs/propuesta-arquitectura-base.md` y `docs/guia-estilos.md` y genera `docs/arquitectura-base.md` con objetivo y alcance, principios y decisiones arquitectonicas explicitas, arbol de carpetas real, descomposicion por modulos, capas y responsabilidades, flujos de informacion, gestion de estado, navegacion, integraciones, seguridad, accesibilidad, observabilidad, rendimiento, escalabilidad y riesgos. Si el producto vive en **varios repositorios** los declara en su seccion 3 con una tabla `id | contiene` --con el nombre basta; ni URL ni ruta--: sin repo padre ni submodulos, y declararlos hace que `aisdd roadmap` **pregunte la topologia**: `fraccionado` (un `openspec/` y una copia de `docs/` por repo, con un lane por repo) o `externalizado` (unos solos fuera de los repos, referenciados desde su `AGENTS.md`). Exige que los repos sean independientes en codigo: lo que compartan viaja como artefacto versionado, y un repo que necesita el fuente de otro es una frontera mal puesta que se registra como riesgo. Es el insumo principal del roadmap y cierra el Diseno (AI Architect). Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # aidd-architecture (AIDD · Fase 2 · paso 2.4)

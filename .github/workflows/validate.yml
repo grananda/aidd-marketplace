@@ -19,8 +19,8 @@ jobs:
 
       # Tres versiones que se olvidan solas, y un README que se queda atras.
       # `81fa321` es el aviso: modifico diecinueve SKILL.md y subio una version,
-      # y esos dieciocho skills siguen anunciando la de antes. El script mira solo
-      # lo que toca el PR; la deriva vieja se corrige segun se toque cada skill.
+      # y dieciocho skills quedaron anunciando la de antes. El script mira solo lo
+      # que toca el PR, que es lo unico que se puede exigir sin discutir.
       - name: Las versiones acompanan a lo que cambia
         if: github.event_name == 'pull_request'
         run: python3 .github/scripts/check_versions.py "origin/${{ github.base_ref }}"

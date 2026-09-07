@@ -3,7 +3,7 @@ name: aidd-prototype-architecture
 description: Fase 2 (paso 2.1) del conjunto AIDD (AI Driven Development). Disena la arquitectura de un prototipo 100% mockeado para validar requisitos con el cliente, mediante el comando `aidd prototype-architecture` (alias `aidd fase 2.1`). Actua como Product Owner y arquitecto de software que lee `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/arquitectura-base-prototipo.md` con stack minimo, componentes y modulos de los flujos principales, pantallas o endpoints clave, estrategia de mocks, datos de ejemplo del dominio, supuestos y exclusiones, y pasos minimos de implementacion. Primer paso del Diseno (AI Architect) y entrada de la implementacion del prototipo. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-prototype-architecture (AIDD · Fase 2 · paso 2.1)

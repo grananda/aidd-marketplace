@@ -3,7 +3,7 @@ name: aiba-project-plan
 description: Fase 3.5 (paso 3.5.1) del proceso AIDD-SDD, cubierta por el conjunto AIBA (AI Business Analyst): capa de planificacion de entrega (Delivery). Genera el plan de recursos del proyecto una vez aprobado el diseno, mediante el comando `aiba project-plan` (alias `aiba planificacion proyecto`). Actua como delivery manager tecnico que lee `docs/arquitectura-base.md`, `docs/mapa-historias-usuario.md` y `docs/detalle-historias-usuario.md` y genera `docs/planificacion-proyecto.md` con perfiles y equipo recomendado, software y licencias, infraestructura y entornos, doble estimacion de esfuerzo en paralelo (humano clasico a partir de XS/S/M/L/XL vs esfuerzo estimado con IA) con KPIs de la diferencia (ahorro, % de reduccion, factor de aceleracion), dependencias y prerequisitos de recursos, y riesgos de recursos. Es el insumo del skill `aiba-sprint-planning`. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "2.2.0"
+  version: "2.3.0"
 ---
 
 # aiba-project-plan (AIBA · Fase 3.5 · paso 3.5.1 · recursos)

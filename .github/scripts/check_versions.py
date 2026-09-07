@@ -3,14 +3,14 @@
 
 Existe porque la regla escrita no basto. El commit `81fa321` modifico
 diecinueve `SKILL.md` --les metio el bloque entero sobre resolver
-`${CLAUDE_PLUGIN_ROOT}`-- y subio una sola version: dieciocho skills cambiaron
-de comportamiento y siguen anunciando la version de antes. Quien tiene el
-marketplace instalado no tiene forma de saber que le toca reinstalar.
+`${CLAUDE_PLUGIN_ROOT}`-- y subio una sola version: dieciocho skills quedaron
+anunciando una version que ya no correspondia a lo que hacian, y quien tenia el
+marketplace instalado no tenia forma de saber que le tocaba reinstalar. Esa
+deriva se salda en el mismo PR que introduce este script.
 
 Mira **solo lo que toca el PR**, que es la unica pregunta que se puede
 responder sin discutir: si en esta rama cambiaste un skill, su version cambia en
-esta rama. La deriva vieja no la toca; se corrige sola segun se vaya tocando
-cada skill.
+esta rama.
 
 Las cuatro reglas:
 
@@ -23,7 +23,10 @@ Las cuatro reglas:
 3. Si algun skill de un plugin necesita bump, o cambian los scripts comunes del
    plugin, cambia la version de su `plugin.json`.
 4. Si cambia un `SKILL.md` que **tiene** README, cambia tambien el README. No
-   obliga a crear los que faltan; obliga a que el que existe no mienta.
+   obliga a crear los que faltan; obliga a que el que existe no mienta. Un
+   `SKILL.md` en el que **solo** cambia la linea `version:` no cuenta: subir el
+   numero no hace mentir a ningun README, y exigir una edicion ahi solo produce
+   cambios postizos.
 
 Uso:  python3 .github/scripts/check_versions.py [base]     # base: origin/main
 """
@@ -64,6 +67,14 @@ def version_plugin(texto: str | None) -> str | None:
         return json.loads(texto).get("version")
     except json.JSONDecodeError:
         return None
+
+
+def solo_sube_version(base: str, ruta: str) -> bool:
+    """True si lo unico que cambia en el fichero es su linea `version:`."""
+    diff = sh("git", "diff", "-U0", f"{base}...HEAD", "--", ruta)
+    lineas = [l for l in diff.splitlines()
+              if l[:1] in "+-" and not l.startswith(("+++", "---"))]
+    return bool(lineas) and all(re.match(r'^[+-]\s*version:\s*"', l) for l in lineas)
 
 
 def cambia(base: str, ruta: str, extractor) -> bool:
@@ -111,7 +122,8 @@ def main() -> int:
         # 4. El README que existe no se queda atras.
         readme = f"{skill}/README.md"
         if f"{skill}/SKILL.md" in ficheros and en("HEAD", readme) is not None \
-                and readme not in ficheros:
+                and readme not in ficheros \
+                and not solo_sube_version(base, f"{skill}/SKILL.md"):
             errores.append(
                 f"{skill}: cambia el SKILL.md y su README.md no. Si divergen, el "
                 "skill hace una cosa y el repo promete otra.")

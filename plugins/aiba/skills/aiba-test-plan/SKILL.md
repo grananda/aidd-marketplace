@@ -3,7 +3,7 @@ name: aiba-test-plan
 description: AIBA (AI Business Analyst) — genera el Plan de Pruebas de cada historia de usuario, mediante el comando `aiba test-plan [HU-XX]` (alias `aiba plan-pruebas`, `aiba pruebas`). Actua como analista de QA que lee `docs/detalle-historias-usuario.md` como fuente de verdad —y el Diseno Funcional de `docs/df/` cuando existe, que es mejor fuente porque sus validaciones y mensajes ya son casos de prueba— y produce dos entregables por HU en `docs/pruebas/`: un `.xlsx` con el inventario de casos (Hoja de Control, Especificaciones con las diecisiete columnas de la plantilla de referencia, Parametros de nomenclatura, rejilla de Ejecucion, exportacion a Qmetry y Resumen con KPIs vivos) y un `.docx` de evidencias con un bloque por caso listo para adjuntar la captura. Cubre el nivel Pruebas de Sistema-Funcionales, que es el que se deriva de los criterios de aceptacion; no inventa unitarias ni de integracion. Cada caso lleva codigo estable `PS.FU.CU01.01`, marca de ejecucion manual o automatizable —que dimensiona el trabajo de cada regresion— y el change del roadmap al que pertenece, para que el Outcome Validator sepa que casos le tocan al cerrar cada change. El diseno es generico y sin marca: usa estilos nativos de Word y de Excel para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y pregunta antes si se desea aplicar una marca. Funciona sobre todas las HU o una sola. Genera el plan; no ejecuta las pruebas. Usar cuando el usuario pida "genera el plan de pruebas", "casos de prueba de la HU-06", "documento de evidencias", "plan de testing", o equivalentes.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # aiba-test-plan (AIBA · Plan de Pruebas)

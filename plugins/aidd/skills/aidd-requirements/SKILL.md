@@ -3,7 +3,7 @@ name: aidd-requirements
 description: Fase 1 (paso 1.1) del conjunto AIDD (AI Driven Development). Transforma el brief del cliente en requisitos formales trazables, mediante el comando `aidd requirements` (alias `aidd fase 1.1`). Actua como Product Owner experto en el dominio que lee `docs/cliente-requisitos.md` y genera `docs/requisitos.md` con descripcion del sistema, usuarios y roles con permisos, requisitos funcionales numerados (RF-XX), requisitos no funcionales (NFR-XX), restricciones tecnicas no negociables, alcance dentro/fuera y variables de entorno requeridas. Primer paso de la Definicion (AI Architect) y entrada del mapa de historias de usuario. Skill de planificacion, autonomo del mundo OpenSpec/aisdd-specs y sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # aidd-requirements (AIDD · Fase 1 · paso 1.1)
