@@ -48,7 +48,11 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 
 ## Diseño: genérico, pero estructurado
 
-El comando **pregunta antes de generar nada** con qué aspecto sale el documento. Si el cliente tiene una **plantilla `.docx`/`.dotx`**, esa es la respuesta: el DF hereda sus estilos y su formato de página, y **su cabecera y su pie salen intactos, con el logo del cliente** —el generador no los toca cuando traen algo—. Si no la hay, el documento sale **sin logotipos ni colores corporativos**, con la opción de aplicar una marca desde una carpeta local o desde una URL.
+El comando **pregunta antes de generar nada** con qué aspecto sale el documento. Si el cliente tiene una **plantilla `.docx`/`.dotx`**, esa es la respuesta.
+
+Una plantilla de cliente no suele ser un juego de estilos: es el documento entero montado, con su portada, su logo, sus tablas de control, su índice y sus apartados numerados. Cuando el generador reconoce esos apartados entra en **modo esqueleto** y **escribe dentro de ellos**, sustituyendo solo el texto de ejemplo. Todo lo demás se queda intacto porque nunca se toca. Si la plantilla no trae apartados reconocibles, se usa por sus estilos y el cuerpo se escribe entero —y el resumen lo dice, para que nadie descubra en la página uno que salió la portada equivocada—.
+
+Sin plantilla, el documento sale **sin logotipos ni colores corporativos**, con la opción de aplicar una marca desde una carpeta local o desde una URL.
 
 La razón es práctica: un DF acaba en manos de un cliente que tiene su propia identidad. Generarlo con la marca de quien lo escribe obliga a rehacerlo. Generarlo neutro **pero bien estructurado** permite aplicar cualquier identidad en minutos, porque:
 

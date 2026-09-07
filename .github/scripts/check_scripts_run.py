@@ -41,6 +41,9 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     # parrafos de un `sdt` no salen en `doc.paragraphs`, asi que se mira el XML.
     from docx.oxml.ns import qn                                # noqa: PLC0415
 
+    if etiqueta == "con esqueleto":
+        return fallos          # el indice y las tablas los pone la plantilla
+
     cuerpo = doc.element.body
     sdt = next((x for x in cuerpo.findall(qn("w:sdt"))
                 if (g := x.find(".//" + qn("w:docPartGallery"))) is not None
@@ -97,21 +100,21 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     return fallos
 
 
-def _revisar_plantilla(doc) -> list[str]:
+def _revisar_plantilla(doc, etiqueta: str = "con plantilla") -> list[str]:
     """La cabecera y el pie del cliente sobreviven, con su logo."""
     from docx.oxml.ns import qn                                # noqa: PLC0415
 
     fallos = []
     cab = doc.sections[0].header
     if next(cab._element.iter(qn("w:drawing")), None) is None:
-        fallos.append("gen_df_docx.py con plantilla: el logo de la cabecera "
+        fallos.append(f"gen_df_docx.py {etiqueta}: el logo de la cabecera "
                       "desaparece. Escribir con `p.text = ...` borra los runs del "
                       "parrafo, y con ellos el w:drawing")
     if "CABECERA DEL CLIENTE" not in "".join(p.text for p in cab.paragraphs):
-        fallos.append("gen_df_docx.py con plantilla: el texto de cabecera del "
+        fallos.append(f"gen_df_docx.py {etiqueta}: el texto de cabecera del "
                       "cliente se sustituye por el del skill")
     if "PIE DEL CLIENTE" not in "".join(p.text for p in doc.sections[0].footer.paragraphs):
-        fallos.append("gen_df_docx.py con plantilla: el pie del cliente se pisa")
+        fallos.append(f"gen_df_docx.py {etiqueta}: el pie del cliente se pisa")
     return fallos
 
 
@@ -233,8 +236,26 @@ with tempfile.TemporaryDirectory() as tmp:
         tpl.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         tpl.save(str(d / "tpl.docx"))
 
+        # Plantilla-esqueleto: el DF entero ya montado, que es lo que trae un
+        # cliente de verdad. Portada con logo en el cuerpo, tablas propias y
+        # texto de ejemplo. El generador tiene que escribir DENTRO y no arrasar.
+        esq = _docx.Document()
+        cab_e = esq.sections[0].header.paragraphs[0]
+        cab_e.add_run().add_picture(str(d / "logo.png"), height=Cm(1))
+        cab_e.add_run("CABECERA DEL CLIENTE")
+        esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
+        esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
+        esq.add_paragraph("Control de Versiones")
+        esq.add_table(rows=1, cols=4).style = "Table Grid"
+        for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
+                       ("Criterios de aceptación", 1), ("Puntos abiertos", 1)):
+            esq.add_paragraph(t_, style=f"Heading {n_}")
+            esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
+        esq.save(str(d / "esq.docx"))
+
         for etiqueta, extra in (("sin plantilla", []),
-                                ("con plantilla", ["--plantilla", str(d / "tpl.docx")])):
+                                ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),
+                                ("con esqueleto", ["--plantilla", str(d / "esq.docx")])):
             salida = d / f"df-{etiqueta.split()[0]}.docx"
             r = subprocess.run([sys.executable, str(DF), "--manifest", str(d / "m.json"),
                                 "--output", str(salida), "--no-install"] + extra,
@@ -250,16 +271,32 @@ with tempfile.TemporaryDirectory() as tmp:
             doc = _docx.Document(str(salida))
             titulos = [p.text for p in doc.paragraphs
                        if p.style.name in ("Heading 1", "Título 1")]
-            if not any(x.startswith("1. ") for x in titulos):
+            # En modo esqueleto los titulos --y su numeracion-- son de la
+            # plantilla: el generador no los escribe y no le toca numerarlos.
+            if etiqueta != "con esqueleto" and not any(x.startswith("1. ") for x in titulos):
                 errors.append(f"gen_df_docx.py {etiqueta}: los apartados no salen "
                               f"numerados ({titulos[:3]})")
             errors.extend(_revisar_df(doc, salida_json, etiqueta))
 
-            if "con plantilla" in etiqueta:
+            if "con esqueleto" in etiqueta:
+                from docx.oxml.ns import qn                     # noqa: PLC0415
+                if salida_json.get("modo") != "esqueleto":
+                    errors.append("gen_df_docx.py: con una plantilla que trae los "
+                                  "apartados del DF no entra en modo esqueleto y "
+                                  "rehace el cuerpo, perdiendo portada y logo")
+                if any("TEXTO DE EJEMPLO" in p.text for p in doc.paragraphs):
+                    errors.append("gen_df_docx.py esqueleto: queda texto de ejemplo "
+                                  "de la plantilla dentro de los apartados")
+                if not doc.element.body.findall(".//" + qn("w:drawing")):
+                    errors.append("gen_df_docx.py esqueleto: se pierde el logo de la "
+                                  "portada; el cuerpo de la plantilla no se toca")
+                errors.extend(_revisar_plantilla(doc, etiqueta))
+
+            if etiqueta == "con plantilla":
                 if any("RELLENO DE LA PLANTILLA" in p.text for p in doc.paragraphs):
                     errors.append("gen_df_docx.py: el contenido de ejemplo de la "
                                   "plantilla acaba dentro del DF")
-                errors.extend(_revisar_plantilla(doc))
+                errors.extend(_revisar_plantilla(doc, etiqueta))
 
 if errors:
     print("Scripts que compilan pero no funcionan:", file=sys.stderr)
