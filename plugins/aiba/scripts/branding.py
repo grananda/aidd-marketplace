@@ -97,41 +97,89 @@ def aplicar_estilos_word(doc, branding: dict) -> None:
             pass  # el estilo no existe en la plantilla base; no es motivo de fallo
 
 
-def cabecera_pie_word(doc, branding: dict, cabecera: str, pie: str) -> None:
+def _partes(seccion, clase: str) -> list:
+    """Las tres variantes de cabecera (o de pie) que puede tener una seccion.
+
+    Word guarda hasta tres --normal, primera pagina y paginas pares-- y una
+    plantilla corporativa suele poner el logo solo en la de primera pagina.
+    Mirar unicamente la normal haria concluir que no hay cabecera y pisarla.
+    """
+    fuera = []
+    for n in (clase, f"first_page_{clase}", f"even_page_{clase}"):
+        parte = getattr(seccion, n, None)  # las variantes existen desde python-docx 1.1
+        if parte is not None:
+            fuera.append(parte)
+    return fuera
+
+
+def _tiene_contenido(parte) -> bool:
+    """True si una cabecera o un pie ya trae algo propio.
+
+    Mirar solo el texto no vale: una cabecera corporativa suele ser **solo** el
+    logo, y un `w:drawing` no tiene ningun `w:t` que leer. De ahi que se
+    pregunte tambien por imagenes, objetos y campos.
+    """
+    from docx.oxml.ns import qn
+
+    el = parte._element
+    if any((t.text or "").strip() for t in el.iter(qn("w:t"))):
+        return True
+    return any(next(el.iter(qn(tag)), None) is not None
+               for tag in ("w:drawing", "w:pict", "w:object", "w:fldChar"))
+
+
+def cabecera_pie_word(doc, branding: dict, cabecera: str, pie: str,
+                      respetar_existente: bool = False) -> list[str]:
     """Cabecera y pie como campos de Word, no como texto fijo.
 
     El numero de pagina va como campo `PAGE` a proposito: escrito a mano seria
     correcto solo en la pagina uno.
+
+    Con `respetar_existente` **no se toca lo que ya haya**. Es lo que hace que
+    una plantilla del cliente sirva de algo: escribir aqui es destructivo
+    --asignar `p.text` borra los runs del parrafo, y con ellos el `w:drawing`
+    del logo--, asi que ante una cabecera con contenido la plantilla manda y
+    esta funcion se aparta. Devuelve que decidio, para que el generador lo
+    pueda contar en su resumen.
     """
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
-    from docx.shared import Cm
 
+    notas: list[str] = []
     seccion = doc.sections[0]
 
-    p = seccion.header.paragraphs[0]
-    p.text = branding.get("texto_cabecera") or cabecera
-    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    if respetar_existente and any(_tiene_contenido(x) for x in _partes(seccion, "header")):
+        notas.append("cabecera heredada de la plantilla (no se ha tocado)")
+    else:
+        p = seccion.header.paragraphs[0]
+        p.text = branding.get("texto_cabecera") or cabecera
+        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-    logo = branding.get("logo")
-    if logo:
-        try:
-            p.insert_paragraph_before().add_run().add_picture(logo, height=Cm(1.2))
-        except Exception:  # noqa: BLE001 - un logo ilegible no tumba el documento
-            sys.stderr.write(f"Aviso: no se pudo insertar el logo '{logo}'; se omite.\n")
+        logo = branding.get("logo")
+        if logo:
+            from docx.shared import Cm
+            try:
+                p.insert_paragraph_before().add_run().add_picture(logo, height=Cm(1.2))
+            except Exception:  # noqa: BLE001 - un logo ilegible no tumba el documento
+                sys.stderr.write(f"Aviso: no se pudo insertar el logo '{logo}'; se omite.\n")
 
-    pf = seccion.footer.paragraphs[0]
-    pf.text = (branding.get("texto_pie") or pie) + "  ·  Página "
-    pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = pf.add_run()
-    for tipo, texto in (("begin", None), (None, "PAGE"), ("end", None)):
-        el = OxmlElement("w:fldChar") if tipo else OxmlElement("w:instrText")
-        if tipo:
-            el.set(qn("w:fldCharType"), tipo)
-        else:
-            el.text = texto
-        run._r.append(el)
+    if respetar_existente and any(_tiene_contenido(x) for x in _partes(seccion, "footer")):
+        notas.append("pie heredado de la plantilla (no se ha tocado)")
+    else:
+        pf = seccion.footer.paragraphs[0]
+        pf.text = (branding.get("texto_pie") or pie) + "  ·  Página "
+        pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = pf.add_run()
+        for tipo, texto in (("begin", None), (None, "PAGE"), ("end", None)):
+            el = OxmlElement("w:fldChar") if tipo else OxmlElement("w:instrText")
+            if tipo:
+                el.set(qn("w:fldCharType"), tipo)
+            else:
+                el.text = texto
+            run._r.append(el)
+
+    return notas
 
 
 def sombrear_celda_word(celda, color_hex: str) -> None:

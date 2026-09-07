@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import date
@@ -76,12 +77,16 @@ def _ensure_docx(allow_install: bool) -> None:
 SCHEMA = """\
 Esquema del manifiesto (JSON). Todo lo que falte se omite o sale como pendiente.
 
+Los `[PENDIENTE: ...]` que escribas en cualquier campo de texto salen resaltados
+en amarillo, tambien dentro de las tablas. Escribelos literales y entre
+corchetes: parafrasearlos ("falta por definir") pierde el resaltado.
+
 {
   "proyecto":  "SUPLEMENTOS",             # nombre corto; va en portada y cabecera
   "hu_id":     "HU-03",
   "titulo":    "Busqueda de Poliza",
   "version":   "1.0",
-  "autor":     "Nombre Apellido",
+  "autor":     "Nombre Apellido",         # la persona que firma; nunca el skill
   "fecha":     "2026-08-27",              # opcional; por defecto, hoy
 
   "control_versiones":   [{"fecha": "...", "version": "1.0",
@@ -111,6 +116,8 @@ Esquema del manifiesto (JSON). Todo lo que falte se omite o sale como pendiente.
 
   "secciones_adicionales": [{"titulo":"Glosario","contenido":"texto o lista"}],
 
+  # Con --plantilla, la cabecera y el pie de la plantilla se respetan tal cual
+  # (logo incluido) y `texto_cabecera` / `texto_pie` no se aplican.
   "branding": {                            # opcional; sin el, documento neutro
     "color_principal":  "1F3864",
     "color_secundario": "2E74B5",
@@ -125,6 +132,80 @@ Esquema del manifiesto (JSON). Todo lo que falte se omite o sale como pendiente.
 # el DOCUMENTO GENERADO lo lee y lo firma un cliente: ahi el espanol va con sus
 # tildes. La regla aplica al contenido de salida, no al codigo ni a las instrucciones.
 PENDIENTE = "[PENDIENTE: sin información en la documentación de origen]"
+
+# Lo que tiene que completar una persona sale **resaltado en amarillo**. Un DF
+# de veinte paginas se lee en diagonal, y un `[PENDIENTE]` en texto normal pasa
+# desapercibido: acaba firmado como si fuera contenido. El resaltado es la
+# unica forma de que un hueco se vea sin leer el documento entero.
+MARCA_PENDIENTE = re.compile(
+    r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]")
+
+# Codigos internos que no pintan nada en un DF: quien lo revisa no tiene esos
+# documentos y el codigo no le dice nada. `HU-` y `PA-` se quedan --dan nombre
+# al fichero y a los puntos abiertos--. Ver la regla "Sin codigos internos".
+CODIGO_INTERNO = re.compile(
+    r"\b(?:RF|RNF|NFR|GAP|RN|REQ|US|EPIC|HIST)-\s?\d+", re.IGNORECASE)
+
+# Nombres que delatan que el "autor" es la herramienta y no una persona. Del
+# control de versiones responde alguien ante el cliente, y ningun skill
+# responde de nada.
+NO_ES_AUTOR = re.compile(
+    r"aiba|aidd|aisdd|claude|gpt|copilot|assistant|gen_df|\bskills?\b|\bagente\b|\bia\b",
+    re.IGNORECASE)
+
+
+def autor_persona(valor) -> tuple[str, str | None]:
+    """El autor, o vacio y un aviso si lo que llega es el nombre del generador."""
+    v = str(valor or "").strip()
+    if not v:
+        return "", None
+    if NO_ES_AUTOR.search(v):
+        return "", (f"el autor '{v}' parece la herramienta y no una persona; se deja "
+                    "vacio para que lo rellene el analista que firma el documento")
+    return v, None
+
+
+def codigos_internos(valor, ruta: str = "") -> list[str]:
+    """Donde han quedado codigos internos en el contenido, con su ubicacion.
+
+    No bloquea la generacion a proposito: cortar un lote de veinte HU por una
+    sigla deja al analista sin los otros diecinueve documentos. Lo que hace es
+    decir exactamente donde estan, para que la correccion sea de un minuto.
+    """
+    fuera: list[str] = []
+    if isinstance(valor, dict):
+        for k, v in valor.items():
+            if k in ("branding", "imagenes", "hu_id"):
+                continue
+            fuera.extend(codigos_internos(v, f"{ruta}.{k}" if ruta else str(k)))
+    elif isinstance(valor, (list, tuple)):
+        for n, v in enumerate(valor):
+            fuera.extend(codigos_internos(v, f"{ruta}[{n}]"))
+    elif isinstance(valor, str):
+        for c in dict.fromkeys(m.group(0) for m in CODIGO_INTERNO.finditer(valor)):
+            fuera.append(f"{ruta or 'raiz'}: {c}")
+    return fuera
+
+
+def escribir_marcado(p, texto: str) -> None:
+    """Escribe el texto en el parrafo, resaltando en amarillo sus marcas."""
+    from docx.enum.text import WD_COLOR_INDEX
+
+    pos = 0
+    for m in MARCA_PENDIENTE.finditer(texto):
+        if m.start() > pos:
+            p.add_run(texto[pos:m.start()])
+        p.add_run(m.group(0)).font.highlight_color = WD_COLOR_INDEX.YELLOW
+        pos = m.end()
+    if pos < len(texto):
+        p.add_run(texto[pos:])
+
+
+def parrafo_marcado(doc, texto: str, style=None):
+    p = doc.add_paragraph(style=style) if style else doc.add_paragraph()
+    escribir_marcado(p, texto)
+    return p
+
 
 
 # --- Utilidades de contenido -------------------------------------------------
@@ -147,14 +228,14 @@ def write_blocks(doc, value, vacio: str = PENDIENTE, est=None) -> None:
     """Escribe parrafos; las lineas que empiecen por '- ' salen como vinetas."""
     blocks = as_blocks(value)
     if not blocks:
-        doc.add_paragraph(vacio)
+        parrafo_marcado(doc, vacio)
         return
     for b in blocks:
         if b.startswith(("- ", "* ")):
-            doc.add_paragraph(b[2:].strip(),
-                              style=est("List Bullet") if est else "List Bullet")
+            parrafo_marcado(doc, b[2:].strip(),
+                            est("List Bullet") if est else "List Bullet")
         else:
-            doc.add_paragraph(b)
+            parrafo_marcado(doc, b)
 
 
 def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | None) -> None:
@@ -173,7 +254,9 @@ def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | No
     for fila in filas or []:
         celdas = t.add_row().cells
         for i, v in enumerate(fila[: len(columnas)]):
-            celdas[i].text = "" if v is None else str(v)
+            # Por las celdas pasan tambien los `[PENDIENTE]`: un hueco dentro de
+            # una tabla es tan hueco como uno en un parrafo.
+            escribir_marcado(celdas[i].paragraphs[0], "" if v is None else str(v))
     doc.add_paragraph()
 
 
@@ -183,21 +266,29 @@ def add_toc(doc) -> None:
     from docx.oxml import OxmlElement
 
     p = doc.add_paragraph()
-    run = p.add_run()
-    for tipo, texto in (("begin", None), (None, r'TOC \o "1-3" \h \z \u'), ("separate", None)):
-        el = OxmlElement("w:fldChar") if tipo else OxmlElement("w:instrText")
-        if tipo:
-            el.set(qn("w:fldCharType"), tipo)
-        else:
-            el.set(qn("xml:space"), "preserve")
-            el.text = texto
-        run._r.append(el)
-    aviso = OxmlElement("w:t")
+
+    def elemento(tag: str, **attrs):
+        """Cada pieza del campo en **su propio run**, que es como lo escribe Word.
+
+        Amontonarlas en un unico run parece equivalente y no lo es: al actualizar
+        el indice, Word tiene que sustituir el resultado del campo --que es
+        multiparrafo-- y para eso necesita partir ese run. Con todo junto el
+        limite del campo se calcula mal y la sustitucion se lleva por delante
+        los parrafos siguientes, que aqui son justo Introduccion y Alcance.
+        """
+        el = OxmlElement(tag)
+        for k, v in attrs.items():
+            el.set(qn(k.replace("__", ":")), v)
+        p.add_run()._r.append(el)
+        return el
+
+    elemento("w:fldChar", w__fldCharType="begin")
+    instr = elemento("w:instrText", xml__space="preserve")
+    instr.text = r' TOC \o "1-3" \h \z \u '
+    elemento("w:fldChar", w__fldCharType="separate")
+    aviso = elemento("w:t")
     aviso.text = "Actualiza el índice en Word: clic derecho > Actualizar campos."
-    run._r.append(aviso)
-    fin = OxmlElement("w:fldChar")
-    fin.set(qn("w:fldCharType"), "end")
-    run._r.append(fin)
+    elemento("w:fldChar", w__fldCharType="end")
 
 
 # --- Documento ---------------------------------------------------------------
@@ -298,9 +389,14 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     h = titulador(doc, est, numerar=bool(m.get("numerar_apartados", True)))
     if branding:
         marca.aplicar_estilos_word(doc, branding)
-    marca.cabecera_pie_word(doc, branding,
-                            cabecera=f"{proyecto} · {titulo}".strip(" ·"),
-                            pie=f"Versión {version}")
+    # Con plantilla, la cabecera y el pie son suyos: escribir ahi borraria los
+    # runs del parrafo y con ellos el logo del cliente. Solo se escriben cuando
+    # la plantilla no trae nada, o cuando no hay plantilla.
+    cabecera_pie = marca.cabecera_pie_word(
+        doc, branding,
+        cabecera=f"{proyecto} · {titulo}".strip(" ·"),
+        pie=f"Versión {version}",
+        respetar_existente=bool(plantilla)) or ["cabecera y pie generados por el skill"]
 
     # Portada
     if proyecto:
@@ -310,11 +406,16 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     doc.add_paragraph()
 
     doc.add_paragraph("Control de Versiones", style=est("Heading 2"))
-    add_table(doc, ["Fecha", "Versión", "Autor", "Descripción del cambio"],
-              [[c.get("fecha", ""), c.get("version", ""), c.get("autor", ""), c.get("cambio", "")]
-               for c in m.get("control_versiones") or
-               [{"fecha": hoy, "version": version, "autor": m.get("autor", ""),
-                 "cambio": "Version inicial"}]], accent)
+    filas_cv = m.get("control_versiones") or [
+        {"fecha": hoy, "version": version, "autor": m.get("autor", ""),
+         "cambio": "Versión inicial"}]
+    cv = []
+    for c in filas_cv:
+        firma, nota = autor_persona(c.get("autor"))
+        if nota and nota not in avisos:
+            avisos.append(nota)
+        cv.append([c.get("fecha", ""), c.get("version", ""), firma, c.get("cambio", "")])
+    add_table(doc, ["Fecha", "Versión", "Autor", "Descripción del cambio"], cv, accent)
 
     doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
     aprob = m.get("control_aprobaciones") or [{}, {}, {}]
@@ -341,7 +442,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             p.add_run(f"{etiqueta} ").bold = True
             p.add_run(nar.get(clave, ""))
     else:
-        doc.add_paragraph(PENDIENTE)
+        parrafo_marcado(doc, PENDIENTE)
 
     h("Filtros/Campos", 2)
     campos = m.get("campos") or {}
@@ -378,9 +479,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             try:
                 doc.add_picture(img, width=Cm(15))
             except Exception:  # noqa: BLE001
-                doc.add_paragraph(f"[No se pudo insertar la imagen: {img}]")
+                parrafo_marcado(doc, f"[No se pudo insertar la imagen: {img}]")
         else:
-            doc.add_paragraph(f"[Imagen no encontrada: {img}]")
+            parrafo_marcado(doc, f"[Imagen no encontrada: {img}]")
 
     # 3-5
     h("Criterios de aceptación", 1)
@@ -390,9 +491,11 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     escenarios = ca.get("escenarios") or []
     if escenarios:
         for e in escenarios:
-            doc.add_paragraph(str(e), style=est("List Bullet"))
+            # El manifiesto los trae como "- Escenario X: ...". El guion sobra
+            # dentro de una vineta: saldria una vineta y un guion.
+            parrafo_marcado(doc, str(e).lstrip("-* ").strip(), est("List Bullet"))
     elif not ca.get("contexto"):
-        doc.add_paragraph(PENDIENTE)
+        parrafo_marcado(doc, PENDIENTE)
 
     h("Especificaciones Técnicas", 1)
     write_blocks(doc, m.get("especificaciones_tecnicas"), est=est)
@@ -411,6 +514,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     salida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(salida)
     return {"output": str(salida), "puntos_abiertos": len(pa),
+            # Donde han quedado codigos internos (RF-, GAP-, ...). No bloquean la
+            # generacion, pero el skill tiene que cantarlos: en el DF sobran.
+            "codigos_internos": codigos_internos(m),
+            "cabecera_pie": cabecera_pie,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el

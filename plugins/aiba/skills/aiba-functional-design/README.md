@@ -34,17 +34,25 @@ Complementa con `mapa-historias-usuario.md` (persona y fase), `requisitos.md` (l
 
 **No inventa.** Un DF se firma y se desarrolla contra él, así que lo que no se deduce de la documentación se marca como `[PENDIENTE: ...]` y **genera una fila en Puntos abiertos**. Esa tabla convierte las lagunas en trabajo asignable en vez de en texto plausible. El resumen final dice cuántos puntos abiertos tiene cada documento, que es el mejor indicador de si está listo para revisarse.
 
+Cada `[PENDIENTE: ...]` sale **resaltado en amarillo**, también dentro de las tablas. Un DF de veinte páginas se lee en diagonal, y un hueco sin resaltar acaba firmado como si fuera contenido.
+
 Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay nada; el segundo admite que no se sabe.
+
+**No cuenta lo que no es.** El apartado de Alcance dice **solo lo que entra**: lo que hace otra historia pertenece al alcance de esa otra historia, y listarlo aquí como exclusión se lee como que el producto no lo hará. Tampoco aparecen las opciones descartadas —quien revisa no distingue "descartado" de "pendiente" y acaba preguntando por algo que nadie va a construir—.
+
+**No usa códigos internos.** Ni `RF-014` ni `GAP-07`: se explica el contenido, que es lo que le dice algo a un lector de negocio. El generador devuelve `codigos_internos` con cada sigla que se haya colado y en qué sección está, para corregirla y volver a generar. `HU-xx` sí se queda: da nombre al fichero y engancha con `aiba test-plan` y con Jira.
+
+**No firma por ti.** En el Control de Versiones va el analista que responde del documento ante el cliente. El generador vacía la celda y avisa si detecta ahí el nombre de una herramienta.
 
 ## Diseño: genérico, pero estructurado
 
-El documento sale **sin logotipos ni colores corporativos**, y el comando **pregunta antes** si quieres aplicar una marca —desde una carpeta local o desde una URL— con la opción de no aplicar ninguna como recomendada.
+El comando **pregunta antes de generar nada** con qué aspecto sale el documento. Si el cliente tiene una **plantilla `.docx`/`.dotx`**, esa es la respuesta: el DF hereda sus estilos y su formato de página, y **su cabecera y su pie salen intactos, con el logo del cliente** —el generador no los toca cuando traen algo—. Si no la hay, el documento sale **sin logotipos ni colores corporativos**, con la opción de aplicar una marca desde una carpeta local o desde una URL.
 
 La razón es práctica: un DF acaba en manos de un cliente que tiene su propia identidad. Generarlo con la marca de quien lo escribe obliga a rehacerlo. Generarlo neutro **pero bien estructurado** permite aplicar cualquier identidad en minutos, porque:
 
 - Se usan **estilos nativos de Word** (`Heading 1/2/3`, `Normal`, `List Bullet`) en vez de formato directo, así que cambiar la paleta es cambiar el estilo.
 - Las cinco tablas comparten estilo con fila de cabecera diferenciada.
-- **Cabecera y pie son editables** y llevan campos de Word, no texto fijo.
+- **Cabecera y pie son editables** y llevan campos de Word, no texto fijo —salvo que vengan de una plantilla, que entonces manda ella—.
 - El **índice es un campo `TOC`** que Word actualiza solo.
 
 Cuando se aporta una marca, los colores se aplican **a los estilos** y el logo va a la cabecera, no incrustado suelto en la portada.
