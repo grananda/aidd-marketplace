@@ -10,10 +10,16 @@ La presentación separa un cuerpo ejecutivo, pensado para exposición, de un ane
 
 ## Artefactos
 
-- `evolucion-native-ai-v2.pptx`: presentación panorámica con textos y gráficos editables.
-- `evolucion-native-ai-v2.pdf`: copia para revisión, una diapositiva por página.
-- `generate.py`: fuente reproducible de ambos artefactos.
-- `requirements.txt`: dependencias fijadas del generador.
+- [PowerPoint V2](evolucion-native-ai-v2.pptx): presentación panorámica con textos y gráficos editables.
+- [PDF de revisión](evolucion-native-ai-v2.pdf): una diapositiva por página.
+- [Vista previa completa](preview.png): contacto visual de las 18 diapositivas.
+- [Generador](generate.py): fuente reproducible de los tres artefactos.
+- [Dependencias](requirements.txt): versiones fijadas del generador.
+
+## Estructura narrativa
+
+- **11 diapositivas ejecutivas:** tesis, salto cuantitativo, cobertura, arquitectura por capas, ecosistema, doble motor de ejecución, cadena de valor, gobierno, adopción y recomendación.
+- **7 diapositivas de anexo:** procedimiento comparado, inventario de skills, diez mejoras, continuidad, costes y fuentes.
 
 ## Fuentes
 

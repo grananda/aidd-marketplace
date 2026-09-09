@@ -207,7 +207,7 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | `booster-uml` | `booster-uml` | Diagramas UML (Mermaid) en HTML para un change de OpenSpec |
 | `booster-docs` | `booster-docs` | Vista HTML dinámica de un documento de planificación AIDD/SDD |
 
-### `aiba` — Negocio, entrega y medición (plugin `aiba`, 5 comandos)
+### `aiba` — Negocio, entrega y medición (plugin `aiba`, 7 comandos)
 
 > **La capa que da la cara ante el negocio**: lo que el cliente firma (el DF), lo que aprueba (el plan de recursos), el calendario que sigue (los sprints) y los KPIs con los que juzga si mereció la pena.
 >
@@ -268,7 +268,7 @@ No son cuatro copias del mismo paquete: son **cuatro piezas de un mismo flujo** 
 
 1. **`aidd` cubre la definición y el diseño** (Fases 0–2: requisitos → historias → arquitectura → guía de estilos). Es el "qué".
 2. **`aisdd` cubre la ejecución** (Fases 3–4: roadmap por presupuesto de contexto —consciente del `sprint-plan`— y el ciclo `open/implement/close change` sobre OpenSpec, con auditoría e integración Jira). Es el "cómo se construye".
-3. **`aiba` cubre lo que ve el negocio** (Paso 1.4, DF por historia, Fase 3.5 y la medición: revisión de HU → diseño funcional → plan de recursos → sprints → KPIs). Es el "cuánto cuesta" y el "cuándo llega". Es **autónomo**: se puede usar sin OpenSpec, y sus documentos son los que `aisdd roadmap` lee para alinearse con el calendario.
+3. **`aiba` cubre lo que ve el negocio** (Paso 1.4, DF y plan de pruebas por historia, Fase 3.5, informe de situación y medición: revisión de HU → diseño funcional → pruebas → plan de recursos → sprints → estado → KPIs). Es el "cuánto cuesta", el "cuándo llega" y el "cómo sabemos que avanza". Es **autónomo**: se puede usar sin OpenSpec, y sus documentos son los que `aisdd roadmap` lee para alinearse con el calendario.
 4. **`boosters` es la dependencia compartida** de los tres anteriores. No es opcional si usas el flujo completo:
    - `aidd prototype` (Fase 2.2) **redirige a `booster-ux`** para maquetar las pantallas del prototipo.
    - `aisdd prototype-ux` y `aisdd uml` (del plugin `aisdd`) **invocan a `booster-ux` y `booster-uml`** para documentar cada change.
