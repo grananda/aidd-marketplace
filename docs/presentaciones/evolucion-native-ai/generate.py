@@ -14,7 +14,7 @@ from PIL import Image, ImageDraw, ImageFont
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.util import Inches, Pt
 
 
@@ -192,6 +192,10 @@ class Canvas:
         tf = tb.text_frame
         tf.clear()
         tf.word_wrap = True
+        # PowerPoint, Keynote y LibreOffice no calculan las metricas tipograficas
+        # exactamente igual. Este ajuste impide que una sustitucion de fuente haga
+        # salir el texto de su caja al abrir el PPTX fuera del entorno generador.
+        tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
         tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
         tf.vertical_anchor = {"top": MSO_ANCHOR.TOP, "middle": MSO_ANCHOR.MIDDLE, "bottom": MSO_ANCHOR.BOTTOM}[style.valign]
         lines = value.split("\n")
@@ -203,6 +207,7 @@ class Canvas:
             p.font.bold = style.bold
             p.font.color.rgb = rgb(style.color)
             p.alignment = {"left": PP_ALIGN.LEFT, "center": PP_ALIGN.CENTER, "right": PP_ALIGN.RIGHT}[style.align]
+            p.line_spacing = 1.0
             p.space_after = Pt(chosen * 0.12)
         px, py = self._px(x, y)
         max_w, max_h = round(w * SX), round(h * SY)
@@ -275,8 +280,8 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
     c = Canvas(prs, 1, "", dark=True)
     c.rect(0, 0, 0.16, H_IN, C["cyan"], radius=0)
     c.text(0.7, 0.52, 4.8, 0.25, "NTT DATA SPAIN · GDN-e", TextStyle(9, C["cyan"], True))
-    c.text(0.7, 1.20, 8.9, 1.55, "Native AI ya no es solo un método para construir", TextStyle(34, C["white"], True, min_size=29))
-    c.text(0.7, 2.90, 8.8, 0.82, "Es un sistema operativo de entrega: conecta lo que pide el cliente, lo que construye el equipo y la evidencia con la que se decide.", TextStyle(15, "C6D6E3", min_size=12))
+    c.text(0.7, 1.20, 8.9, 1.05, "De la especificación a la entrega", TextStyle(34, C["white"], True, min_size=29))
+    c.text(0.7, 2.72, 8.8, 0.92, "La evolución de Native AI: conecta lo que pide el cliente, lo que construye el equipo y la evidencia con la que se decide.", TextStyle(15, "C6D6E3", min_size=12))
     c.rect(9.85, 0.72, 2.72, 5.72, "143B59", "28516F", radius=0.18)
     stages = [("01", "ESPECIFICAR", C["blue2"], C["blue"]), ("02", "ENTREGAR", C["teal2"], C["teal"]), ("03", "MEDIR", C["amber2"], C["amber"])]
     for i, (n, label, fill, color) in enumerate(stages):
