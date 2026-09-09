@@ -280,8 +280,8 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
     c = Canvas(prs, 1, "", dark=True)
     c.rect(0, 0, 0.16, H_IN, C["cyan"], radius=0)
     c.text(0.7, 0.52, 4.8, 0.25, "NTT DATA SPAIN · GDN-e", TextStyle(9, C["cyan"], True))
-    c.text(0.7, 1.20, 8.9, 1.05, "De la especificación a la entrega", TextStyle(34, C["white"], True, min_size=29))
-    c.text(0.7, 2.72, 8.8, 0.92, "La evolución de Native AI: conecta lo que pide el cliente, lo que construye el equipo y la evidencia con la que se decide.", TextStyle(15, "C6D6E3", min_size=12))
+    c.text(0.7, 1.20, 8.9, 1.18, "Evolución de Native AI en un proyecto real", TextStyle(32, C["white"], True, min_size=27))
+    c.text(0.7, 2.72, 8.8, 0.92, "Qué cambió al aplicar la metodología original con clientes: más cobertura, más control y evidencia medible.", TextStyle(15, "C6D6E3", min_size=12))
     c.rect(9.85, 0.72, 2.72, 5.72, "143B59", "28516F", radius=0.18)
     stages = [("01", "ESPECIFICAR", C["blue2"], C["blue"]), ("02", "ENTREGAR", C["teal2"], C["teal"]), ("03", "MEDIR", C["amber2"], C["amber"])]
     for i, (n, label, fill, color) in enumerate(stages):
@@ -292,7 +292,7 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
         if i < 2:
             c.line(10.51, yy + 0.62, 10.51, yy + 1.42, "4B6A82", 2)
     c.pill(0.7, 5.50, 2.08, 0.42, "RESUMEN EJECUTIVO", C["blue"], C["white"], 8.2)
-    c.text(0.7, 6.10, 7.8, 0.42, "Evolución de Native AI · metodología original → marketplace v1.46.1", TextStyle(10.5, "AFC2D1"))
+    c.text(0.7, 6.10, 7.8, 0.42, "Metodología original → aprendizaje en cliente → marketplace v1.46.1", TextStyle(10.5, "AFC2D1"))
     c.footer(total, "Comparativa verificada sobre metodología v2.0, native-ai-specs v1.6.0 y marketplace v1.46.1")
     slides.append(c)
 
