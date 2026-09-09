@@ -29,9 +29,25 @@ W_IN, H_IN = 13.333, 7.5
 W_PX, H_PX = 1600, 900
 SX, SY = W_PX / W_IN, H_PX / H_IN
 
-FONT_REGULAR = "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"
-FONT_LIGHT = "/usr/share/fonts/truetype/noto/NotoSans-Light.ttf"
+# El PPTX pide Arial, asi que el lienzo se dibuja con Liberation Sans, que es su
+# clon metrico: la previsualizacion y el PDF salen como se vera en PowerPoint, y
+# no al reves. Ademas trae la flecha U+2192, que la Noto instalada puede no tener.
+# Las rutas cambian entre distribuciones, asi que se prueba la lista en orden.
+FONT_CANDIDATES = {
+    "regular": ["/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                "/usr/share/fonts/noto/NotoSans-Regular.ttf"],
+    "bold": ["/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+             "/usr/share/fonts/liberation/LiberationSans-Bold.ttf",
+             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+             "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+             "/usr/share/fonts/noto/NotoSans-Bold.ttf"],
+    "light": ["/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+              "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+              "/usr/share/fonts/truetype/noto/NotoSans-Light.ttf"],
+}
 PPT_FONT = "Arial"
 
 C = {
@@ -68,10 +84,12 @@ def rgba(value: str, alpha: int = 255) -> tuple[int, int, int, int]:
 
 
 def font_path(bold: bool = False, light: bool = False) -> str:
-    candidate = FONT_BOLD if bold else FONT_LIGHT if light else FONT_REGULAR
-    if Path(candidate).exists():
-        return candidate
-    return "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
+    familia = "bold" if bold else "light" if light else "regular"
+    for candidate in FONT_CANDIDATES[familia] + FONT_CANDIDATES["regular"]:
+        if Path(candidate).exists():
+            return candidate
+    raise RuntimeError("No hay ninguna fuente sans instalada de las que busca el generador: "
+                       + ", ".join(FONT_CANDIDATES[familia]))
 
 
 def emu(v: float):
@@ -263,13 +281,13 @@ def card(c: Canvas, x: float, y: float, w: float, h: float, eyebrow: str, title:
     c.text(x + 0.24, y + 1.03, w - 0.42, h - 1.18, body, TextStyle(9.2, C["ink2"], min_size=7.5))
 
 
-def metric_card(c: Canvas, x: float, y: float, w: float, label: str, before: str, after: str, accent: str):
+def metric_card(c: Canvas, x: float, y: float, w: float, label: str, before: str, after: str, accent: str, note: str | None = None):
     c.rect(x, y, w, 1.36, C["white"], C["line"], radius=0.12)
     c.text(x + 0.18, y + 0.15, w - 0.36, 0.25, label.upper(), TextStyle(7.8, C["muted"], True, align="center"))
     c.text(x + 0.22, y + 0.46, 0.55, 0.55, before, TextStyle(19, C["grey"], True, align="center", valign="middle"))
     c.arrow(x + 0.82, y + 0.61, 0.45, 0.19, accent)
     c.text(x + 1.31, y + 0.42, w - 1.48, 0.62, after, TextStyle(23, accent, True, align="center", valign="middle"))
-    c.text(x + 0.18, y + 1.09, w - 0.36, 0.16, "PARTIDA  →  HOY", TextStyle(6.4, C["muted"], True, align="center"))
+    c.text(x + 0.18, y + 1.09, w - 0.36, 0.16, note or "PARTIDA  →  HOY", TextStyle(6.4, C["muted"], True, align="center"))
 
 
 def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
@@ -293,39 +311,51 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
             c.line(10.51, yy + 0.62, 10.51, yy + 1.42, "4B6A82", 2)
     c.pill(0.7, 5.50, 2.08, 0.42, "RESUMEN EJECUTIVO", C["blue"], C["white"], 8.2)
     c.text(0.7, 6.10, 7.8, 0.42, "Metodología original → aprendizaje en cliente → marketplace v1.46.1", TextStyle(10.5, "AFC2D1"))
+    c.text(0.7, 6.60, 7.8, 0.30, "Las tres primeras diapositivas son el resumen ejecutivo y se entienden solas. El informe completo está en evolucion-native-ai.html.",
+           TextStyle(8.5, "7292A9", min_size=7.5))
     c.footer(total, "Comparativa verificada sobre metodología v2.0, native-ai-specs v1.6.0 y marketplace v1.46.1")
     slides.append(c)
 
-    # 2 — thesis
-    c = Canvas(prs, 2, "Resumen ejecutivo", "La evolución cabe en una frase", "El núcleo no cambió. Cambió la distancia que recorre.")
-    c.rect(0.62, 2.15, 3.42, 3.75, C["white"], C["line"], radius=0.16)
-    c.text(0.90, 2.45, 2.85, 0.30, "PUNTO DE PARTIDA", TextStyle(9, C["blue"], True))
-    c.text(0.90, 2.93, 2.85, 0.96, "Especificar antes de implementar", TextStyle(23, C["ink"], True, min_size=18))
-    c.text(0.90, 4.10, 2.78, 1.25, "OpenSpec, pre-flight humano, changes pequeños y auditoría: el método resolvía la deriva entre requisitos y código.", TextStyle(11, C["ink2"], min_size=9))
-    c.arrow(4.27, 3.48, 1.18, 0.52, C["amber"])
-    c.text(4.18, 4.15, 1.35, 0.48, "EXTENDER\nSIN ROMPER", TextStyle(8, C["amber"], True, align="center"))
-    c.rect(5.70, 2.15, 6.98, 3.75, C["navy"], C["navy"], radius=0.16)
-    c.text(6.05, 2.45, 3.0, 0.30, "RESULTADO", TextStyle(9, C["cyan"], True))
-    c.text(6.05, 2.93, 5.95, 0.92, "Una cadena completa de entrega", TextStyle(25, C["white"], True, min_size=20))
-    chain = [("CLIENTE", C["blue"]), ("DISEÑO", C["cyan"]), ("CÓDIGO", C["teal"]), ("EVIDENCIA", C["amber"])]
-    for i, (label, color) in enumerate(chain):
-        xx = 6.05 + i * 1.52
-        c.pill(xx, 4.22, 1.20, 0.42, label, color, C["white"], 7.5)
-        if i < len(chain) - 1:
-            c.arrow(xx + 1.23, 4.34, 0.24, 0.16, "7292A9")
-    c.text(6.05, 4.92, 5.90, 0.62, "La misma fuente de verdad llega hasta el entregable que se firma y el KPI que se defiende.", TextStyle(11, "C6D6E3", min_size=9))
-    c.rect(0.62, 6.20, 12.06, 0.56, C["amber2"], C["amber2"], radius=0.08)
-    c.text(0.90, 6.31, 11.50, 0.29, "TESIS  ·  No es otro método con el mismo nombre: es el mismo principio llevado a los extremos donde un proyecto real lo necesita.", TextStyle(10.5, C["ink"], True, align="center"))
+    # 2 — resumen ejecutivo, mitad cualitativa
+    c = Canvas(prs, 2, "Resumen ejecutivo · 1 de 3", "Ocho cosas que el método hace hoy y antes no podía",
+               "Lo cualitativo: qué cambió en el proceso. Ninguna sustituye al método original; todas lo extienden.")
+    cols = [(0.66, 2.54), (3.30, 4.10), (7.50, 5.20)]
+    heads = ["ÁREA", "ANTES  ·  NATIVE AI SPECS v1.6", "AHORA  ·  MARKETPLACE"]
+    for (cx, cw), head, color in zip(cols, heads, [C["muted"], C["grey"], C["blue"]]):
+        c.text(cx, 2.00, cw, 0.22, head, TextStyle(7.8, color, True, min_size=6.8))
+    c.line(0.66, 2.30, 12.72, 2.30, C["line"], 1)
+    changes = [
+        ("Alcance del método", "Empezaba en el roadmap", "Del brief del cliente al KPI con el que se juzga"),
+        ("Interfaz con el negocio", "Fuera de su alcance", "Diseño funcional firmable, pruebas, sprints e informe"),
+        ("Diseño de producto", "Solo la guía de estilos", "Figma normalizado hasta la historia que lo implementa"),
+        ("Trabajo en paralelo", "Oleadas, sin comprobar nada", "Tres modos, y dicho cuál garantiza aislamiento y cuál no"),
+        ("Reparto del repositorio", "Todo dentro de uno", "Tres repartos, incluido el caso real de cliente"),
+        ("Evidencia del valor", "Auditoría que nadie explotaba", "KPIs cruzados con el worklog real de Jira"),
+        ("Quién escribe el código", "Siempre la IA", "Elegible historia a historia, y conmutable a mitad"),
+        ("Calidad y distribución", "Revisión humana y copia manual", "Doce comprobaciones en CI, y plugins con semver"),
+    ]
+    for i, (area, antes, ahora) in enumerate(changes):
+        y = 2.44 + i * 0.48
+        if i % 2 == 0:
+            c.rect(0.62, y - 0.05, 12.10, 0.44, C["white"], C["line"], radius=0.06)
+        c.text(cols[0][0], y, cols[0][1], 0.32, area, TextStyle(9, C["ink"], True, min_size=7.4, valign="middle"))
+        c.text(cols[1][0], y, cols[1][1], 0.32, antes, TextStyle(8.6, C["muted"], min_size=7, valign="middle"))
+        c.text(cols[2][0], y, cols[2][1], 0.32, ahora, TextStyle(8.6, C["ink2"], min_size=7, valign="middle"))
+    c.rect(0.62, 6.32, 12.10, 0.58, C["amber2"], C["amber2"], radius=0.08)
+    c.text(0.90, 6.44, 11.54, 0.32, "TESIS  ·  El método sabía construir software sin desviarse de lo pedido; ahora llega hasta el cliente que firma y la cifra con la que nos juzgan.",
+           TextStyle(10.5, C["ink"], True, align="center", min_size=8.5, valign="middle"))
     c.footer(total)
     slides.append(c)
 
     # 3 — metrics
-    c = Canvas(prs, 3, "Resumen ejecutivo", "El salto, medido sobre los artefactos", "Cinco indicadores de superficie, cobertura e industrialización. Ninguno es una estimación.")
+    c = Canvas(prs, 3, "Resumen ejecutivo · 2 de 3", "El salto, medido sobre los artefactos",
+               "Lo cuantitativo: cinco indicadores contados sobre los ficheros de uno y otro procedimiento. Ninguno es una estimación.")
     metric_card(c, 0.62, 2.15, 2.26, "Skills", "3", str(m["skills"]), C["blue"])
     metric_card(c, 3.03, 2.15, 2.26, "Comandos", "7", str(m["commands"]), C["cyan"])
-    metric_card(c, 5.44, 2.15, 2.26, "Fases con herramienta", "3/8", "8/8", C["teal"])
-    metric_card(c, 7.85, 2.15, 2.26, "Topologías", "1", str(m["topologies"]), C["amber"])
-    metric_card(c, 10.26, 2.15, 2.26, "Checks CI", "0", str(m["checks"]), C["red"])
+    metric_card(c, 5.44, 2.15, 2.26, "Fases con herramienta", "3/8", "8/8", C["teal"], "DE BRIEF A MEDICIÓN")
+    metric_card(c, 7.85, 2.15, 2.26, "Repartos de repositorio", "1", str(m["topologies"]), C["amber"],
+                "MONO · FRACCIONADO · EXTERNO")
+    metric_card(c, 10.26, 2.15, 2.26, "Checks CI", "0", str(m["checks"]), C["red"], "EN CADA PULL REQUEST")
     c.text(0.62, 3.85, 4.20, 0.34, "QUÉ DICEN REALMENTE LAS CIFRAS", TextStyle(9, C["blue"], True))
     statements = [
         ("Cobertura", "La automatización ya acompaña al proyecto completo, no solo a la ejecución."),
@@ -339,11 +369,14 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
         c.text(xx + 0.20, 4.62, 0.36, 0.34, str(i + 1), TextStyle(9, [C["blue"], C["teal"], C["amber"]][i], True, align="center", valign="middle"))
         c.text(xx + 0.72, 4.52, 2.82, 0.30, t, TextStyle(12, C["ink"], True))
         c.text(xx + 0.72, 4.88, 2.82, 0.75, b, TextStyle(8.8, C["ink2"], min_size=7.5))
+    c.rect(0.62, 6.20, 12.10, 0.58, C["blue2"], C["blue2"], radius=0.08)
+    c.text(0.90, 6.32, 11.54, 0.32, "EN CIFRAS  ·  Once veces más piezas instalables, casi seis comandos por cada uno que había, y los ocho tramos del proyecto con herramienta en vez de tres.",
+           TextStyle(10.5, C["ink"], True, align="center", min_size=8.5, valign="middle"))
     c.footer(total, "Conteo: SKILL.md, comandos publicados, topologías AISDD y check_*.py · 09/09/2026")
     slides.append(c)
 
     # 4 — lifecycle coverage
-    c = Canvas(prs, 4, "Cobertura", "La herramienta ya no empieza a mitad del proyecto", "La metodología describía el recorrido; el marketplace convierte cada tramo en una capacidad ejecutable.")
+    c = Canvas(prs, 4, "Resumen ejecutivo · 3 de 3", "La herramienta ya no empieza a mitad del proyecto", "La metodología describía el recorrido; el marketplace convierte cada tramo en una capacidad ejecutable.")
     stages = ["Brief", "Requisitos", "Diseño", "Plan", "Build", "Validación", "Entrega", "Medición"]
     colors = [C["blue"], C["blue"], C["cyan"], C["cyan"], C["teal"], C["teal"], C["amber"], C["amber"]]
     x0, y0, cellw = 2.72, 2.33, 1.18
@@ -363,9 +396,12 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
             c.rect(x0 + i * cellw, yy, cellw - 0.09, 0.68, fill, fill, radius=0.10)
             if active:
                 c.text(x0 + i * cellw, yy + 0.15, cellw - 0.09, 0.30, "SÍ", TextStyle(8.5, C["white"], True, align="center", valign="middle"))
-    c.rect(0.65, 5.52, 12.0, 0.95, C["white"], C["line"], radius=0.12)
-    c.text(0.93, 5.74, 2.28, 0.40, "La diferencia clave", TextStyle(12, C["amber"], True, valign="middle"))
-    c.text(3.15, 5.70, 9.05, 0.50, "No se inventaron requisitos, historias o arquitectura: se transformaron guiones manuales en contratos ejecutables y salidas consistentes.", TextStyle(11, C["ink"], min_size=9, valign="middle"))
+    c.rect(0.65, 5.44, 12.0, 0.88, C["white"], C["line"], radius=0.12)
+    c.text(0.93, 5.62, 2.28, 0.40, "La diferencia clave", TextStyle(12, C["amber"], True, valign="middle"))
+    c.text(3.15, 5.58, 9.05, 0.50, "No se inventaron requisitos, historias o arquitectura: se transformaron guiones manuales en contratos ejecutables y salidas consistentes.", TextStyle(11, C["ink"], min_size=9, valign="middle"))
+    c.rect(0.65, 6.44, 12.0, 0.50, C["navy"], C["navy"], radius=0.08)
+    c.text(0.93, 6.53, 11.44, 0.32, "FIN DEL RESUMEN EJECUTIVO  ·  Lo que sigue es el detalle. El informe completo, mejora a mejora, está en evolucion-native-ai.html",
+           TextStyle(9.5, C["white"], True, align="center", min_size=8, valign="middle"))
     c.footer(total, "Criterio de fase: 8 tramos operativos de brief a medición; ‘definía’ no equivale a ‘tenía herramienta’.")
     slides.append(c)
 
