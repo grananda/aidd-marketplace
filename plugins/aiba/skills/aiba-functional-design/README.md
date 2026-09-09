@@ -34,6 +34,8 @@ Complementa con `mapa-historias-usuario.md` (persona y fase), `requisitos.md` (l
 
 **No inventa.** Un DF se firma y se desarrolla contra él, así que lo que no se deduce de la documentación se marca como `[PENDIENTE: ...]` y **genera una fila en Puntos abiertos**. Esa tabla convierte las lagunas en trabajo asignable en vez de en texto plausible. El resumen final dice cuántos puntos abiertos tiene cada documento, que es el mejor indicador de si está listo para revisarse.
 
+**Lo que se enumera sale como lista.** En cuanto hay más de dos elementos —validaciones, mensajes, campos, integraciones, pasos de un flujo— va uno por línea como viñeta de Word, no metido en un párrafo separado por comas. Quien revisa el DF necesita poder señalar el tercer elemento, y para eso tiene que existir como elemento.
+
 Cada `[PENDIENTE: ...]` sale **resaltado en amarillo**, también dentro de las tablas. Un DF de veinte páginas se lee en diagonal, y un hueco sin resaltar acaba firmado como si fuera contenido.
 
 Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay nada; el segundo admite que no se sabe.
@@ -46,7 +48,11 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 
 ## Diseño: genérico, pero estructurado
 
-El comando **pregunta antes de generar nada** con qué aspecto sale el documento. Si el cliente tiene una **plantilla `.docx`/`.dotx`**, esa es la respuesta: el DF hereda sus estilos y su formato de página, y **su cabecera y su pie salen intactos, con el logo del cliente** —el generador no los toca cuando traen algo—. Si no la hay, el documento sale **sin logotipos ni colores corporativos**, con la opción de aplicar una marca desde una carpeta local o desde una URL.
+El comando **pregunta antes de generar nada** con qué aspecto sale el documento. Si el cliente tiene una **plantilla `.docx`/`.dotx`**, esa es la respuesta.
+
+Una plantilla de cliente no suele ser un juego de estilos: es el documento entero montado, con su portada, su logo, sus tablas de control, su índice y sus apartados numerados. Cuando el generador reconoce esos apartados entra en **modo esqueleto** y **escribe dentro de ellos**, sustituyendo solo el texto de ejemplo. Todo lo demás se queda intacto porque nunca se toca. Si la plantilla no trae apartados reconocibles, se usa por sus estilos y el cuerpo se escribe entero —y el resumen lo dice, para que nadie descubra en la página uno que salió la portada equivocada—.
+
+Sin plantilla, el documento sale **sin logotipos ni colores corporativos**, con la opción de aplicar una marca desde una carpeta local o desde una URL.
 
 La razón es práctica: un DF acaba en manos de un cliente que tiene su propia identidad. Generarlo con la marca de quien lo escribe obliga a rehacerlo. Generarlo neutro **pero bien estructurado** permite aplicar cualquier identidad en minutos, porque:
 

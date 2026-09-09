@@ -28,6 +28,7 @@ import argparse
 import json
 import os
 import re
+import unicodedata
 import subprocess
 import sys
 from datetime import date
@@ -261,34 +262,64 @@ def add_table(doc, columnas: list[str], filas: list[list[str]], accent: str | No
 
 
 def add_toc(doc) -> None:
-    """Indice como campo TOC: Word lo actualiza solo, escrito a mano se desfasa."""
+    """Indice como campo TOC, montado **igual que lo monta Word**.
+
+    Word lo envuelve en un `w:sdt` de galeria "Table of Contents" y, sobre todo,
+    reparte el campo entre varios parrafos: el `begin` en el primero del
+    resultado y el `end` en el ultimo. No es decoracion.
+
+    Meter `begin` y `end` en el **mismo** parrafo --que es lo que hacia esto--
+    obliga a Word, al actualizar, a convertir un campo de un parrafo en uno de
+    treinta, y al reconstruir el rango se lleva por delante las marcas de
+    parrafo siguientes: desaparecia el principio de Introduccion y Alcance.
+    Repartir los runs no bastaba; lo que importa es que el campo **ya nazca**
+    abarcando mas de un parrafo, como el que escribe Word.
+    """
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
 
-    p = doc.add_paragraph()
-
-    def elemento(tag: str, **attrs):
-        """Cada pieza del campo en **su propio run**, que es como lo escribe Word.
-
-        Amontonarlas en un unico run parece equivalente y no lo es: al actualizar
-        el indice, Word tiene que sustituir el resultado del campo --que es
-        multiparrafo-- y para eso necesita partir ese run. Con todo junto el
-        limite del campo se calcula mal y la sustitucion se lleva por delante
-        los parrafos siguientes, que aqui son justo Introduccion y Alcance.
-        """
-        el = OxmlElement(tag)
+    def elem(tag: str, **attrs):
+        e = OxmlElement(tag)
         for k, v in attrs.items():
-            el.set(qn(k.replace("__", ":")), v)
-        p.add_run()._r.append(el)
-        return el
+            e.set(qn(k.replace("__", ":")), v)
+        return e
 
-    elemento("w:fldChar", w__fldCharType="begin")
-    instr = elemento("w:instrText", xml__space="preserve")
+    def run(hijo):
+        r = elem("w:r")
+        r.append(hijo)
+        return r
+
+    sdt = elem("w:sdt")
+    pr = elem("w:sdtPr")
+    dpo = elem("w:docPartObj")
+    dpo.append(elem("w:docPartGallery", w__val="Table of Contents"))
+    dpo.append(elem("w:docPartUnique"))
+    pr.append(dpo)
+    sdt.append(pr)
+    contenido = elem("w:sdtContent")
+    sdt.append(contenido)
+
+    # Primer parrafo: begin, el codigo del campo, separate y el texto provisional.
+    campo = elem("w:p")
+    campo.append(run(elem("w:fldChar", w__fldCharType="begin")))
+    instr = elem("w:instrText", xml__space="preserve")
     instr.text = r' TOC \o "1-3" \h \z \u '
-    elemento("w:fldChar", w__fldCharType="separate")
-    aviso = elemento("w:t")
+    campo.append(run(instr))
+    campo.append(run(elem("w:fldChar", w__fldCharType="separate")))
+    aviso = elem("w:t")
     aviso.text = "Actualiza el índice en Word: clic derecho > Actualizar campos."
-    elemento("w:fldChar", w__fldCharType="end")
+    campo.append(run(aviso))
+    contenido.append(campo)
+
+    # Y el `end` en **su propio parrafo**: ahi esta el arreglo.
+    cierre = elem("w:p")
+    cierre.append(run(elem("w:fldChar", w__fldCharType="end")))
+    contenido.append(cierre)
+
+    # `add_paragraph` sabe colocarse antes del `sectPr`; el sdt ocupa su sitio.
+    ancla = doc.add_paragraph()
+    ancla._p.addprevious(sdt)
+    ancla._p.getparent().remove(ancla._p)
 
 
 # --- Documento ---------------------------------------------------------------
@@ -323,6 +354,94 @@ class Estilos:
 
     def __call__(self, logico: str):
         return self.mapa.get(logico, logico)
+
+
+# Los apartados del DF, y como se llaman en las plantillas que se han visto. Se
+# comparan por clave normalizada --sin tildes, sin la numeracion del titulo y en
+# minusculas-- porque cada cliente los escribe a su manera y el DF tiene que
+# servir para cualquiera.
+ALIAS = {
+    "introduccion": "introduccion",
+    "alcance": "alcance",
+    "filtros campos": "campos", "filtros y campos": "campos", "campos": "campos",
+    "integraciones otros aplicativos": "integraciones",
+    "integraciones con otros aplicativos": "integraciones",
+    "integraciones": "integraciones",
+    "validaciones reglas acciones": "validaciones",
+    "validaciones y reglas": "validaciones", "validaciones": "validaciones",
+    "especificas del frontal": "validaciones_frontal",
+    "especificas del core": "validaciones_core",
+    "mensajes y avisos": "mensajes", "mensajes": "mensajes",
+    "especificos del frontal": "mensajes_frontal",
+    "especificos de integracion no core": "mensajes_integracion",
+    "especificos del core": "mensajes_core",
+    "pantallas y prototipo": "pantallas", "pantallas": "pantallas",
+    "criterios de aceptacion": "criterios",
+    "especificaciones tecnicas": "especificaciones",
+    "puntos abiertos": "puntos_abiertos",
+    "control de versiones": "control_versiones",
+    "control de aprobaciones": "control_aprobaciones",
+}
+
+
+def clave(texto: str) -> str:
+    """`2.3 Validaciones / Reglas` -> `validaciones reglas`."""
+    t = unicodedata.normalize("NFKD", texto or "")
+    t = "".join(c for c in t if not unicodedata.combining(c)).lower()
+    t = re.sub(r"^[\d.\s]+", "", t.strip())
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
+
+
+def nivel_titulo(parrafo) -> int | None:
+    """El nivel del titulo, o None si el parrafo no es un titulo."""
+    m = re.match(r"^(?:Heading|T[ií]tulo)\s*([1-9])$", parrafo.style.name or "")
+    return int(m.group(1)) if m else None
+
+
+def plantilla_numera(doc) -> bool:
+    """True si los titulos de la plantilla ya se numeran solos.
+
+    Hay que mirar **el parrafo y no solo el estilo**: Word deja la numeracion
+    enganchada a cada parrafo (`numPr` directo) tan a menudo como en el estilo, y
+    mirando solo el estilo se concluye que no numera. Entonces el generador
+    antepone su `1.` al que Word ya pone y sale `1. 1. Introduccion`.
+    """
+    from docx.oxml.ns import qn
+
+    for p in doc.paragraphs:
+        if nivel_titulo(p) and p._p.find(".//" + qn("w:numPr")) is not None:
+            return True
+    for nombre in EQUIVALENTES["Heading 1"] + EQUIVALENTES["Heading 2"]:
+        try:
+            estilo = doc.styles[nombre]
+        except KeyError:
+            continue
+        if estilo.element.find(".//" + qn("w:numPr")) is not None:
+            return True
+    return False
+
+
+def localizar_apartados(doc) -> dict:
+    """Los apartados del DF que la plantilla ya trae, por clave.
+
+    Devuelve `{clave: parrafo}`. No exige que sean titulos: las plantillas
+    escriben "Control de Versiones" como parrafo normal encima de su tabla tan a
+    menudo como con estilo de titulo.
+    """
+    fuera: dict = {}
+    for p in doc.paragraphs:
+        k = ALIAS.get(clave(p.text))
+        if not k or k in fuera:
+            continue
+        # Solo cuenta si es un **titulo**. El texto de ejemplo de una plantilla
+        # dice "Validaciones", "Reglas" o "Acciones" en parrafos sueltos, y
+        # tomarlos por apartados descuadra todo el reparto. La excepcion son los
+        # dos controles, que las plantillas rotulan con un parrafo normal encima
+        # de su tabla.
+        if nivel_titulo(p) is None and k not in ("control_versiones", "control_aprobaciones"):
+            continue
+        fuera[k] = p
+    return fuera
 
 
 def limpiar_cuerpo(doc) -> None:
@@ -362,6 +481,95 @@ def titulador(doc, est, numerar: bool = True):
     return escribe
 
 
+def rango_seccion(doc, parrafo) -> list:
+    """Lo que cuelga de un apartado: hasta el siguiente apartado o titulo par.
+
+    Es el texto de ejemplo que trae la plantilla, que se machaca. Lo que **no**
+    entra aqui es el titulo en si --con su estilo y su numeracion-- ni la tabla,
+    que son de la plantilla y se quedan.
+    """
+    from docx.text.paragraph import Paragraph
+
+    nivel = nivel_titulo(parrafo) or 9
+    fuera = []
+    el = parrafo._p.getnext()
+    while el is not None:
+        etiqueta = el.tag.rsplit("}", 1)[-1]
+        if etiqueta == "sectPr":
+            break
+        if etiqueta == "sdt":
+            # El indice es de la plantilla y no se toca: se salta sin cortar el
+            # tramo, porque detras puede seguir habiendo ejemplo que si sobra.
+            # Los demas controles de contenido llevan texto de ejemplo y caen
+            # con el resto.
+            from docx.oxml.ns import qn
+            galeria = el.find(".//" + qn("w:docPartGallery"))
+            if galeria is not None and galeria.get(qn("w:val")) == "Table of Contents":
+                el = el.getnext()
+                continue
+        if etiqueta == "p":
+            otro = Paragraph(el, parrafo._parent)
+            n = nivel_titulo(otro)
+            if n is not None and n <= nivel:
+                break
+            if nivel_titulo(otro) is not None and ALIAS.get(clave(otro.text)):
+                break
+            if ALIAS.get(clave(otro.text)) in ("control_versiones", "control_aprobaciones"):
+                break
+        fuera.append(el)
+        el = el.getnext()
+    return fuera
+
+
+def tabla_de(doc, elementos):
+    """La primera tabla del tramo, si la hay. Es la de la plantilla: se reusa."""
+    from docx.table import Table
+
+    for el in elementos:
+        if el.tag.endswith("}tbl"):
+            return Table(el, doc)
+    return None
+
+
+def rellenar_tabla(tabla, columnas: list[str], filas: list[list[str]]) -> None:
+    """Reescribe los datos conservando la tabla de la plantilla.
+
+    Se reusa en vez de crear una nueva porque el estilo, los anchos y la fila de
+    cabecera son del cliente: una tabla nueva con `Table Grid` canta.
+    """
+    cabecera = tabla.rows[0]
+    if not "".join(c.text for c in cabecera.cells).strip():
+        for i, texto in enumerate(columnas[: len(cabecera.cells)]):
+            cabecera.cells[i].text = str(texto)
+    for fila in list(tabla.rows[1:]):
+        fila._tr.getparent().remove(fila._tr)
+    ancho = len(tabla.columns)
+    for fila in filas or []:
+        celdas = tabla.add_row().cells
+        for i, v in enumerate(fila[:ancho]):
+            escribir_marcado(celdas[i].paragraphs[0], "" if v is None else str(v))
+
+
+def mover_tras(doc, ancla, escritor):
+    """Ejecuta el escritor --que escribe al final-- y lleva lo escrito tras `ancla`.
+
+    python-docx solo sabe anadir al final del cuerpo. Para escribir **dentro**
+    del apartado que trae la plantilla se escribe al final y se traslada, que es
+    mas simple que reimplementar cada `add_paragraph` con posicion.
+    """
+    cuerpo = doc.element.body
+    # La lista se **conserva**: lxml crea los proxies al vuelo y los recolecta,
+    # asi que guardar solo sus `id()` no vale --al volver a recorrer el cuerpo
+    # los mismos nodos traen ids distintos y "lo nuevo" sale mal--. Manteniendo
+    # las referencias vivas, comparar por identidad si es fiable.
+    previos = list(cuerpo)
+    escritor()
+    for el in [x for x in cuerpo if not any(x is y for y in previos)]:
+        ancla.addnext(el)
+        ancla = el
+    return ancla
+
+
 def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     from docx import Document
 
@@ -375,18 +583,48 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     hoy = m.get("fecha") or date.today().isoformat()
 
     avisos: list[str] = []
+    numera_ella = False
+    apartados_plantilla: list[str] = []
+    modo = "generar"
     if plantilla:
         if not plantilla.is_file():
             raise SystemExit(f"No existe la plantilla '{plantilla}'.")
         doc = Document(str(plantilla))
-        limpiar_cuerpo(doc)
+        # Se interroga a la plantilla **antes** de vaciarla: despues no queda
+        # nada que mirar. La numeracion vive en los parrafos de titulo y los
+        # apartados en su texto, y los dos desaparecen con el cuerpo.
+        numera_ella = plantilla_numera(doc)
+        apartados_plantilla = sorted(localizar_apartados(doc))
+        # Con los apartados reconocidos se escribe **dentro** de ellos y no se
+        # toca nada mas: portada, logo, indice, tablas, cabecera y secciones se
+        # quedan como el cliente las monto. Vaciar el cuerpo se lleva por delante
+        # incluso la cabecera, porque una plantilla de varias secciones enlaza la
+        # segunda a la primera y al desaparecer esta la cabecera se queda sin nada.
+        if len(apartados_plantilla) >= 3:
+            modo = "esqueleto"
+        else:
+            avisos.append(
+                "la plantilla no trae los apartados del DF reconocibles"
+                + (f" (solo {', '.join(apartados_plantilla)})" if apartados_plantilla else "")
+                + ": se usa solo por sus estilos y el cuerpo se escribe entero")
+            limpiar_cuerpo(doc)
     else:
         doc = Document()
     est = Estilos(doc)
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
                       + ", ".join(est.faltan))
-    h = titulador(doc, est, numerar=bool(m.get("numerar_apartados", True)))
+    # Si la plantilla ya numera sus titulos, numerar aqui saca `1. 1. Introduccion`.
+    # Se deduce en vez de preguntarse, porque **Word engancha la numeracion al
+    # parrafo tan a menudo como al estilo** y mirando solo el estilo se concluye
+    # que no numera. El manifiesto sigue mandando si lo dice explicitamente.
+    if numera_ella:
+        avisos.append("la plantilla ya numera sus titulos: el generador no antepone "
+                      "el suyo, o saldria '1. 1. Introduccion'")
+    numerar = m.get("numerar_apartados")
+    if numerar is None:
+        numerar = not numera_ella
+    h = titulador(doc, est, numerar=bool(numerar))
     if branding:
         marca.aplicar_estilos_word(doc, branding)
     # Con plantilla, la cabecera y el pie son suyos: escribir ahi borraria los
@@ -398,117 +636,174 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         pie=f"Versión {version}",
         respetar_existente=bool(plantilla)) or ["cabecera y pie generados por el skill"]
 
-    # Portada
-    if proyecto:
-        doc.add_paragraph(proyecto, style=est("Title"))
-    doc.add_paragraph(titulo, style=est("Title") if not proyecto else est("Subtitle"))
-    doc.add_paragraph(f"Documento de Diseño Funcional · Versión {version} · {hoy}")
-    doc.add_paragraph()
+    # El contenido de cada apartado, separado de donde se escribe. Cada escritor
+    # anade al final del documento; en modo esqueleto se traslada despues al
+    # apartado que la plantilla ya trae.
+    nar = m.get("narrativa") or {}
+    campos = m.get("campos") or {}
+    val = m.get("validaciones") or {}
+    msg = m.get("mensajes") or {}
+    ca = m.get("criterios_aceptacion") or {}
+    pa = m.get("puntos_abiertos") or []
 
-    doc.add_paragraph("Control de Versiones", style=est("Heading 2"))
-    filas_cv = m.get("control_versiones") or [
-        {"fecha": hoy, "version": version, "autor": m.get("autor", ""),
-         "cambio": "Versión inicial"}]
-    cv = []
-    for c in filas_cv:
+    cols_campos = campos.get("columnas") or ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"]
+    COLS_PA = ["ID", "Descripción", "Estado", "Responsable", "F. Estimada", "F. Resolución"]
+    COLS_CV = ["Fecha", "Versión", "Autor", "Descripción del cambio"]
+    COLS_CA = ["Responsable", "Cargo", "Departamento", "Fecha", "Versión del documento"]
+
+    filas_cv = []
+    for c in (m.get("control_versiones") or
+              [{"fecha": hoy, "version": version, "autor": m.get("autor", ""),
+                "cambio": "Versión inicial"}]):
         firma, nota = autor_persona(c.get("autor"))
         if nota and nota not in avisos:
             avisos.append(nota)
-        cv.append([c.get("fecha", ""), c.get("version", ""), firma, c.get("cambio", "")])
-    add_table(doc, ["Fecha", "Versión", "Autor", "Descripción del cambio"], cv, accent)
+        filas_cv.append([c.get("fecha", ""), c.get("version", ""), firma, c.get("cambio", "")])
+    filas_ca = [[a.get("responsable", ""), a.get("cargo", ""), a.get("departamento", ""),
+                 a.get("fecha", ""), a.get("version", "")]
+                for a in (m.get("control_aprobaciones") or [{}, {}, {}])]
+    filas_pa = [[x.get("id", ""), x.get("descripcion", ""), x.get("estado", "Abierto"),
+                 x.get("responsable", ""), x.get("estimada", ""), x.get("resolucion", "")]
+                for x in pa]
 
-    doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
-    aprob = m.get("control_aprobaciones") or [{}, {}, {}]
-    add_table(doc, ["Responsable", "Cargo", "Departamento", "Fecha", "Versión del documento"],
-              [[a.get("responsable", ""), a.get("cargo", ""), a.get("departamento", ""),
-                a.get("fecha", ""), a.get("version", "")] for a in aprob], accent)
-
-    doc.add_paragraph("Índice", style=est("Heading 2"))
-    add_toc(doc)
-    doc.add_page_break()
-
-    # 1. Introduccion
-    h("Introducción", 1)
-    write_blocks(doc, m.get("introduccion"), est=est)
-    h("Alcance", 2)
-    write_blocks(doc, m.get("alcance"), est=est)
-
-    # 2. La historia
-    h(titulo, 1)
-    nar = m.get("narrativa") or {}
-    if any(nar.values()):
-        for etiqueta, clave in (("COMO", "como"), ("QUIERO", "quiero"), ("PARA", "para")):
-            p = doc.add_paragraph()
-            p.add_run(f"{etiqueta} ").bold = True
-            p.add_run(nar.get(clave, ""))
-    else:
-        parrafo_marcado(doc, PENDIENTE)
-
-    h("Filtros/Campos", 2)
-    campos = m.get("campos") or {}
-    columnas = campos.get("columnas") or ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"]
-    if campos.get("filas"):
-        add_table(doc, columnas, campos["filas"], accent)
-    else:
-        doc.add_paragraph("N/A")
-
-    h("Integraciones otros aplicativos", 2)
-    write_blocks(doc, m.get("integraciones"), est=est)
-
-    h("Validaciones / Reglas / Acciones", 2)
-    val = m.get("validaciones") or {}
-    h("Específicas del Frontal", 3)
-    write_blocks(doc, val.get("frontal"), est=est)
-    h("Específicas del Core", 3)
-    write_blocks(doc, val.get("core"), est=est)
-
-    h("Mensajes y avisos", 2)
-    msg = m.get("mensajes") or {}
-    h("Específicos del Frontal", 3)
-    write_blocks(doc, msg.get("frontal"), est=est)
-    h("Específicos de Integración no Core", 3)
-    write_blocks(doc, msg.get("integracion_no_core"), est=est)
-    h("Específicos del Core", 3)
-    write_blocks(doc, msg.get("core"), est=est)
-
-    h("Pantallas y Prototipo", 2)
-    write_blocks(doc, m.get("pantallas"), est=est)
-    from docx.shared import Cm
-    for img in m.get("imagenes") or []:
-        if Path(img).is_file():
-            try:
-                doc.add_picture(img, width=Cm(15))
-            except Exception:  # noqa: BLE001
-                parrafo_marcado(doc, f"[No se pudo insertar la imagen: {img}]")
+    def narrativa():
+        if any(nar.values()):
+            for etiqueta, k in (("COMO", "como"), ("QUIERO", "quiero"), ("PARA", "para")):
+                par = doc.add_paragraph()
+                par.add_run(f"{etiqueta} ").bold = True
+                par.add_run(nar.get(k, ""))
         else:
-            parrafo_marcado(doc, f"[Imagen no encontrada: {img}]")
+            parrafo_marcado(doc, PENDIENTE)
 
-    # 3-5
-    h("Criterios de aceptación", 1)
-    ca = m.get("criterios_aceptacion") or {}
-    if ca.get("contexto"):
-        write_blocks(doc, ca["contexto"], est=est)
-    escenarios = ca.get("escenarios") or []
-    if escenarios:
-        for e in escenarios:
+    def pantallas():
+        write_blocks(doc, m.get("pantallas"), est=est)
+        from docx.shared import Cm
+        for img in m.get("imagenes") or []:
+            if Path(img).is_file():
+                try:
+                    doc.add_picture(img, width=Cm(15))
+                except Exception:  # noqa: BLE001
+                    parrafo_marcado(doc, f"[No se pudo insertar la imagen: {img}]")
+            else:
+                parrafo_marcado(doc, f"[Imagen no encontrada: {img}]")
+
+    def criterios():
+        if ca.get("contexto"):
+            write_blocks(doc, ca["contexto"], est=est)
+        esc = ca.get("escenarios") or []
+        for e in esc:
             # El manifiesto los trae como "- Escenario X: ...". El guion sobra
             # dentro de una vineta: saldria una vineta y un guion.
             parrafo_marcado(doc, str(e).lstrip("-* ").strip(), est("List Bullet"))
-    elif not ca.get("contexto"):
-        parrafo_marcado(doc, PENDIENTE)
+        if not esc and not ca.get("contexto"):
+            parrafo_marcado(doc, PENDIENTE)
 
-    h("Especificaciones Técnicas", 1)
-    write_blocks(doc, m.get("especificaciones_tecnicas"), est=est)
+    def prosa(valor):
+        return lambda: write_blocks(doc, valor, est=est)
 
-    h("Puntos abiertos", 1)
-    pa = m.get("puntos_abiertos") or []
-    add_table(doc, ["ID", "Descripción", "Estado", "Responsable", "F. Estimada", "F. Resolución"],
-              [[p.get("id", ""), p.get("descripcion", ""), p.get("estado", "Abierto"),
-                p.get("responsable", ""), p.get("estimada", ""), p.get("resolucion", "")]
-               for p in pa], accent)
+    # (clave, titulo, nivel, escritor, tabla_o_None)
+    APARTADOS_DF = [
+        ("control_versiones", "Control de Versiones", 2, None, (COLS_CV, filas_cv)),
+        ("control_aprobaciones", "Control de Aprobaciones", 2, None, (COLS_CA, filas_ca)),
+        ("introduccion", "Introducción", 1, prosa(m.get("introduccion")), None),
+        ("alcance", "Alcance", 2, prosa(m.get("alcance")), None),
+        ("historia", titulo, 1, narrativa, None),
+        ("campos", "Filtros/Campos", 2, None, (cols_campos, campos.get("filas"))),
+        ("integraciones", "Integraciones otros aplicativos", 2,
+         prosa(m.get("integraciones")), None),
+        ("validaciones", "Validaciones / Reglas / Acciones", 2, None, None),
+        ("validaciones_frontal", "Específicas del Frontal", 3, prosa(val.get("frontal")), None),
+        ("validaciones_core", "Específicas del Core", 3, prosa(val.get("core")), None),
+        ("mensajes", "Mensajes y avisos", 2, None, None),
+        ("mensajes_frontal", "Específicos del Frontal", 3, prosa(msg.get("frontal")), None),
+        ("mensajes_integracion", "Específicos de Integración no Core", 3,
+         prosa(msg.get("integracion_no_core")), None),
+        ("mensajes_core", "Específicos del Core", 3, prosa(msg.get("core")), None),
+        ("pantallas", "Pantallas y Prototipo", 2, pantallas, None),
+        ("criterios", "Criterios de aceptación", 1, criterios, None),
+        ("especificaciones", "Especificaciones Técnicas", 1,
+         prosa(m.get("especificaciones_tecnicas")), None),
+        ("puntos_abiertos", "Puntos abiertos", 1, None, (COLS_PA, filas_pa)),
+    ]
+
+    anclas = localizar_apartados(doc) if modo == "esqueleto" else {}
+    sin_apartado: list[str] = []
+
+    if modo == "esqueleto":
+        # El titulo de la historia es el unico que no se reconoce por su texto:
+        # en la plantilla lleva el nombre del caso del cliente. Es el Titulo 1
+        # que va entre Alcance y el primer apartado de la historia.
+        entre = [p_ for p_ in doc.paragraphs if nivel_titulo(p_) == 1]
+        for p_ in entre:
+            if anclas.get("alcance") is not None and anclas.get("campos") is not None \
+                    and anclas["alcance"]._p.getparent().index(anclas["alcance"]._p) \
+                    < p_._p.getparent().index(p_._p) \
+                    < anclas["campos"]._p.getparent().index(anclas["campos"]._p):
+                for run in list(p_.runs)[1:]:
+                    run._r.getparent().remove(run._r)
+                if p_.runs:
+                    p_.runs[0].text = titulo
+                else:
+                    p_.add_run(titulo)
+                anclas["historia"] = p_
+                break
+
+        for k, _t, _n, escritor, tabla in APARTADOS_DF:
+            ancla = anclas.get(k)
+            if ancla is None:
+                sin_apartado.append(k)
+                continue
+            tramo = rango_seccion(doc, ancla)
+            propia = tabla_de(doc, tramo) if tabla else None
+            for el in tramo:
+                if propia is not None and el is propia._tbl:
+                    continue          # la tabla es de la plantilla: se rellena
+                el.getparent().remove(el)
+            if tabla:
+                cols, filas = tabla
+                if propia is not None:
+                    rellenar_tabla(propia, cols, filas)
+                elif filas:
+                    mover_tras(doc, ancla._p, lambda c=cols, f=filas: add_table(doc, c, f, accent))
+                else:
+                    mover_tras(doc, ancla._p, lambda: doc.add_paragraph("N/A"))
+            elif escritor:
+                mover_tras(doc, ancla._p, escritor)
+    else:
+        # Portada y control, que con esqueleto ya trae la plantilla.
+        if proyecto:
+            doc.add_paragraph(proyecto, style=est("Title"))
+        doc.add_paragraph(titulo, style=est("Title") if not proyecto else est("Subtitle"))
+        doc.add_paragraph(f"Documento de Diseño Funcional · Versión {version} · {hoy}")
+        doc.add_paragraph()
+        doc.add_paragraph("Control de Versiones", style=est("Heading 2"))
+        add_table(doc, COLS_CV, filas_cv, accent)
+        doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
+        add_table(doc, COLS_CA, filas_ca, accent)
+        doc.add_paragraph("Índice", style=est("Heading 2"))
+        add_toc(doc)
+        doc.add_page_break()
+
+        for k, t_, n_, escritor, tabla in APARTADOS_DF:
+            if k in ("control_versiones", "control_aprobaciones"):
+                continue
+            h(t_, n_)
+            if tabla:
+                cols, filas = tabla
+                if filas:
+                    add_table(doc, cols, filas, accent)
+                elif k == "campos":
+                    doc.add_paragraph("N/A")
+                else:
+                    add_table(doc, cols, [], accent)
+            elif escritor:
+                escritor()
 
     for extra in m.get("secciones_adicionales") or []:
-        h(extra.get("titulo", "Anexo"), 1)
+        if modo == "generar":
+            h(extra.get("titulo", "Anexo"), 1)
+        else:
+            doc.add_paragraph(extra.get("titulo", "Anexo"), style=est("Heading 1"))
         write_blocks(doc, extra.get("contenido"), est=est)
 
     salida.parent.mkdir(parents=True, exist_ok=True)
@@ -518,6 +813,12 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # generacion, pero el skill tiene que cantarlos: en el DF sobran.
             "codigos_internos": codigos_internos(m),
             "cabecera_pie": cabecera_pie,
+            "modo": modo,
+            # Los apartados que la plantilla traia y los del DF que no estaban en
+            # ella. Los segundos no se pierden: van al final con su titulo.
+            "apartados_plantilla": apartados_plantilla,
+            "apartados_no_encontrados": sin_apartado,
+            "plantilla_numera": numera_ella,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el
