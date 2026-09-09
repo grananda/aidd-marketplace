@@ -1,45 +1,37 @@
-# Evolución de Native AI
+# Evolución de Native AI — resumen ejecutivo
 
-Presentación ejecutiva que compara tres niveles de madurez:
+Cinco diapositivas para presentar, en una reunión corta, qué le hemos aportado a la metodología Native AI: qué recibimos, qué hemos construido encima y qué gana el negocio con ello.
 
-1. la metodología AI-Native original;
-2. el procedimiento ejecutable de `native-ai-specs` v1.6.0;
-3. el sistema actual de seis plugins del marketplace.
-
-La presentación separa un cuerpo ejecutivo, pensado para exposición, de un anexo con el detalle metodológico y técnico.
+**Esto es el resumen, no el informe.** El detalle completo —los dos procedimientos comparados, el inventario de skills, las diez mejoras, lo que no se tocó y los costes— está en `native-ia-source/evolucion-native-ai.html`, con su PDF al lado. El deck no lo repite a propósito: si lo repitiera, habría dos documentos que mantener en paso y uno de los dos acabaría mintiendo.
 
 ## Artefactos
 
-- [PowerPoint V2](evolucion-native-ai-v2.pptx): presentación panorámica con textos y gráficos editables.
-- [PDF de revisión](evolucion-native-ai-v2.pdf): una diapositiva por página.
-- [Vista previa completa](preview.png): contacto visual de las 18 diapositivas.
-
-El lienzo se dibuja con Liberation Sans, clon métrico de la Arial que pide el PPTX, para que la previsualización y el PDF reflejen lo que verá PowerPoint.
+- [PowerPoint](evolucion-native-ai-v2.pptx): cinco diapositivas, con textos y gráficos editables.
+- [PDF](evolucion-native-ai-v2.pdf): una diapositiva por página.
+- [Vista previa](preview.png): las cinco de un vistazo.
 - [Generador](generate.py): fuente reproducible de los tres artefactos.
 - [Dependencias](requirements.txt): versiones fijadas del generador.
 
-## Estructura narrativa
+El lienzo se dibuja con Liberation Sans, clon métrico de la Arial que pide el PPTX, para que la previsualización y el PDF reflejen lo que verá PowerPoint.
 
-- **3 diapositivas de resumen ejecutivo**, pensadas para sostenerse solas: quien solo vea esas tres entiende qué ha mejorado y cuánto.
-  1. *Lo cualitativo* — ocho áreas con su antes y su ahora.
-  2. *Lo cuantitativo* — cinco indicadores contados sobre los ficheros.
-  3. *La cobertura* — qué tramo del proyecto cubría cada procedimiento.
-- **8 diapositivas de desarrollo:** arquitectura por capas, ecosistema, doble motor de ejecución, cadena de valor, gobierno, adopción y recomendación.
-- **7 diapositivas de anexo:** procedimiento comparado, inventario de skills, diez mejoras, continuidad, costes y fuentes.
+## Las cinco diapositivas
 
-El informe completo, mejora a mejora, no está en el deck: está en `native-ia-source/evolucion-native-ai.html`. Esta presentación es su resumen.
+1. **Recibimos un método. Devolvimos una cadena de entrega.** La tesis, con las tres cifras que la sostienen.
+2. **El método cubría tres de los ocho tramos. Hoy cubre los ocho.** La prueba, en una sola imagen.
+3. **Del cliente que firma al KPI que se defiende.** Qué se ha construido, en cuatro eslabones sobre una única fuente de verdad.
+4. **Cuatro cosas que antes no podíamos hacer delante de un cliente.** Qué cambia en la práctica.
+5. **Está en uso, se instala en un comando y sigue creciendo.** Dónde estamos, qué falta y qué proponemos.
 
 ## Fuentes
 
-La comparación se recalcula sobre:
+Las cifras se recalculan en cada generación sobre:
 
-- `native-ia-source/ai-native.md` y `native-ia-source/native-ai-specs-v1.6.0/`, material de referencia local ignorado por Git;
 - `.claude-plugin/marketplace.json`;
 - `plugins/*/.claude-plugin/plugin.json`;
 - `plugins/*/skills/*/SKILL.md`;
-- las metodologías y README vigentes del repositorio.
+- `.github/scripts/check_*.py`.
 
-Las cifras cuantitativas describen los artefactos disponibles en el momento de generar el deck; las valoraciones cualitativas se identifican como tales.
+`metrics()` aborta la generación si alguna cifra se desvía de la esperada, para que el relato no se quede desfasado respecto al repositorio sin que nadie se entere. El material de referencia (`native-ia-source/`) es local y está ignorado por Git.
 
 ## Regeneración
 
@@ -49,4 +41,4 @@ python3 -m venv .venv
 .venv/bin/python docs/presentaciones/evolucion-native-ai/generate.py
 ```
 
-El generador dejará el PPTX, el PDF y las imágenes de control visual en esta misma carpeta.
+El generador deja el PPTX, el PDF y las imágenes de control visual en esta misma carpeta.
