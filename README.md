@@ -12,9 +12,13 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | `aidd` | 9 skills `aidd-*` (Fases 0, 1 y 2) + metodología | Capturar requisitos del cliente, formalizarlos, definir y detallar las historias de usuario, y diseñar la arquitectura y la guía de estilos. Es el «qué se construye». |
 | `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd`, `aisdd` y `aiba`.** |
-| `aiba` | 5 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
+| `aiba` | 7 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de pruebas, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, informe de situación y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
 | `aifg` | `aifg-capture` + `aifg-update` | **AI Figma**: lleva el diseño de Figma **hasta la HU que lo implementa**. Extrae los nodos, los normaliza en definiciones de componente reutilizables más un mapa de composición por historia, y re-captura lo que cambia diciendo a qué HU afecta. **Opcional y aditivo**: sin él, `aisdd implement change` tira de la guía de estilos. |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
+
+## Presentaciones
+
+- [Evolución de Native AI: de metodología a sistema operativo de entrega](docs/presentaciones/evolucion-native-ai/README.md) — comparativa ejecutiva entre la metodología original, `native-ai-specs` v1.6.0 y el marketplace actual.
 
 ## Índice de comandos por skill y fase
 
