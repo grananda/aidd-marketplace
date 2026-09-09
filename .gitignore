@@ -16,3 +16,6 @@ Auditoria/
 figma/
 # Documentos de cliente para depurar el DF. Nunca al repo.
 DF/
+# Material de origen de Native AI y los informes derivados (HTML, PDF, PPTX).
+# Documentacion de otro proyecto y entregables que se regeneran: no son del marketplace.
+native-ia-source/
