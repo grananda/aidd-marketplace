@@ -1,26 +1,27 @@
 # Evolución de Native AI — resumen ejecutivo
 
-Cinco diapositivas para presentar, en una reunión corta, qué le hemos aportado a la metodología Native AI: qué recibimos, qué hemos construido encima y qué gana el negocio con ello.
+Seis diapositivas para presentar, en una reunión corta, qué le hemos aportado a la metodología Native AI: qué recibimos, qué hemos construido encima y qué gana el negocio con ello.
 
 **Esto es el resumen, no el informe.** El detalle completo —los dos procedimientos comparados, el inventario de skills, las diez mejoras, lo que no se tocó y los costes— está en `native-ia-source/evolucion-native-ai.html`, con su PDF al lado. El deck no lo repite a propósito: si lo repitiera, habría dos documentos que mantener en paso y uno de los dos acabaría mintiendo.
 
 ## Artefactos
 
-- [PowerPoint](evolucion-native-ai-v2.pptx): cinco diapositivas, con textos y gráficos editables.
+- [PowerPoint](evolucion-native-ai-v2.pptx): seis diapositivas, con textos y gráficos editables.
 - [PDF](evolucion-native-ai-v2.pdf): una diapositiva por página.
-- [Vista previa](preview.png): las cinco de un vistazo.
+- [Vista previa](preview.png): las seis de un vistazo.
 - [Generador](generate.py): fuente reproducible de los tres artefactos.
 - [Dependencias](requirements.txt): versiones fijadas del generador.
 
 El lienzo se dibuja con Liberation Sans, clon métrico de la Arial que pide el PPTX, para que la previsualización y el PDF reflejen lo que verá PowerPoint.
 
-## Las cinco diapositivas
+## Las seis diapositivas
 
 1. **Recibimos un método. Devolvimos una cadena de entrega.** La tesis, con las tres cifras que la sostienen.
 2. **El método cubría tres de los ocho tramos. Hoy cubre los ocho.** La prueba, en una sola imagen.
 3. **Del cliente que firma al KPI que se defiende.** Qué se ha construido, en cuatro eslabones sobre una única fuente de verdad.
-4. **Cuatro cosas que antes no podíamos hacer delante de un cliente.** Qué cambia en la práctica.
-5. **Está en uso, se instala en un comando y sigue creciendo.** Dónde estamos, qué falta y qué proponemos.
+4. **Seis cosas que hoy el método hace mejor.** Barras apiladas: en azul lo que el método ya daba, en ámbar lo que hemos sumado. Es una valoración del equipo, no una medición, y la diapositiva lo dice.
+5. **Cuatro cosas que antes no podíamos hacer delante de un cliente.** Qué cambia en la práctica.
+6. **Está en uso, se instala en un comando y sigue creciendo.** Dónde estamos, qué falta y qué proponemos.
 
 ## Fuentes
 

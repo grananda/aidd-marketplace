@@ -293,7 +293,7 @@ def metric_card(c: Canvas, x: float, y: float, w: float, label: str, before: str
 def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
     """Cinco diapositivas. El detalle vive en el informe HTML, no aqui."""
     slides: list[Canvas] = []
-    total = 5
+    total = 6
     INFORME = "El detalle, mejora a mejora, está en el informe: evolucion-native-ai.html"
 
     # 1 — portada
@@ -375,8 +375,49 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
     c.footer(total)
     slides.append(c)
 
-    # 4 — que gana el negocio
-    c = Canvas(prs, 4, "Lo que cambia", "Cuatro cosas que antes no podíamos hacer delante de un cliente",
+    # 4 — seis cosas que hoy hace mejor
+    c = Canvas(prs, 4, "El salto, por dentro", "Seis cosas que hoy el método hace mejor",
+               "En azul, lo que el método ya daba. En ámbar, lo que hemos sumado encima.")
+    for i, (etiqueta, color) in enumerate([("Lo que ya daba el método", C["blue"]),
+                                           ("Lo que hemos sumado", C["amber"])]):
+        lx = 8.30 + i * 2.32
+        c.rect(lx, 2.00, 0.22, 0.16, color, color, radius=0.04)
+        c.text(lx + 0.32, 1.96, 1.95, 0.24, etiqueta, TextStyle(8.5, C["ink2"], min_size=7.5))
+    barras = [
+        ("Que cada paso tenga herramienta", 40, 60,
+         "El método ya describía todos los pasos. Nosotros hemos hecho las herramientas que faltaban."),
+        ("Enseñar resultados al cliente", 0, 88,
+         "No era su cometido. Ahora se genera el documento que el cliente firma y el informe de avance."),
+        ("Varias personas a la vez", 40, 40,
+         "Ya repartía el trabajo entre varios. Ahora, además, comprueba que nadie se pise."),
+        ("Saber lo que ha costado", 50, 40,
+         "Él ya lo registraba todo, que es la parte difícil. Nosotros lo hemos convertido en cifras."),
+        ("Encajar en el proyecto del cliente", 30, 50,
+         "Pensado para un proyecto en un sitio. Ahora admite los repositorios que el cliente tenga."),
+        ("Que escriba la persona", 0, 88,
+         "No era su planteamiento. Hoy es una opción que se elige tarea a tarea."),
+    ]
+    BX, ESC = 3.30, 9.35
+    for i, (etiqueta, base, nuevo, pie) in enumerate(barras):
+        y = 2.36 + i * 0.68
+        c.text(0.62, y + 0.02, BX - 0.62 - 0.18, 0.30, etiqueta,
+               TextStyle(10.5, C["ink"], True, align="right", min_size=8.2, valign="middle"))
+        c.rect(BX, y + 0.04, ESC, 0.24, C["soft"], C["soft"], radius=0.12)
+        if base:
+            c.rect(BX, y + 0.04, ESC * base / 100.0, 0.24, C["blue"], C["blue"], radius=0.12)
+        if nuevo:
+            hueco = 0.03 if base else 0.0
+            c.rect(BX + ESC * base / 100.0 + hueco, y + 0.04, ESC * nuevo / 100.0, 0.24,
+                   C["amber"], C["amber"], radius=0.12)
+        c.text(BX, y + 0.34, ESC, 0.24, pie, TextStyle(8.6, C["muted"], min_size=7.4))
+    c.rect(0.62, 6.44, 12.10, 0.58, C["white"], C["line"], radius=0.10)
+    c.text(0.92, 6.54, 11.50, 0.38, "Valoración del equipo, no una medición: lo que cuenta es el tramo ámbar. Donde no hay tramo azul no es que el método fallara, es que eso no entraba en lo que se propuso resolver.",
+           TextStyle(9.5, C["ink2"], min_size=8, valign="middle"))
+    c.footer(total, INFORME)
+    slides.append(c)
+
+    # 5 — que gana el negocio
+    c = Canvas(prs, 5, "Lo que cambia", "Cuatro cosas que antes no podíamos hacer delante de un cliente",
                "El método terminaba en el código validado. Ahora llega hasta lo que el cliente firma y la cifra con la que nos juzga.")
     wins = [("El cliente firma",
              "El diseño funcional, el plan de pruebas y el de sprints se generan desde la misma fuente que el código. Antes se hacían a mano en Word y Excel.", C["blue"]),
@@ -401,8 +442,8 @@ def build_slides(prs: Presentation, m: dict) -> list[Canvas]:
     c.footer(total, INFORME)
     slides.append(c)
 
-    # 5 — donde estamos
-    c = Canvas(prs, 5, "Dónde estamos", "Está en uso, se instala en un comando y sigue creciendo",
+    # 6 — donde estamos
+    c = Canvas(prs, 6, "Dónde estamos", "Está en uso, se instala en un comando y sigue creciendo",
                "No es un piloto ni una prueba de concepto: está publicado, versionado y funcionando en proyecto.")
     estado = [("EN USO", "Proyectos con cliente", "Lo que se ha construido salió de necesidades reales, no de un ejercicio interno.", C["teal"]),
               ("DISPONIBLE", "Para todo el grupo", "Publicado con versión propia. Un comando lo instala y otro lo quita.", C["blue"]),
@@ -462,8 +503,8 @@ def save_outputs(prs: Presentation, slides: Iterable[Canvas]):
 
 
 def verify(prs: Presentation, slides: list[Canvas]):
-    if len(slides) != 5 or len(prs.slides) != 5:
-        raise RuntimeError("Es un resumen ejecutivo: exactamente 5 diapositivas. El detalle va en el informe HTML.")
+    if len(slides) != 6 or len(prs.slides) != 6:
+        raise RuntimeError("Es un resumen ejecutivo: exactamente 6 diapositivas. El detalle va en el informe HTML.")
     for slide_no, slide in enumerate(prs.slides, 1):
         for shape in slide.shapes:
             if shape.left < 0 or shape.top < 0 or shape.left + shape.width > prs.slide_width or shape.top + shape.height > prs.slide_height:
