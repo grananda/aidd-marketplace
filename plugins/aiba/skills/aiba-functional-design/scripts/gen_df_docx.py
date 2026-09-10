@@ -423,7 +423,7 @@ def propagar_cabecera(doc) -> list[str]:
     return tocadas
 
 
-def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
+def poner_titulo(doc, est, titulo: str, proyecto: str) -> str | None:
     """Escribe el titulo del DF en la portada de la plantilla.
 
     En modo esqueleto no se toca nada que no sea un apartado reconocido, y la
@@ -436,16 +436,19 @@ def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
     for nombre in (est("Title"), est("Subtitle")):
         if nombre is None:
             continue
-        if _escribir_en_portada(doc, nombre, titulo, proyecto):
-            return True
-    return False
+        viejo = _escribir_en_portada(doc, nombre, titulo, proyecto)
+        if viejo is not None:
+            return viejo
+    return None
 
 
-def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
+def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> str | None:
+    """Devuelve el texto que habia, que es lo que hay que buscar en la cabecera."""
     for p in doc.paragraphs:
         if nivel_titulo(p) is not None:
             break                      # ya estamos en el cuerpo del documento
         if p.style is not None and p.style.name == nombre:
+            viejo = p.text.strip()
             for run in list(p.runs)[1:]:
                 run._r.getparent().remove(run._r)
             texto = f"{proyecto} · {titulo}" if proyecto else titulo
@@ -453,8 +456,80 @@ def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
                 p.runs[0].text = texto
             else:
                 p.add_run(texto)
-            return True
-    return False
+            return viejo
+    return None
+
+
+# Lo que en una cabecera nombra al documento y no a la empresa. Se sustituye;
+# el resto de la cabecera --logo, nombre del cliente, formato-- no se toca.
+NOMBRE_DOC = re.compile(
+    # Con corchetes se los come; sin ellos no toca los espacios de alrededor, o
+    # "TITULO DEL DOCUMENTO — pag." acaba pegado al guion.
+    r"\[\s*(?:t[ií]tulo|nombre)\s+del\s+documento\s*\]"
+    r"|\b(?:t[ií]tulo|nombre)\s+del\s+documento\b"
+    r"|<(?=\S)(?=[^<>\n]*(?:[ _]|(?-i:[A-ZÁÉÍÓÚÜÑ]{2})))[^<>\n]{1,58}\S>"
+    r"|\{\{[^}\n]{1,60}\}\}",
+    re.IGNORECASE)
+
+
+def _sustituir_en_parrafo(p, cambiar) -> bool:
+    """Cambia el texto de un parrafo **sin tocar los runs que llevan imagen**.
+
+    Reescribir el parrafo entero es lo que borraba el logo: un `w:drawing` vive
+    dentro de un run, y `p.text = ...` se lleva todos los runs por delante. Aqui
+    se tocan solo los que tienen texto; los demas se quedan como estan, y el
+    formato del primero se conserva porque es el que recibe el texto nuevo.
+    """
+    from docx.oxml.ns import qn
+
+    con_texto = [r for r in p.runs if r._r.find(qn("w:t")) is not None]
+    if not con_texto:
+        return False
+    entero = "".join(r.text for r in con_texto)
+    salida = cambiar(entero)
+    if salida == entero:
+        return False
+    con_texto[0].text = salida
+    for r in con_texto[1:]:
+        r.text = ""
+    return True
+
+
+def actualizar_cabecera(doc, viejo: str | None, nuevo: str) -> list[str]:
+    """Pone el nombre del documento en la cabecera y el pie de la plantilla.
+
+    La cabecera del cliente se respeta --logo, nombre de la empresa, formato--,
+    pero **el trozo que nombra al documento es del documento, no de la
+    plantilla**: dejarlo tal cual entrega un DF que en cada pagina dice que es
+    otra cosa. Se sustituye lo que se puede reconocer como tal: el titulo que
+    traia la portada, y las formas de hueco --`TITULO DEL DOCUMENTO`, `<...>`,
+    `{{...}}`--. Lo que no encaje en eso no se toca.
+    """
+    def cambiar(texto: str) -> str:
+        salida = texto
+        # El titulo de la portada, si era lo bastante largo como para no
+        # confundirse con una palabra suelta de la cabecera.
+        if viejo and len(viejo.strip()) >= 6 and viejo.strip() in salida:
+            salida = salida.replace(viejo.strip(), nuevo)
+        return NOMBRE_DOC.sub(nuevo, salida)
+
+    tocadas: list[str] = []
+    for i, sec in enumerate(doc.sections, 1):
+        for cual in ("first_page_header", "header", "even_page_header",
+                     "first_page_footer", "footer", "even_page_footer"):
+            parte = getattr(sec, cual, None)
+            if parte is None:
+                continue
+            for p in parte.paragraphs:
+                if _sustituir_en_parrafo(p, cambiar):
+                    tocadas.append(f"seccion {i}/{cual}")
+            for t in parte.tables:
+                for fila in t.rows:
+                    for celda in fila.cells:
+                        for p in celda.paragraphs:
+                            if _sustituir_en_parrafo(p, cambiar):
+                                tocadas.append(f"seccion {i}/{cual} (tabla)")
+    return tocadas
 
 
 def marcar_relleno(doc) -> list[str]:
@@ -878,6 +953,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     hoy = m.get("fecha") or date.today().isoformat()
 
     avisos: list[str] = []
+    # El titulo que traia la portada de la plantilla. Se guarda porque es lo que
+    # hay que buscar en la cabecera: suele repetirse ahi.
+    titulo_plantilla: str | None = None
     numera_ella = False
     apartados_plantilla: list[str] = []
     modo = "generar"
@@ -1052,7 +1130,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     if modo == "esqueleto":
         # La portada no es un apartado, asi que sin esto se queda con el titulo
         # de ejemplo que traiga la plantilla.
-        if not poner_titulo(doc, est, titulo, proyecto):
+        titulo_plantilla = poner_titulo(doc, est, titulo, proyecto)
+        if titulo_plantilla is None:
             avisos.append("la plantilla no trae un parrafo con estilo de titulo en la "
                           "portada: el titulo del documento hay que ponerlo a mano")
         # El titulo de la historia es el unico que no se reconoce por su texto:
@@ -1142,6 +1221,14 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             doc.add_paragraph(extra.get("titulo", "Anexo"), style=est("Heading 1"))
         write_blocks(doc, extra.get("contenido"), est=est)
 
+    # La cabecera nombra al documento, y ese nombre es del documento y no de la
+    # plantilla. Va **antes** de propagar, para que la copia salga ya corregida.
+    cabecera_actualizada = actualizar_cabecera(
+        doc, titulo_plantilla, f"{proyecto} · {titulo}" if proyecto else titulo)
+    if cabecera_actualizada:
+        avisos.append("el nombre del documento en la cabecera o el pie se ha puesto al "
+                      "dia (" + ", ".join(dict.fromkeys(cabecera_actualizada)) + ")")
+
     # El logo suele vivir solo en la cabecera de la portada; sin esto, el resto
     # de paginas sale sin el.
     propagadas = propagar_cabecera(doc)
@@ -1180,6 +1267,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # Texto de relleno de la plantilla que ha quedado en el documento,
             # con el apartado en el que esta. Resaltado, pero hay que resolverlo.
             "relleno_sin_sustituir": relleno,
+            # Donde se ha puesto al dia el nombre del documento.
+            "cabecera_actualizada": cabecera_actualizada,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el

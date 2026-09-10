@@ -90,6 +90,17 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
             fallos.append(f"gen_df_docx.py {etiqueta}: el titulo del documento (el de "
                           "las propiedades del fichero) se queda vacio")
 
+        cabecera = " ".join(p_.text for p_ in cab.paragraphs)
+        if "Diseño Funcional de Ejemplo" in cabecera:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la cabecera sigue nombrando al "
+                          "documento de la plantilla")
+        if "CABECERA DEL CLIENTE" not in cabecera:
+            fallos.append(f"gen_df_docx.py {etiqueta}: al poner al dia el nombre del "
+                          "documento se ha perdido el texto del cliente")
+        if next(cab._element.iter(_q("w:drawing")), None) is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: al reescribir la cabecera se ha "
+                          "perdido el logo")
+
         relleno = salida_json.get("relleno_sin_sustituir")
         if relleno is None:
             fallos.append(f"gen_df_docx.py {etiqueta}: la salida no trae "
@@ -332,9 +343,13 @@ with tempfile.TemporaryDirectory() as tmp:
         cab_e = esq.sections[0].first_page_header.paragraphs[0]
         cab_e.add_run().add_picture(str(d / "logo.png"), height=Cm(1))
         cab_e.add_run("CABECERA DEL CLIENTE")
+        # El nombre del documento, partido en dos runs como lo parte Word al
+        # editarlo: sustituirlo run a run no vale, hay que mirar el parrafo.
+        cab_e.add_run("  |  Diseño Funcional ")
+        cab_e.add_run("de Ejemplo")
         esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
-        esq.add_paragraph("TÍTULO DEL DOCUMENTO", style="Title")
+        esq.add_paragraph("Diseño Funcional de Ejemplo", style="Title")
         esq.add_paragraph("Control de Versiones")
         esq.add_table(rows=1, cols=4).style = "Table Grid"
         for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
