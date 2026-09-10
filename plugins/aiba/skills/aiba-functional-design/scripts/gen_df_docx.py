@@ -423,23 +423,135 @@ def propagar_cabecera(doc) -> list[str]:
     return tocadas
 
 
-def poner_titulo(doc, est, titulo: str, proyecto: str) -> str | None:
+# Como llaman las plantillas a la celda que lleva el titulo. Se compara por
+# clave normalizada --sin tildes ni dos puntos-- porque cada cliente lo escribe
+# a su manera.
+ETIQUETAS_PORTADA = {
+    "titulo": {"titulo", "titulo del documento", "titulo documento",
+               "nombre del documento", "nombre documento", "documento",
+               "titulo del df", "denominacion"},
+    "proyecto": {"proyecto", "nombre del proyecto", "aplicacion", "sistema"},
+    "version": {"version", "version del documento", "n version", "num version",
+                "numero de version", "revision"},
+    "fecha": {"fecha", "fecha del documento", "fecha de emision",
+              "fecha de creacion", "fecha de version"},
+    "autor": {"autor", "elaborado por", "redactado por", "preparado por",
+              "responsable del documento"},
+}
+
+
+def _cuerpo_hasta_el_primer_titulo(doc):
+    """Los elementos de la portada: todo lo que va antes del primer `Heading`.
+
+    Hace falta recorrer el cuerpo y no `doc.paragraphs`, porque la portada suele
+    ser **una tabla** --o un cuadro de texto-- y esos no salen en esa lista.
+    """
+    from docx.oxml.ns import qn
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    for el in doc.element.body:
+        if el.tag == qn("w:p"):
+            p = Paragraph(el, doc)
+            if nivel_titulo(p) is not None:
+                return
+            yield p
+        elif el.tag == qn("w:tbl"):
+            yield Table(el, doc)
+
+
+def poner_titulo(doc, est, titulo: str, proyecto: str, version: str,
+                 fecha: str, autor: str) -> str | None:
     """Escribe el titulo del DF en la portada de la plantilla.
 
     En modo esqueleto no se toca nada que no sea un apartado reconocido, y la
     portada no lo es: el DF salia con el titulo de ejemplo de la plantilla.
-    Se busca el primer parrafo con estilo de titulo antes del primer apartado.
+
+    La portada no siempre es un parrafo con estilo `Title`. En las plantillas
+    corporativas suele ser **una tabla** --"Titulo del documento | ...",
+    "Version | ...", "Fecha | ..."-- o un cuadro de texto, y buscando solo por
+    estilo no se encuentra nada y el titulo de ejemplo se entrega tal cual. Se
+    intentan las tres formas, en este orden.
+
+    Devuelve el texto que habia, que es lo que hay que buscar despues en la
+    cabecera: suele repetirse ahi.
     """
-    # Primero se busca el `Title`; el `Subtitle` solo si no hay ninguno. Al reves
-    # se pisaria un subtitulo con sentido --"Documento de Diseño Funcional"--
-    # dejando el titulo de ejemplo puesto justo encima.
+    texto = f"{proyecto} · {titulo}" if proyecto else titulo
+
+    # 1. Parrafo con estilo de titulo. Primero `Title`; el `Subtitle` solo si no
+    # hay ninguno, o se pisaria un subtitulo con sentido --"Documento de Diseño
+    # Funcional"-- dejando el titulo de ejemplo puesto justo encima.
     for nombre in (est("Title"), est("Subtitle")):
         if nombre is None:
             continue
         viejo = _escribir_en_portada(doc, nombre, titulo, proyecto)
         if viejo is not None:
             return viejo
+
+    # 2. Tabla de portada: cada celda que lleve al lado una etiqueta conocida.
+    # No solo el titulo: la version y la fecha de la plantilla tambien se
+    # entregaban tal cual, y un DF que dice "Version 0.1 - 01/01/2020" en la
+    # portada es tan falso como uno que lleva el titulo de otro documento.
+    viejo = _rellenar_portada(doc, {"titulo": texto, "proyecto": proyecto,
+                                    "version": version, "fecha": fecha,
+                                    "autor": autor})
+    if viejo is not None:
+        return viejo
+
+    # 3. Un hueco suelto en la portada: `<TITULO>`, `TITULO DEL DOCUMENTO`...
+    from docx.table import Table
+
+    for bloque in _cuerpo_hasta_el_primer_titulo(doc):
+        if isinstance(bloque, Table):
+            continue
+        if bloque.text.strip() and NOMBRE_DOC.search(bloque.text):
+            viejo = bloque.text.strip()
+            _sustituir_en_parrafo(bloque, lambda t: NOMBRE_DOC.sub(texto, t))
+            return viejo
     return None
+
+
+def _rellenar_portada(doc, valores: dict) -> str | None:
+    """Rellena la tabla de portada por sus etiquetas. Devuelve el titulo viejo.
+
+    Solo se escribe donde la etiqueta se reconoce y hay valor: una celda que
+    diga "Cliente" o "Codigo" no se toca, porque eso no lo sabemos.
+    """
+    from docx.table import Table
+
+    viejo = None
+    for bloque in _cuerpo_hasta_el_primer_titulo(doc):
+        if not isinstance(bloque, Table):
+            continue
+        for fila in bloque.rows:
+            celdas = fila.cells
+            for i, celda in enumerate(celdas[:-1]):
+                etiqueta = clave(celda.text)
+                campo = next((k for k, v in ETIQUETAS_PORTADA.items()
+                              if etiqueta in v), None)
+                if campo is None:
+                    continue
+                valor = str(valores.get(campo) or "").strip()
+                if not valor:
+                    valor = CELDA_PENDIENTE if campo == "autor" else ""
+                if not valor:
+                    continue
+                destino = celdas[i + 1]
+                if campo == "titulo" and viejo is None:
+                    viejo = destino.text.strip() or None
+                for j, p in enumerate(destino.paragraphs):
+                    if j == 0:
+                        if not _sustituir_en_parrafo(p, lambda _, v=valor: v):
+                            _poner(p, valor)
+                    else:
+                        _sustituir_en_parrafo(p, lambda _: "")
+    return viejo
+
+
+def _poner(p, texto: str) -> bool:
+    """Escribe en un parrafo que no tenia ningun run con texto."""
+    p.add_run(texto)
+    return True
 
 
 def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> str | None:
@@ -532,6 +644,38 @@ def actualizar_cabecera(doc, viejo: str | None, nuevo: str) -> list[str]:
     return tocadas
 
 
+def resaltar_pendientes(doc) -> int:
+    """Resalta en amarillo todo lo pendiente, se haya escrito por donde se haya.
+
+    `escribir_marcado` resalta lo que pasa por el, pero no todo pasa: la portada
+    se rellena sustituyendo texto dentro de celdas que ya existian, y por ahi un
+    `[PENDIENTE]` se colaba sin pintar. Esta pasada va al final y no depende del
+    camino por el que se escribiera.
+    """
+    from docx.enum.text import WD_COLOR_INDEX
+
+    n = 0
+
+    def repasar(p) -> None:
+        nonlocal n
+        if not MARCA_PENDIENTE.search(p.text or ""):
+            return
+        for run in p.runs:
+            if run.text and MARCA_PENDIENTE.search(run.text) \
+                    and run.font.highlight_color != WD_COLOR_INDEX.YELLOW:
+                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+                n += 1
+
+    for p in doc.paragraphs:
+        repasar(p)
+    for t in doc.tables:
+        for fila in t.rows:
+            for celda in fila.cells:
+                for p in celda.paragraphs:
+                    repasar(p)
+    return n
+
+
 def marcar_relleno(doc) -> list[str]:
     """Resalta el texto de relleno que quede y dice donde esta.
 
@@ -545,10 +689,17 @@ def marcar_relleno(doc) -> list[str]:
 
     fuera: list[str] = []
 
+    etiquetas = {e for v in ETIQUETAS_PORTADA.values() for e in v}
+
     def revisar(p, seccion: str) -> None:
         texto = p.text
         if not texto.strip() or MARCA_PENDIENTE.search(texto):
             return                     # los [PENDIENTE] son nuestros y a proposito
+        # "Titulo del documento:" en una celda de portada es la **etiqueta** de
+        # la fila, no relleno sin sustituir: el relleno estaba en la celda de al
+        # lado y ya se ha reemplazado. Marcarla deja la portada en amarillo.
+        if clave(texto) in etiquetas:
+            return
         if not RELLENO.search(texto):
             return
         # Se resalta el parrafo entero y no solo el trozo: partir los runs para
@@ -1130,7 +1281,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     if modo == "esqueleto":
         # La portada no es un apartado, asi que sin esto se queda con el titulo
         # de ejemplo que traiga la plantilla.
-        titulo_plantilla = poner_titulo(doc, est, titulo, proyecto)
+        titulo_plantilla = poner_titulo(doc, est, titulo, proyecto, version,
+                                        hoy, filas_cv[0][2] if filas_cv else "")
         if titulo_plantilla is None:
             avisos.append("la plantilla no trae un parrafo con estilo de titulo en la "
                           "portada: el titulo del documento hay que ponerlo a mano")
@@ -1236,6 +1388,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         avisos.append("la cabecera de la portada se ha copiado al resto de paginas "
                       "(seccion " + ", ".join(propagadas) + "), que la tenian vacia: "
                       "asi el logo sale en todas")
+
+    resaltar_pendientes(doc)
 
     # Lo que la plantilla traia como relleno y nadie ha sustituido.
     relleno = marcar_relleno(doc)

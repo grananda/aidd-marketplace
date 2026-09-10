@@ -111,7 +111,13 @@ Genera exactamente esta estructura. Es la de los DF de referencia y **el orden i
 - **Control de Aprobaciones** — tabla con `Responsable | Cargo | Departamento | Fecha | Version del documento`. Filas vacias para rellenar a mano: **no inventes aprobadores**.
 - **Indice** — campo de tabla de contenidos de Word, que se actualiza solo al abrir el documento.
 
-**El titulo del documento lo pone el generador**, tanto en la portada --el primer parrafo con estilo de titulo, que en la plantilla trae el ejemplo del cliente-- como en las propiedades del fichero, que es lo que Word ensena como titulo. Si la plantilla no trae ningun parrafo con estilo de titulo en la portada, se avisa y hay que ponerlo a mano.
+**El titulo del documento lo pone el generador en la portada**, y la portada de una plantilla corporativa **casi nunca es un parrafo con estilo `Title`**: suele ser una tabla --`Titulo del documento | ...`, `Version | ...`, `Fecha | ...`-- o un hueco entre angulos. Buscando solo por estilo no se encontraba nada y el titulo de ejemplo del cliente se entregaba tal cual. Se intentan las tres formas, en este orden:
+
+1. el parrafo con estilo `Title` --y solo si no hay ninguno, el `Subtitle`--;
+2. **la tabla de portada**, rellenando por su etiqueta el titulo, el proyecto, la version, la fecha y el autor. Lo que no se reconozca --`Cliente`, `Codigo`-- no se toca, porque eso no lo sabemos;
+3. un hueco suelto (`<TITULO DEL DOCUMENTO>`, `{{titulo}}`).
+
+Y ademas en las **propiedades del fichero**, que es lo que Word ensena como titulo. Si no se encuentra ninguna de las tres, se avisa y hay que ponerlo a mano.
 
 **La cabecera del cliente se respeta, pero el nombre del documento se actualiza.** El logo, el nombre de la empresa y el formato son de la plantilla y no se tocan; el trozo que **nombra al documento** es del documento, no de la plantilla, y dejarlo tal cual entrega un DF que en cada pagina dice que es otra cosa. Se sustituye lo que se puede reconocer como tal: el titulo que traia la portada --se guarda antes de reemplazarlo, porque suele repetirse en la cabecera-- y las formas de hueco (`TITULO DEL DOCUMENTO`, `<...>`, `{{...}}`). Lo que no encaje en eso no se toca, y lo cambiado se devuelve en `cabecera_actualizada`. **Si la cabecera sigue nombrando otro documento, repasala a mano**: no hay forma de reconocer el nombre propio de un documento ajeno.
 

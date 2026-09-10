@@ -82,10 +82,17 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
                                   f"la cabecera apunta a una relacion que no existe "
                                   f"({rid}): sale como recuadro roto")
 
-        portada = " ".join(p_.text for p_ in doc.paragraphs[:6])
-        if "TÍTULO DEL DOCUMENTO" in portada:
+        # La portada es una tabla: hay que mirar dentro, no solo los parrafos.
+        portada = " ".join(c_.text for t_ in doc.tables for f_ in t_.rows
+                           for c_ in f_.cells)
+        portada += " " + " ".join(p_.text for p_ in doc.paragraphs[:6])
+        if "Diseño Funcional de Ejemplo" in portada:
             fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva el titulo "
-                          "de ejemplo de la plantilla")
+                          "de ejemplo de la plantilla; en las plantillas reales va en "
+                          "una celda de tabla, no en un parrafo con estilo Title")
+        if "01/01/2020" in portada or " 0.1 " in f" {portada} ":
+            fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva la version "
+                          "o la fecha de la plantilla")
         if not (doc.core_properties.title or "").strip():
             fallos.append(f"gen_df_docx.py {etiqueta}: el titulo del documento (el de "
                           "las propiedades del fichero) se queda vacio")
@@ -349,7 +356,17 @@ with tempfile.TemporaryDirectory() as tmp:
         cab_e.add_run("de Ejemplo")
         esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
-        esq.add_paragraph("Diseño Funcional de Ejemplo", style="Title")
+        # La portada de una plantilla corporativa suele ser **una tabla**, no un
+        # parrafo con estilo `Title`: buscando solo por estilo no se encuentra
+        # nada y el titulo de ejemplo se entrega tal cual.
+        port = esq.add_table(rows=3, cols=2)
+        port.style = "Table Grid"
+        port.rows[0].cells[0].text = "Título del documento:"
+        port.rows[0].cells[1].text = "Diseño Funcional de Ejemplo"
+        port.rows[1].cells[0].text = "Versión:"
+        port.rows[1].cells[1].text = "0.1"
+        port.rows[2].cells[0].text = "Fecha:"
+        port.rows[2].cells[1].text = "01/01/2020"
         esq.add_paragraph("Control de Versiones")
         esq.add_table(rows=1, cols=4).style = "Table Grid"
         for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
