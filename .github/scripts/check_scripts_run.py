@@ -250,10 +250,17 @@ DF = ROOT / "plugins/aiba/skills/aiba-functional-design/scripts/gen_df_docx.py"
 
 ACTIVIDAD = """# Registro de actividad AIDD
 
+- 2026-09-01T09:00:00Z | user:dev | skill:aisdd-specs | ctx:HU-02 | run | note:-
 - 2026-09-03T10:00:00Z | user:dev | skill:aisdd-specs | ctx:HU-01 | run | note:-
 - 2026-09-03T10:01:00Z | user:dev | skill:aisdd-specs | ctx:HU-01 | file:src/a.ts | note:-
 - 2026-09-03T10:05:00Z | user:dev | skill:aisdd-specs | ctx:HU-01 | turn | note:dur=300s skills=1 files=1
+- 2026-09-10T18:00:00Z | user:dev | skill:aisdd-specs | ctx:HU-02 | turn | note:dur=600s skills=1 files=2
 """
+# La ventana la fija el registro de actividad, y **filtra la auditoria**: una
+# entrada fuera de esas fechas no se cuenta. Con la ventana de cinco minutos que
+# habia, cinco de las seis entradas de prueba caian fuera y las comprobaciones
+# pasaban en vacio. La primera y la ultima marca tienen que cubrir el periodo
+# entero, aperturas incluidas: un `close` cuyo `open` cayo fuera no da lead time.
 
 errors: list[str] = []
 
@@ -263,11 +270,32 @@ def proyecto(d: Path) -> None:
     (d / "openspec" / "audit" / "2026-09").mkdir(parents=True)
     (d / "openspec" / "changes" / "archive" / "viejo").mkdir(parents=True)
     (d / "docs" / "aidd-activity.md").write_text(ACTIVIDAD, encoding="utf-8")
+    # Tres changes cerrados, no uno. Con uno solo el percentil de lead time no
+    # se ejercitaba: `percentile(lead_times, 50)` --50 donde espera una
+    # fraccion-- solo revienta a partir del segundo valor, asi que el fallo
+    # llego a main con el humo en verde.
+    (d / "openspec" / "config.yaml").write_text(
+        "roadmap:\n  phases:\n"
+        "    - id: F-01\n      change_hint: nuevo\n      effort_ai: 2\n"
+        "    - id: F-02\n      change_hint: lento\n      effort_ai: 1\n"
+        "    - id: F-03\n      change_hint: mudo\n      effort_ai: 1\n",
+        encoding="utf-8")
     entradas = [
         {"command": "aisdd open change", "change_id": "nuevo", "id": "a",
          "timestamp": "2026-09-03T10:00:00Z", "corrects_archived": "viejo"},
         {"command": "aisdd close change", "change_id": "nuevo", "id": "b",
          "timestamp": "2026-09-03T12:00:00Z"},
+        # Uno retrasado con una senal que lo explica...
+        {"command": "aisdd open change", "change_id": "lento", "id": "c",
+         "timestamp": "2026-09-01T09:00:00Z",
+         "decisions": [{"type": "bloqueante", "decision": "pendiente", "slug": "d1"}]},
+        {"command": "aisdd close change", "change_id": "lento", "id": "d",
+         "timestamp": "2026-09-10T18:00:00Z"},
+        # ...y otro igual de retrasado sin ninguna, que es el hueco.
+        {"command": "aisdd open change", "change_id": "mudo", "id": "e",
+         "timestamp": "2026-09-01T09:00:00Z"},
+        {"command": "aisdd close change", "change_id": "mudo", "id": "f",
+         "timestamp": "2026-09-09T18:00:00Z"},
     ]
     (d / "openspec" / "audit" / "2026-09" / "dev.jsonl").write_text(
         "\n".join(json.dumps(e) for e in entradas) + "\n", encoding="utf-8")
@@ -295,6 +323,26 @@ with tempfile.TemporaryDirectory() as tmp:
             if datos.get("audit", {}).get("rework_total") != 1:
                 errors.append("compute_kpis.py: no cuenta el retrabajo "
                               "(`corrects_archived`) que trae la auditoria de prueba")
+            # La desviacion tiene que venir explicada, no desnuda. Sin PyYAML no
+            # hay roadmap que leer y la seccion se declara no disponible: eso no
+            # es un fallo, pero tiene que decir por que.
+            at = datos.get("attribution")
+            if at is None:
+                errors.append("compute_kpis.py: falta la seccion 'attribution': la "
+                              "desviacion vuelve a salir como una cifra sin explicar")
+            elif at.get("available"):
+                ag = at.get("agregado", {})
+                causas = [c["senal"] for c in ag.get("retraso", {}).get("por_causa", [])]
+                if "decisiones bloqueantes sin resolver" not in causas:
+                    errors.append("compute_kpis.py: la atribucion agregada no recoge la "
+                                  f"causa del change retrasado ({causas})")
+                if not ag.get("retraso", {}).get("changes_sin_senal"):
+                    errors.append("compute_kpis.py: el change retrasado sin senal no "
+                                  "sale como hueco; un hueco callado se lee como "
+                                  "explicado")
+            elif not at.get("reason"):
+                errors.append("compute_kpis.py: la atribucion no esta disponible y "
+                              "tampoco dice por que")
 
     # 2. Y el formato humano, que recorre otro camino del codigo.
     r = subprocess.run([sys.executable, str(KPIS), "--audit", "openspec/audit",

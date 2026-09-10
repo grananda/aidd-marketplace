@@ -3,7 +3,7 @@ name: aiba-metrics
 description: Capa de medicion del conjunto AIBA (AI Business Analyst). Calcula KPIs MEDIDOS del uso de IA en el proyecto y los contrasta con el esfuerzo humano estimado, mediante el comando `aiba metrics` (alias `aiba kpis`, `aiba roi`). Actua como analista de delivery que lee el registro de actividad `docs/aidd-activity.md` (que skill se ejecuto, que ficheros toco la IA, cuanto duro cada turno), el historial de git y las tallas XS/S/M/L/XL de `docs/detalle-historias-usuario.md`, y genera `docs/kpis-ia.md` con tiempo atendido, reparto planificacion vs ejecucion, tiempo de ciclo por historia o change, retrabajo (churn), codigo entregado y, solo si el equipo declara su esfuerzo real, ahorro absoluto, porcentaje de reduccion y factor de aceleracion. Distingue siempre lo medido de lo estimado y se niega a publicar cifras de ahorro que no se sostienen. Si el proyecto usa AISDD, lee ademas `openspec/audit/*.jsonl` (opcional, degrada sin error si no existe) para anadir el eje de calidad de la especificacion: correcciones por change —retrabajo de spec, complementario al churn de codigo—, decisiones que la IA resolvio sin preguntar y lead time real `open change` -> `close change`. Si existe `docs/aiad-journal.md` anade la seccion de **autoria real** --el unico dato de autoria que no es una estimacion--, separando lo que capturo el hook de lo que declaro el humano; sin bitacora esa seccion no aparece. El **esfuerzo humano real** sale del worklog de Jira --leido via MCP siguiendo el mapa de `docs/jira-sync.md`, nunca por REST ni gestionando credenciales-- y se pasa al script con `--worklog`, que ademas **declara la cobertura**: un worklog a medias da pocas horas y una relacion baseline/real inflada, asi que el porcentaje de issues del alcance sin imputar va pegado a la cifra. Sin Jira sigue valiendo `--real-days`, y sin ninguno de los dos la calibracion no aparece. Requiere que el registro de actividad este activado (`touch docs/aidd-activity.md`). Skill de medicion; no escribe auditoria estructurada propia.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.7.0"
+  version: "0.8.0"
 ---
 
 # aiba-metrics (AIBA · medicion · KPIs de uso de IA)
@@ -169,6 +169,7 @@ Escribe el documento con esta estructura, pegando **literalmente** las tablas qu
 ## 4. Por historia de usuario o change  <- tabla del script
 ## 5. Retrabajo y codigo entregado <- tablas del script (churn, correcciones, git)
 ## 6. Contraste con el baseline humano  <- tabla del script
+## 6.bis Por que se desvio      <- tabla del script (atribucion agregada)
 ## 7. Calibracion de la estimacion previa
 ## 8b. Autoria real (solo si hay bitacora AIAD)
 
@@ -177,6 +178,20 @@ Si existe `docs/aiad-journal.md`, el script anade la seccion de autoria: cuantas
 **Es el unico dato real de autoria del informe.** Todo lo demas contrasta una estimacion con lo declarado; aqui hay una linea por pieza, anotada en el momento. Y dentro hay dos calidades que no se mezclan: las entradas `ai-edit` las captura el hook al ver a la IA tocar un fichero --son factuales-- y el resto las declara el humano. La seccion lo separa; consérvalo.
 
 **Si no hay bitacora, la seccion no aparece.** No sale un cero ni un "no disponible": un proyecto que no lleva bitacora no tiene un reparto de autoria del 0 %, simplemente no lo ha medido. No lo supongas ni lo estimes.
+
+### La seccion «Por que se desvio»
+
+Un `+30 %` no es accionable. Lo accionable es **de donde sale ese 30 %**, y eso ya lo calcula el repositorio change a change: la atribucion vive en `${CLAUDE_PLUGIN_ROOT}/scripts/atribucion.py`, un asset del plugin compartido con `aiba-status-report`, y aqui **se agrega**. No se inventa ninguna causa nueva a nivel de proyecto.
+
+La tabla la da el script. Lo que tienes que escribir tu alrededor:
+
+- **Nombra la concentracion.** `changes_que_concentran_la_mitad` dice si la desviacion es un problema puntual o esta repartida. Tres changes de treinta explicando la mitad del retraso es una conversacion; treinta changes empatados es otra muy distinta.
+- **El hueco es un dato, no una ausencia.** `sin_senal_pct` es la parte de la desviacion que **ninguna senal explica**. No la rellenes con la causa mas plausible: eso es exactamente lo que la atribucion se niega a hacer, porque sobre una causa inventada se actua.
+- **Si `auditoria_insuficiente` viene a `true`, cambia el sujeto.** Mas de la mitad de la desviacion sin senal deja de ser un hallazgo sobre el proyecto y pasa a serlo **sobre el registro**: no se puede explicar lo que no se anoto. Dilo asi, y propon que se registre, no que se corra mas.
+- **Y di contra que se compara.** El estimado sale del roadmap y es un **contrafactico**; la duracion real sale de la auditoria y si esta medida. Una narrativa que trate las dos cifras como equivalentes da una precision que el dato no tiene.
+- **Los adelantos se cuentan igual que los retrasos.** Estan en la misma tabla y por el mismo motivo: si solo miras lo que sale mal, solo aprendes de lo que sale mal.
+
+Si la seccion viene con `available: false`, di **por que** --sin roadmap no hay estimacion contra la que comparar, sin auditoria no hay nada que explicar-- en vez de omitirla: una seccion que desaparece se lee como que no habia desviacion.
 
 ## 8. Lectura, riesgos y sesgos
 ```
