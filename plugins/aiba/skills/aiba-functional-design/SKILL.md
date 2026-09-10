@@ -3,7 +3,7 @@ name: aiba-functional-design
 description: AIBA (AI Business Analyst) — genera el Documento de Diseno Funcional (DF) en Word de cada historia de usuario, mediante el comando `aiba functional-design` (alias `aiba df`, `aiba diseno funcional`). Lee `docs/detalle-historias-usuario.md` como fuente de verdad y produce un `.docx` por HU en `docs/df/`, con la estructura acordada: portada, control de versiones, control de aprobaciones, indice, introduccion y alcance, la HU con su narrativa COMO/QUIERO/PARA, tabla de filtros y campos, integraciones con otros aplicativos, validaciones y reglas separadas por frontal y core, mensajes y avisos, pantallas y prototipo, criterios de aceptacion, especificaciones tecnicas y puntos abiertos. El diseno es **generico y sin marca**: usa estilos nativos de Word (Titulo 1/2/3, estilo de tabla, cabecera y pie editables) para que una paleta corporativa y un logo se apliquen despues sin rehacer nada, y **pregunta antes** si se desea aplicar una marca concreta, tomandola de una carpeta local o de una URL. Funciona sobre **todas las HU o una sola** (`aiba functional-design HU-03`), y **reedita** un DF ya generado conservando su historial de versiones y las secciones que el analista haya escrito a mano. Usar cuando el usuario pida "genera los DF", "documento de diseno funcional", "el DF de la HU-05", "actualiza el DF", o equivalentes. Acepta una **plantilla `.docx`/`.dotx` del cliente** de la que hereda estilos, formato de pagina y **la cabecera y el pie intactos, con su logo** --resolviendo los nombres de estilo por idioma y avisando de los que falten--, numera los apartados en el texto del titulo porque los estilos `Heading` de Word no numeran solos, escribe en espanol correcto y para Negocio y QA ajenos al proyecto, **no cita codigos internos** (`RF-xx`, `GAP-xx`) sino que explica el contenido, e **inserta la pantalla** exportada de Figma por `aifg` en vez de su identificador de nodo. Todo lo que tenga que completar una persona sale **resaltado en amarillo**, el alcance dice solo lo que entra, y en el control de versiones firma el analista, nunca el skill.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.10.0"
+  version: "1.11.0"
 ---
 
 # aiba-functional-design (AIBA · Diseno Funcional)
@@ -68,6 +68,17 @@ La pregunta de verdad es corta: **si el cliente tiene una plantilla, donde esta*
 Si elige **3 o 4**, pide ademas lo que no puedas deducir: **color principal**, **color secundario** y **texto de cabecera y pie**. Confirma lo detectado antes de usarlo; no des por buena una paleta extraida automaticamente sin ensenarla.
 
 En modo no interactivo, toma la **opcion 2** y registralo como supuesto.
+
+**Con plantilla, ensena su indice y pregunta que dejar en blanco.** El skill tiene que servir para **cualquier cliente**, y eso no se consigue adivinando que quiere decir cada titulo ajeno: se consigue ensenando el indice y dejando que una persona decida. Antes de generar nada:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-functional-design/scripts/gen_df_docx.py" \
+  --indice "ruta/a/la/plantilla.docx"
+```
+
+Devuelve cada apartado con su **numero**, su nivel, su titulo y con que apartado del DF se corresponde --`null` si es propio del cliente y no se reconoce--. Ensenale esa lista al usuario, di cuantos se han reconocido, y **preguntale que apartados quiere dejar en blanco**: tablas que rellena el cliente, anexos que aporta otro equipo, apartados que en esta HU no aplican. Lo que responda va al manifiesto en `secciones_en_blanco`, **por numero** (`"2.1"`, `"4"`) porque es como los nombra quien tiene el indice delante; tambien vale el nombre. Dejar `"2"` en blanco deja en blanco todo lo que cuelga de el.
+
+Un apartado en blanco conserva su titulo y, si la plantilla traia tabla, su cabecera vacia lista para rellenar a mano; no se escribe contenido ni marca de pendiente, porque no falta: se ha decidido dejarlo. Lo dejado se devuelve en `secciones_en_blanco`, y lo que se pidio pero no estaba en el indice en `en_blanco_no_encontradas` --diselo, o el usuario se queda creyendo que dejo en blanco algo que se ha rellenado igual--.
 
 **Y pregunta a nombre de quien va el documento**: el autor del control de versiones es el **analista que responde del DF ante el cliente**. Si el usuario no lo dice, usa `git config user.name`; si tampoco hay, deja la celda vacia para que la rellene a mano. **Nunca pongas ahi el nombre del skill, del modelo ni "IA"**: esa tabla es de quien firma, y el generador vacia la celda y avisa si detecta una herramienta.
 

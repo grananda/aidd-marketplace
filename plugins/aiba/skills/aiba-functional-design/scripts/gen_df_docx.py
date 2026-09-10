@@ -117,6 +117,12 @@ corchetes: parafrasearlos ("falta por definir") pierde el resaltado.
 
   "secciones_adicionales": [{"titulo":"Glosario","contenido":"texto o lista"}],
 
+  # Apartados que el usuario ha pedido dejar en blanco, por numero de indice de
+  # la plantilla --lo natural cuando se tiene el indice delante-- o por nombre.
+  # Dejar "2" en blanco deja tambien "2.1", "2.2"... Solo aplica con plantilla:
+  # sin ella no hay indice contra el que resolverlos.
+  "secciones_en_blanco": ["2.1", "4"],
+
   # Con --plantilla, la cabecera y el pie de la plantilla se respetan tal cual
   # (logo incluido) y `texto_cabecera` / `texto_pie` no se aplican.
   "branding": {                            # opcional; sin el, documento neutro
@@ -1229,6 +1235,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
 
     avisos: list[str] = []
     comentarios_quitados = 0
+    # Apartados que el usuario ha pedido dejar en blanco. Sin plantilla no hay
+    # indice contra el que resolverlos, asi que solo aplica con plantilla.
+    blancos: set = set()
+    sin_resolver: list[str] = []
     # El titulo que traia la portada de la plantilla. Se guarda porque es lo que
     # hay que buscar en la cabecera: suele repetirse ahi.
     titulo_plantilla: str | None = None
@@ -1256,6 +1266,14 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                           "entregar, o el DF se lee como un borrador")
         numera_ella = plantilla_numera(doc)
         apartados_plantilla = sorted(localizar_apartados(doc))
+        # Que apartados ha pedido el usuario dejar en blanco, resueltos contra
+        # el indice de **esta** plantilla: por eso se pregunta con el delante.
+        blancos, sin_resolver = en_blanco(m.get("secciones_en_blanco"),
+                                          indice_plantilla(plantilla)["apartados"])
+        if sin_resolver:
+            avisos.append("estos apartados pedidos en blanco no estan en el indice de "
+                          "la plantilla y se han rellenado igual: "
+                          + ", ".join(sin_resolver))
         # Con los apartados reconocidos se escribe **dentro** de ellos y no se
         # toca nada mas: portada, logo, indice, tablas, cabecera y secciones se
         # quedan como el cliente las monto. Vaciar el cuerpo se lleva por delante
@@ -1436,8 +1454,11 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         ("puntos_abiertos", "Puntos abiertos", 1, None, (COLS_PA, filas_pa)),
     ]
 
+    from docx.table import Table
+
     anclas = localizar_apartados(doc) if modo == "esqueleto" else {}
     sin_apartado: list[str] = []
+    dejados: list[str] = []
 
     if modo == "esqueleto":
         # La portada no es un apartado, asi que sin esto se queda con el titulo
@@ -1469,6 +1490,21 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             ancla = anclas.get(k)
             if ancla is None:
                 sin_apartado.append(k)
+                continue
+            if k in blancos:
+                # Se vacia el tramo --fuera el texto de ejemplo-- y no se
+                # escribe nada. La tabla de la plantilla se queda con su
+                # cabecera, lista para que alguien la rellene a mano.
+                from docx.oxml.ns import qn as _qn
+
+                for el in rango_seccion(doc, ancla):
+                    if el.tag == _qn("w:tbl"):
+                        # La tabla de la plantilla se queda: vaciarla de datos
+                        # y dejar la cabecera es lo que se pidio, no borrarla.
+                        rellenar_tabla(Table(el, doc), [], [])
+                        continue
+                    el.getparent().remove(el)
+                dejados.append(k)
                 continue
             tramo = rango_seccion(doc, ancla)
             propia = tabla_de(doc, tramo) if tabla else None
@@ -1574,6 +1610,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # ella. Los segundos no se pierden: van al final con su titulo.
             "apartados_plantilla": apartados_plantilla,
             "apartados_no_encontrados": sin_apartado,
+            # Los que se han dejado en blanco a peticion del usuario, y
+            # los que pidio pero no estaban en el indice.
+            "secciones_en_blanco": dejados,
+            "en_blanco_no_encontradas": sin_resolver,
             "plantilla_numera": numera_ella,
             # De donde sale la vineta: el estilo de la plantilla, una
             # numeracion creada aqui, o el punto escrito a mano.
@@ -1591,6 +1631,80 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # documento sale con partes sin formato y nadie se entera hasta
             # abrirlo.
             "avisos": avisos}
+
+
+def indice_plantilla(ruta: Path) -> dict:
+    """El indice de una plantilla: cada apartado con su numero y su nivel.
+
+    Es lo que el pre-flight necesita para preguntar. El skill tiene que servir
+    para **cualquier cliente**, y eso no se consigue adivinando que quiere decir
+    cada titulo ajeno: se consigue ensenando el indice tal cual y dejando que
+    una persona diga que apartados se rellenan y cuales se dejan en blanco.
+
+    El numero sale del propio titulo cuando la plantilla lo trae escrito
+    --`2.1 Filtros y Campos`--, y si no se calcula por la jerarquia de niveles,
+    que es lo que hara Word al numerarlos.
+    """
+    import docx
+
+    d = docx.Document(ruta)
+    fuera: list[dict] = []
+    contador: list[int] = []
+    for p in d.paragraphs:
+        nivel = nivel_titulo(p)
+        if nivel is None or not p.text.strip():
+            continue
+        texto = p.text.strip()
+        propio = re.match(r"^(\d+(?:\.\d+)*)[.)]?\s+(.*)$", texto)
+        if propio:
+            numero, nombre = propio.group(1), propio.group(2).strip()
+            contador = [int(x) for x in numero.split(".")]
+        else:
+            nombre = texto
+            del contador[nivel:]
+            while len(contador) < nivel:
+                contador.append(0)
+            contador[nivel - 1] += 1
+            numero = ".".join(str(x) for x in contador)
+        fuera.append({"numero": numero, "nivel": nivel, "titulo": nombre,
+                      # Con que apartado del DF se corresponde, si se reconoce.
+                      # Lo que no se reconoce no es un error: es un apartado
+                      # propio del cliente, y por eso se pregunta.
+                      "apartado": ALIAS.get(clave(texto))})
+    return {"plantilla": str(ruta), "apartados": fuera,
+            "reconocidos": sum(1 for x in fuera if x["apartado"]),
+            "total": len(fuera)}
+
+
+def en_blanco(pedidas, indice: list[dict]) -> tuple[set, list[str]]:
+    """Que apartados hay que dejar en blanco, resueltos contra el indice.
+
+    Se admite el **numero** --`2.1`, que es como los nombra una persona que
+    tiene el indice delante-- y tambien el nombre. Lo que no case con nada se
+    devuelve aparte para decirlo: callarselo dejaria al usuario creyendo que ha
+    dejado en blanco un apartado que se ha rellenado igual.
+    """
+    if not pedidas:
+        return set(), []
+    if isinstance(pedidas, str):
+        pedidas = [x.strip() for x in re.split(r"[,;]", pedidas) if x.strip()]
+    por_numero = {x["numero"]: x for x in indice}
+    por_nombre = {clave(x["titulo"]): x for x in indice}
+    claves, sin_resolver = set(), []
+    for pedida in pedidas:
+        t = str(pedida).strip().rstrip(".")
+        entrada = por_numero.get(t) or por_nombre.get(clave(t))
+        if entrada is None:
+            sin_resolver.append(str(pedida))
+            continue
+        # Un apartado se identifica hacia dentro por su clave del DF; si es uno
+        # propio del cliente, por su numero, que es lo unico estable que tiene.
+        claves.add(entrada["apartado"] or ("#" + entrada["numero"]))
+        # Dejar en blanco un apartado deja en blanco lo que cuelga de el.
+        for x in indice:
+            if x["numero"].startswith(entrada["numero"] + "."):
+                claves.add(x["apartado"] or ("#" + x["numero"]))
+    return claves, sin_resolver
 
 
 def extraer(ruta: Path) -> dict:
@@ -1636,6 +1750,10 @@ def main() -> int:
     ap.add_argument("--manifest", help="JSON con el contenido del DF; sin el, stdin")
     ap.add_argument("--output", help="ruta del .docx de salida")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema del manifiesto y sale")
+    ap.add_argument("--indice", metavar="PLANTILLA",
+                    help="vuelca a JSON el indice de una plantilla --cada apartado con "
+                         "su numero, su nivel y si el DF lo reconoce--, para poder "
+                         "preguntar en el pre-flight que dejar en blanco, y sale")
     ap.add_argument("--extraer", metavar="RUTA",
                     help="vuelca a JSON el texto y las tablas de un DF ya generado, "
                          "para que otro skill pueda leerlo, y sale")
@@ -1647,6 +1765,9 @@ def main() -> int:
 
     if args.schema:
         print(SCHEMA)
+        return 0
+    if args.indice:
+        print(json.dumps(indice_plantilla(Path(args.indice)), ensure_ascii=False, indent=2))
         return 0
     if args.extraer:
         _ensure_docx(not args.no_install)

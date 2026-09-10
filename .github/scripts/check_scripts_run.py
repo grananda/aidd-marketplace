@@ -424,6 +424,49 @@ with tempfile.TemporaryDirectory() as tmp:
         sinv.add_paragraph("PLANTILLA SIN ESTILO DE VIÑETA")
         sinv.save(str(d / "sinvin.docx"))
 
+        # El indice de la plantilla, que es lo que el pre-flight ensena para
+        # poder preguntar que dejar en blanco. Sin numeros no se puede preguntar.
+        r_idx = subprocess.run([sys.executable, str(DF), "--indice", str(d / "esq.docx"),
+                                "--no-install"], capture_output=True, text=True,
+                               timeout=120)
+        if r_idx.returncode != 0:
+            errors.append(f"gen_df_docx.py --indice falla: {r_idx.stderr.strip()[:160]}")
+        else:
+            idx = json.loads(r_idx.stdout)
+            numeros = [a["numero"] for a in idx["apartados"]]
+            if not numeros or not any("." in n_ for n_ in numeros):
+                errors.append("gen_df_docx.py --indice no numera los apartados de "
+                              f"segundo nivel ({numeros}): el pre-flight pregunta por "
+                              "numero, asi que sin ellos no se puede preguntar")
+            if not any(a["apartado"] == "campos" for a in idx["apartados"]):
+                errors.append("gen_df_docx.py --indice no reconoce Filtros/Campos "
+                              "entre los apartados de la plantilla")
+
+            # Y dejarlo en blanco por numero tiene que dejarlo en blanco.
+            n_campos = next(a["numero"] for a in idx["apartados"]
+                            if a["apartado"] == "campos")
+            m_blanco = json.loads((d / "m.json").read_text(encoding="utf-8"))
+            m_blanco["secciones_en_blanco"] = [n_campos]
+            (d / "m-blanco.json").write_text(json.dumps(m_blanco, ensure_ascii=False),
+                                             encoding="utf-8")
+            r_b = subprocess.run([sys.executable, str(DF), "--manifest",
+                                  str(d / "m-blanco.json"), "--output",
+                                  str(d / "df-blanco.docx"), "--plantilla",
+                                  str(d / "esq.docx"), "--no-install"],
+                                 capture_output=True, text=True, timeout=120)
+            if r_b.returncode != 0:
+                errors.append(f"gen_df_docx.py con secciones_en_blanco falla: "
+                              f"{r_b.stderr.strip()[:160]}")
+            else:
+                if "campos" not in json.loads(r_b.stdout).get("secciones_en_blanco", []):
+                    errors.append("gen_df_docx.py: pedir en blanco el apartado "
+                                  f"{n_campos} no lo deja en blanco")
+                d_b = _docx.Document(str(d / "df-blanco.docx"))
+                if any("Ramo" in c_.text for t_ in d_b.tables for f_ in t_.rows
+                       for c_ in f_.cells):
+                    errors.append("gen_df_docx.py: el apartado pedido en blanco se "
+                                  "rellena igual")
+
         for etiqueta, extra in (("sin plantilla", []),
                                 ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),
                                 ("con esqueleto", ["--plantilla", str(d / "esq.docx")]),
