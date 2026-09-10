@@ -644,6 +644,77 @@ def actualizar_cabecera(doc, viejo: str | None, nuevo: str) -> list[str]:
     return tocadas
 
 
+# Lo que Word cuelga de un comentario. Se quita todo: las marcas del cuerpo, el
+# run que lleva la referencia, y las partes con el texto y los autores.
+REL_COMENTARIOS = (
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments",
+    "http://schemas.microsoft.com/office/2011/relationships/commentsExtended",
+    "http://schemas.microsoft.com/office/2016/09/relationships/commentsIds",
+    "http://schemas.microsoft.com/office/2018/08/relationships/commentsExtensible",
+    "http://schemas.microsoft.com/office/2011/relationships/people",
+)
+
+
+def quitar_comentarios(doc) -> int:
+    """Borra los comentarios de Word que venian en la plantilla.
+
+    Sirvieron mientras alguien redactaba la plantilla --"revisar esto",
+    "hablar con negocio"-- y no pintan nada en el documento que se entrega al
+    cliente: son conversaciones internas de otro equipo y de otro momento.
+
+    Hay que quitar las tres marcas del cuerpo *y* las partes del paquete: con
+    dejar `comments.xml` colgando, Word abre el panel de revision con los
+    comentarios huerfanos, y quitando solo la parte se queda una referencia
+    rota que da error al abrir.
+    """
+    from docx.oxml.ns import qn
+
+    quitados = 0
+    raices = [doc.element.body]
+    for sec in doc.sections:
+        for cual in ("first_page_header", "header", "even_page_header",
+                     "first_page_footer", "footer", "even_page_footer"):
+            parte = getattr(sec, cual, None)
+            if parte is not None:
+                raices.append(parte._element)
+
+    for raiz in raices:
+        for tag in ("w:commentRangeStart", "w:commentRangeEnd"):
+            for el in list(raiz.iter(qn(tag))):
+                el.getparent().remove(el)
+                quitados += 1
+        for ref in list(raiz.iter(qn("w:commentReference"))):
+            # La referencia vive dentro de un run que no lleva nada mas; se va
+            # el run entero para no dejar un run vacio en mitad del parrafo.
+            run = ref.getparent()
+            objetivo = run if run is not None and run.tag == qn("w:r") else ref
+            padre = objetivo.getparent()
+            if padre is not None:
+                padre.remove(objetivo)
+                quitados += 1
+
+    for rid, rel in list(doc.part.rels.items()):
+        if rel.reltype in REL_COMENTARIOS:
+            doc.part.drop_rel(rid)
+    return quitados
+
+
+def hay_revisiones(doc) -> int:
+    """Cuantas marcas de control de cambios trae el documento.
+
+    No se aceptan ni se rechazan aqui: aceptar cambia el contenido y rechazar
+    lo tira, y ninguna de las dos es una decision del generador. Pero hay que
+    decirlo, porque un DF entregado con marcas de revision se lee como un
+    borrador y ensena quien escribio que.
+    """
+    from docx.oxml.ns import qn
+
+    n = 0
+    for tag in ("w:ins", "w:del", "w:moveFrom", "w:moveTo"):
+        n += len(doc.element.body.findall(".//" + qn(tag)))
+    return n
+
+
 def resaltar_pendientes(doc) -> int:
     """Resalta en amarillo todo lo pendiente, se haya escrito por donde se haya.
 
@@ -1104,6 +1175,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     hoy = m.get("fecha") or date.today().isoformat()
 
     avisos: list[str] = []
+    comentarios_quitados = 0
     # El titulo que traia la portada de la plantilla. Se guarda porque es lo que
     # hay que buscar en la cabecera: suele repetirse ahi.
     titulo_plantilla: str | None = None
@@ -1117,6 +1189,18 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         # Se interroga a la plantilla **antes** de vaciarla: despues no queda
         # nada que mirar. La numeracion vive en los parrafos de titulo y los
         # apartados en su texto, y los dos desaparecen con el cuerpo.
+        # Los comentarios de la plantilla se van antes de nada: son de quien la
+        # redacto y no del DF que se entrega.
+        comentarios_quitados = quitar_comentarios(doc)
+        if comentarios_quitados:
+            avisos.append(f"se han quitado los comentarios de Word que traia la "
+                          f"plantilla ({comentarios_quitados} marcas): eran notas de "
+                          "edicion, no contenido del documento")
+        revisiones = hay_revisiones(doc)
+        if revisiones:
+            avisos.append(f"la plantilla trae {revisiones} marcas de control de "
+                          "cambios: acepta o rechaza las revisiones en Word antes de "
+                          "entregar, o el DF se lee como un borrador")
         numera_ella = plantilla_numera(doc)
         apartados_plantilla = sorted(localizar_apartados(doc))
         # Con los apartados reconocidos se escribe **dentro** de ellos y no se
@@ -1423,6 +1507,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             "relleno_sin_sustituir": relleno,
             # Donde se ha puesto al dia el nombre del documento.
             "cabecera_actualizada": cabecera_actualizada,
+            "comentarios_quitados": comentarios_quitados,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el

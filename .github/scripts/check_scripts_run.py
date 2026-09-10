@@ -108,6 +108,23 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
             fallos.append(f"gen_df_docx.py {etiqueta}: al reescribir la cabecera se ha "
                           "perdido el logo")
 
+        for _t in ("w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"):
+            if doc.element.body.findall(".//" + _q(_t)):
+                fallos.append(f"gen_df_docx.py {etiqueta}: quedan marcas de comentario "
+                              f"({_t}) de la plantilla en el documento entregado")
+        if salida_json.get("comentarios_quitados"):
+            import zipfile as _zip                                # noqa: PLC0415
+            with _zip.ZipFile(str(salida)) as _z:
+                sobran = [n_ for n_ in _z.namelist()
+                          if "comment" in n_ or "people" in n_]
+            if sobran:
+                fallos.append(f"gen_df_docx.py {etiqueta}: se quitaron las marcas pero "
+                              f"el paquete conserva {sobran}: Word abre el panel de "
+                              "revision con los comentarios huerfanos")
+        else:
+            fallos.append(f"gen_df_docx.py {etiqueta}: no se ha quitado el comentario "
+                          "de Word que traia la plantilla")
+
         relleno = salida_json.get("relleno_sin_sustituir")
         if relleno is None:
             fallos.append(f"gen_df_docx.py {etiqueta}: la salida no trae "
@@ -375,7 +392,11 @@ with tempfile.TemporaryDirectory() as tmp:
             esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
         # Un apartado del cliente que el DF no conoce, con relleno sin sustituir.
         esq.add_paragraph("Anexo del cliente", style="Heading 1")
-        esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
+        _relleno = esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
+        # Comentarios de Word como los que trae una plantilla que alguien estuvo
+        # editando. Son notas de aquel momento y no contenido del DF.
+        esq.add_comment(_relleno.runs, "Revisar con negocio antes de entregar",
+                        author="Plantilla", initials="PL")
         esq.save(str(d / "esq.docx"))
 
         # Plantilla sin ningun estilo de vineta, que es lo normal en cliente:
