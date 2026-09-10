@@ -37,6 +37,14 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+# La atribucion de desviaciones vive en los scripts compartidos del plugin: la
+# calcula igual `aiba-status-report` change a change, y aqui se agrega. Dos
+# copias serian dos definiciones de la misma causa.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from atribucion import (  # noqa: E402 - despues de fijar sys.path
+    LABORABLE_DEFECTO, acumular_senales, agregar_desviacion, atribuir,
+    dias_laborables, _duracion)
+
 # Escala de tallas AIDD, 1 d = jornada de 8 h.
 #
 # SYNC: esta tabla vive replicada en tres scripts de tres plugins, porque no se
@@ -370,6 +378,13 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
         if slug:
             c = changes[slug]
             c["commands"] += 1
+            # Las senales que explican **por que** un change duro lo que duro.
+            # Se pliegan con la misma funcion que usa `aiba-status-report`, para
+            # que los dos informes lean los mismos campos y no se contradigan.
+            acumular_senales(c, e)
+            dur = _duracion(e.get("started_at"), e.get("timestamp"))
+            if dur is not None:
+                c["atendido_h"] = c.get("atendido_h", 0.0) + dur
             if str(e.get("status") or "ok") != "ok":
                 c["status_issues"] += 1
             if command.endswith("open change"):
@@ -401,6 +416,12 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
             lead_times.append(c["lead_time_s"])
         else:
             c["lead_time_s"] = None
+        # La fecha, para leerla; el instante, para calcular. Truncar a dia antes
+        # de atribuir hacia que un change abierto y cerrado el mismo dia contara
+        # cero, y que `metrics` y `status-report` dieran lead times distintos
+        # del mismo change: justo lo que el modulo compartido existe para evitar.
+        c["opened_ts"] = c["opened"].isoformat() if c["opened"] else None
+        c["closed_ts"] = c["closed"].isoformat() if c["closed"] else None
         c["opened"] = c["opened"].strftime("%Y-%m-%d") if c["opened"] else None
         c["closed"] = c["closed"].strftime("%Y-%m-%d") if c["closed"] else None
 
@@ -425,7 +446,10 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
         "auto_defaults": auto_defaults,
         "auto_default_pct": (auto_defaults / decisions_total * 100) if decisions_total else 0.0,
         "status_issues": status_issues,
-        "lead_time_p50_s": percentile(lead_times, 50) if lead_times else 0.0,
+        # `percentile` toma una fraccion, no un numero de 0 a 100: con `50` el
+        # indice se sale de la lista y el comando revienta en cuanto hay dos
+        # changes cerrados, que es cualquier proyecto real.
+        "lead_time_p50_s": percentile(lead_times, 0.5) if lead_times else 0.0,
         "lead_times_measured": len(lead_times),
     })
     return out
@@ -439,6 +463,83 @@ def fmt_hours(seconds: float) -> str:
 
 
 JORNADA_HORAS = 8.0
+
+
+def read_roadmap(config: Path) -> tuple[list, dict, dict, str | None]:
+    """Las fases del roadmap y lo que se estimo que costaria cada una.
+
+    Es el contrafactico contra el que se compara: **estimado**, no medido. Se
+    toma `effort_ai` --o `effort_human`-- porque es lo que escribe `aiba
+    project-plan`. Una fase que no declare ninguno de los dos no se compara con
+    nada, y eso se dice: repartirle un peso a ojo convertiria una estimacion
+    ausente en una desviacion inventada.
+    """
+    if not config.is_file():
+        return [], {}, LABORABLE_DEFECTO, f"no existe {config}"
+    try:
+        import yaml
+    except ImportError:
+        return [], {}, LABORABLE_DEFECTO, ("falta PyYAML: sin el no se puede leer el "
+                                           "roadmap y no hay con que comparar")
+    try:
+        datos = yaml.safe_load(config.read_text(encoding="utf-8")) or {}
+    except Exception as e:  # noqa: BLE001 - un YAML roto no debe tumbar los KPIs
+        return [], {}, LABORABLE_DEFECTO, f"{config} no es YAML valido: {e}"
+    roadmap = datos.get("roadmap") or {}
+    fases = roadmap.get("phases") or []
+    pesos = {}
+    for f in fases:
+        for clave in ("effort_ai", "effort_human"):
+            v = f.get(clave)
+            if isinstance(v, (int, float)) and v > 0:
+                pesos[str(f.get("id"))] = float(v)
+                break
+    cal = roadmap.get("calendar") or LABORABLE_DEFECTO
+    if not fases:
+        return [], {}, cal, f"{config} no declara fases en `roadmap.phases`"
+    return fases, pesos, cal, None
+
+
+def justificar(audit: dict, fases: list, pesos: dict, cal: dict) -> dict:
+    """Por que se desvio el proyecto, agregando la atribucion por change.
+
+    Es lo que faltaba: la comparacion entre lo estimado y lo real salia como una
+    cifra sin explicacion, y un `+30 %` no es accionable. No se calcula ninguna
+    causa nueva a este nivel; se agrega la que ya se calcula change a change.
+    """
+    if not audit.get("available"):
+        return {"available": False, "reason": "no hay auditoria que explique nada"}
+    if not fases:
+        return {"available": False, "reason": "sin roadmap no hay estimacion contra la "
+                                              "que comparar la duracion real"}
+    changes = audit.get("changes") or {}
+    medidos = []
+    for cid, c in sorted(changes.items()):
+        if not c.get("opened_ts") or not c.get("closed_ts"):
+            continue
+        try:
+            a = datetime.fromisoformat(str(c["opened_ts"]))
+            b = datetime.fromisoformat(str(c["closed_ts"]))
+        except ValueError:
+            continue
+        if b < a:
+            continue
+        dias = round((b - a).total_seconds() / 86400, 2)
+        fila = {"change": cid, "dias": dias, "dias_laborables": dias_laborables(a, b, cal)}
+        # Ratio atencion / calendario: de todo el tiempo que el change estuvo
+        # abierto, cuanto se estuvo trabajando en el. Bajo significa que estuvo
+        # **esperando**, y mas gente no acorta una espera.
+        at = c.get("atendido_h")
+        if at is not None and dias > 0:
+            fila["ratio_atencion"] = round(at / (dias * 24) * 100, 1)
+        medidos.append(fila)
+    if not medidos:
+        return {"available": False,
+                "reason": "la auditoria no tiene pares open/close con fecha"}
+    atr = atribuir({"por_change": medidos}, fases, pesos, changes, cal)
+    return {"available": True, "por_change": atr, "agregado": agregar_desviacion(atr),
+            "base": ("el estimado sale de las tallas del roadmap y es un contrafactico; "
+                     "la duracion real sale de la auditoria y si esta medida")}
 
 
 def read_worklog(path: Path) -> tuple[dict | None, str | None]:
@@ -936,6 +1037,50 @@ def md_tables(f: dict) -> str:
                    "pieza de trabajo, anotada en el momento.")
 
     out.append("")
+    at = f.get("attribution") or {}
+    if at.get("available"):
+        ag = at["agregado"]
+        out.append("### Por que se desvio\n")
+        out.append("_" + at["base"] + "._\n")
+        # Sin esto la seccion se queda con el titulo y la nota y nada mas, que se
+        # lee como que falta el dato en vez de como que no hubo desviacion.
+        if not ag["retraso"]["dias"] and not ag["adelanto"]["dias"]:
+            comp = [c for c in at["por_change"]["changes"]
+                    if c.get("sentido") == "no comparable"]
+            if comp:
+                out.append(f"Ningun change se puede comparar ({len(comp)} de "
+                           f"{len(at['por_change']['changes'])}): "
+                           + "; ".join(sorted({str(c.get("motivo")) for c in comp}))
+                           + ". Sin estimacion no hay desviacion que explicar.\n")
+            else:
+                out.append("Ningun change se desvio mas de un 25 % de lo estimado, "
+                           "que es el umbral a partir del cual esto cuenta como "
+                           "desviacion y no como ruido.\n")
+        for lado, titulo in (("retraso", "Retraso"), ("adelanto", "Adelanto")):
+            d = ag[lado]
+            if not d["dias"]:
+                continue
+            out.append(f"**{titulo}: {d['dias']} dias en {d['changes']} changes** "
+                       f"--la mitad la concentran {d['changes_que_concentran_la_mitad']}--\n")
+            out.append("| Parte | Dias | Senal que lo dice | Changes |")
+            out.append("|---|---|---|---|")
+            for c in d["por_causa"]:
+                out.append(f"| {c['pct']} % | {c['dias']} | {c['senal']} | "
+                           f"{', '.join(c['changes'])} |")
+            if d["sin_senal_dias"]:
+                out.append(f"| {d['sin_senal_pct']} % | {d['sin_senal_dias']} | "
+                           f"**sin senal en la auditoria** | "
+                           f"{', '.join(d['changes_sin_senal'])} |")
+            out.append("")
+        if ag["auditoria_insuficiente"]:
+            out.append(f"> **El {ag['sin_senal_pct_global']} % de la desviacion no tiene "
+                       "senal que la explique.** Por encima de la mitad el hallazgo deja "
+                       "de ser sobre el proyecto y pasa a ser sobre el registro: no se "
+                       "puede explicar lo que no se anoto.\n")
+    elif at.get("reason"):
+        out.append("### Por que se desvio\n")
+        out.append(f"No se ha podido justificar la desviacion: {at['reason']}.\n")
+
     return "\n".join(out)
 
 
@@ -973,6 +1118,10 @@ def main() -> int:
     parser.add_argument("--audit", default="openspec/audit",
                         help="Directorio de auditoria AISDD (por defecto openspec/audit). "
                              "Si no existe, el informe sale igual sin esa seccion.")
+    parser.add_argument("--config", default=None,
+                        help="openspec/config.yaml, de donde sale lo estimado por fase. "
+                             "Por defecto, al lado del directorio de auditoria. Indicalo "
+                             "si el registro esta externalizado en un repo de gobierno.")
     parser.add_argument("--no-audit", action="store_true",
                         help="Omite las metricas de la auditoria AISDD.")
     args = parser.parse_args()
@@ -1032,6 +1181,16 @@ def main() -> int:
     if not args.no_audit:
         audit = read_audit(Path(args.audit), min(stamps), max(stamps))
 
+    # El roadmap vive al lado de la auditoria: `openspec/audit/` y
+    # `openspec/config.yaml`. Se deja indicar por si el registro esta
+    # externalizado en un repo de gobierno y no cuelga del mismo sitio.
+    config = Path(args.config) if args.config else Path(args.audit).parent / "config.yaml"
+    fases, pesos, cal, motivo_roadmap = read_roadmap(config)
+    if motivo_roadmap and not args.no_audit:
+        sys.stderr.write(f"ADVERTENCIA: no se puede justificar la desviacion: "
+                         f"{motivo_roadmap}\n")
+    justificacion = justificar(audit, fases, pesos, cal)
+
     worklog, wl_err = (None, None)
     if args.worklog:
         worklog, wl_err = read_worklog(Path(args.worklog))
@@ -1042,6 +1201,9 @@ def main() -> int:
                         real_days=args.real_days, cost_per_day=args.cost_per_day,
                         audit=audit, journal=read_journal(Path(args.journal)),
                         worklog=worklog)
+    # Por que se desvio, no solo cuanto. Va fuera de `build_facts` porque
+    # necesita el roadmap, que es la unica fuente que dice lo estimado.
+    facts["attribution"] = justificacion
     if args.baseline_days is not None:
         facts["baseline"]["source"] = "--baseline-days (indicado a mano)"
 
