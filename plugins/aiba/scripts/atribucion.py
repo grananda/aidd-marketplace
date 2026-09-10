@@ -23,7 +23,7 @@ Se importa como `branding.py`: los scripts de los skills anaden
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 
 LABORABLE_DEFECTO = {"workweek": [1, 2, 3, 4, 5], "holidays": [], "por_defecto": True}

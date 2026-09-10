@@ -416,6 +416,12 @@ def read_audit(audit_dir: Path, since: datetime | None, until: datetime | None) 
             lead_times.append(c["lead_time_s"])
         else:
             c["lead_time_s"] = None
+        # La fecha, para leerla; el instante, para calcular. Truncar a dia antes
+        # de atribuir hacia que un change abierto y cerrado el mismo dia contara
+        # cero, y que `metrics` y `status-report` dieran lead times distintos
+        # del mismo change: justo lo que el modulo compartido existe para evitar.
+        c["opened_ts"] = c["opened"].isoformat() if c["opened"] else None
+        c["closed_ts"] = c["closed"].isoformat() if c["closed"] else None
         c["opened"] = c["opened"].strftime("%Y-%m-%d") if c["opened"] else None
         c["closed"] = c["closed"].strftime("%Y-%m-%d") if c["closed"] else None
 
@@ -509,12 +515,14 @@ def justificar(audit: dict, fases: list, pesos: dict, cal: dict) -> dict:
     changes = audit.get("changes") or {}
     medidos = []
     for cid, c in sorted(changes.items()):
-        if not c.get("opened") or not c.get("closed"):
+        if not c.get("opened_ts") or not c.get("closed_ts"):
             continue
         try:
-            a = datetime.fromisoformat(str(c["opened"])).replace(tzinfo=timezone.utc)
-            b = datetime.fromisoformat(str(c["closed"])).replace(tzinfo=timezone.utc)
+            a = datetime.fromisoformat(str(c["opened_ts"]))
+            b = datetime.fromisoformat(str(c["closed_ts"]))
         except ValueError:
+            continue
+        if b < a:
             continue
         dias = round((b - a).total_seconds() / 86400, 2)
         fila = {"change": cid, "dias": dias, "dias_laborables": dias_laborables(a, b, cal)}
@@ -1034,6 +1042,20 @@ def md_tables(f: dict) -> str:
         ag = at["agregado"]
         out.append("### Por que se desvio\n")
         out.append("_" + at["base"] + "._\n")
+        # Sin esto la seccion se queda con el titulo y la nota y nada mas, que se
+        # lee como que falta el dato en vez de como que no hubo desviacion.
+        if not ag["retraso"]["dias"] and not ag["adelanto"]["dias"]:
+            comp = [c for c in at["por_change"]["changes"]
+                    if c.get("sentido") == "no comparable"]
+            if comp:
+                out.append(f"Ningun change se puede comparar ({len(comp)} de "
+                           f"{len(at['por_change']['changes'])}): "
+                           + "; ".join(sorted({str(c.get("motivo")) for c in comp}))
+                           + ". Sin estimacion no hay desviacion que explicar.\n")
+            else:
+                out.append("Ningun change se desvio mas de un 25 % de lo estimado, "
+                           "que es el umbral a partir del cual esto cuenta como "
+                           "desviacion y no como ruido.\n")
         for lado, titulo in (("retraso", "Retraso"), ("adelanto", "Adelanto")):
             d = ag[lado]
             if not d["dias"]:

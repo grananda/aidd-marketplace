@@ -32,7 +32,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 # Escala de tallas AIDD. Replicada a proposito en varios plugins --no se pueden
