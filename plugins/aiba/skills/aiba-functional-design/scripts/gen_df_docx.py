@@ -138,8 +138,25 @@ PENDIENTE = "[PENDIENTE: sin información en la documentación de origen]"
 # de veinte paginas se lee en diagonal, y un `[PENDIENTE]` en texto normal pasa
 # desapercibido: acaba firmado como si fuera contenido. El resaltado es la
 # unica forma de que un hueco se vea sin leer el documento entero.
+# El marcador entre corchetes sigue siendo la forma correcta de escribirlo, pero
+# **no puede ser la unica que se resalte**: segun el modelo que redacte, el hueco
+# sale como "pendiente de definir" o "falta por confirmar con negocio", y con la
+# marca literal como unico criterio esos huecos se entregaban sin resaltar. Se
+# reconocen tambien las formas en prosa, que es lo que hace que el resultado no
+# dependa de que modelo genero el documento.
 MARCA_PENDIENTE = re.compile(
-    r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]")
+    r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]"
+    r"|\bpendientes? de (?:definir|concretar|confirmar|validar|detallar|decidir"
+    r"|aportar|recibir|documentar)\b"
+    # `a definir` se cae a proposito: "vamos a definir el alcance" no es un hueco.
+    r"|\b(?:por|sin) (?:definir|concretar|confirmar|determinar|detallar|decidir)\b"
+    r"|\bfalta(?:n)? por (?:definir|concretar|confirmar|detallar|decidir)\b"
+    r"|\bse desconoce\b|\bno se dispone de\b|\bno consta\b",
+    re.IGNORECASE)
+
+# Lo que se escribe en una celda que alguien tiene que rellenar a mano. Va entre
+# corchetes para que lo pille la marca de arriba y salga en amarillo.
+CELDA_PENDIENTE = "[PENDIENTE]"
 
 # Codigos internos que no pintan nada en un DF: quien lo revisa no tiene esos
 # documentos y el codigo no le dice nada. `HU-` y `PA-` se quedan --dan nombre
@@ -232,9 +249,12 @@ def write_blocks(doc, value, vacio: str = PENDIENTE, est=None) -> None:
         parrafo_marcado(doc, vacio)
         return
     for b in blocks:
-        if b.startswith(("- ", "* ")):
-            parrafo_marcado(doc, b[2:].strip(),
-                            est("List Bullet") if est else "List Bullet")
+        if b.startswith(("- ", "* ", "\u2022 ")):
+            texto = b[1:].strip() if b[0] == "\u2022" else b[2:].strip()
+            if est is not None:
+                est.vineta(doc, texto)
+            else:
+                parrafo_marcado(doc, texto, "List Bullet")
         else:
             parrafo_marcado(doc, b)
 
@@ -322,6 +342,161 @@ def add_toc(doc) -> None:
     ancla._p.getparent().remove(ancla._p)
 
 
+# Texto de relleno que trae la plantilla del cliente y que nadie ha sustituido.
+# No se borra --puede haber un apartado del cliente que haya que rellenar de
+# verdad-- pero se resalta y se canta, que es lo que no pasaba: el DF se
+# entregaba con el "TITULO DEL DOCUMENTO" de la plantilla todavia puesto.
+# Los angulos piden cuidado. `<[^<>]+>` tambien casa con "si el saldo < 0 y el
+# plazo > 30" y con `<div>`, y resaltar eso es peor que no resaltar nada. Se
+# exige que no haya espacio pegado a los angulos --un hueco se escribe `<FOO>`,
+# no `< foo >`-- y que dentro haya espacio, guion bajo o mayusculas, que es lo
+# que distingue un hueco de una etiqueta de marcado.
+RELLENO = re.compile(
+    # `(?-i:...)` mantiene el tramo sensible a mayusculas dentro de un patron que
+    # no lo es: sin eso, `IGNORECASE` hace que `[A-Z]{2}` case con "di" y `<div>`
+    # se marque como hueco.
+    r"<(?=\S)(?=[^<>\n]*(?:[ _]|(?-i:[A-ZÁÉÍÓÚÜÑ]{2})))[^<>\n]{1,58}\S>"
+    r"|\{\{[^}\n]{1,60}\}\}"                   # {{campo}}
+    r"|lorem ipsum"
+    r"|\btexto de (?:ejemplo|muestra|prueba|relleno)\b"
+    r"|\bsustituir por\b|\brellenar (?:con|aqui|aquí)\b"
+    r"|\bpendiente de (?:completar|rellenar)\b"
+    r"|\bT[IÍ]TULO DEL DOCUMENTO\b"
+    r"|\bnombre del (?:proyecto|cliente|documento)\b"
+    r"|\bXXXX+\b|\bTBD\b",
+    re.IGNORECASE)
+
+
+def _con_contenido(parte) -> bool:
+    """Si una cabecera o un pie tienen algo dentro: texto, imagen o campo."""
+    from docx.oxml.ns import qn
+
+    el = parte._element
+    if any((t.text or "").strip() for t in el.iter(qn("w:t"))):
+        return True
+    return any(next(el.iter(qn(tag)), None) is not None
+               for tag in ("w:drawing", "w:pict", "w:object", "w:fldChar"))
+
+
+def propagar_cabecera(doc) -> list[str]:
+    """Lleva la cabecera de la portada al resto de paginas si estas no tienen.
+
+    Una plantilla con "primera pagina distinta" suele traer el logo **solo** en
+    la cabecera de la portada, y el resto del documento sale sin el. Se nota al
+    imprimir y es lo que se reporto. Solo se copia cuando la cabecera normal
+    esta vacia: si el cliente puso ahi otra cosa, manda la suya.
+
+    Copiar el XML no basta. La imagen se referencia por un identificador de
+    relacion que **pertenece a la parte de origen**, asi que hay que registrar
+    la imagen tambien en la parte de destino y reescribir el identificador, o
+    el logo aparece como un recuadro roto.
+    """
+    import copy
+
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.oxml.ns import qn
+
+    tocadas: list[str] = []
+    for i, sec in enumerate(doc.sections):
+        if not sec.different_first_page_header_footer:
+            continue
+        primera, normal = sec.first_page_header, sec.header
+        if not _con_contenido(primera) or _con_contenido(normal):
+            continue
+        normal.is_linked_to_previous = False
+        for hijo in list(normal._element):
+            normal._element.remove(hijo)
+        for hijo in primera._element:
+            copia = copy.deepcopy(hijo)
+            # `v:imagedata` es VML, de las plantillas antiguas; python-docx no
+            # trae ese prefijo en su mapa de espacios de nombres.
+            vml = "{urn:schemas-microsoft-com:vml}imagedata"
+            for ref, attr in ((qn("a:blip"), qn("r:embed")), (vml, qn("r:id"))):
+                for nodo in copia.iter(ref):
+                    rid = nodo.get(attr)
+                    if not rid:
+                        continue
+                    imagen = primera.part.related_parts[rid]
+                    nodo.set(attr, normal.part.relate_to(imagen, RT.IMAGE))
+            normal._element.append(copia)
+        tocadas.append(str(i + 1))
+    return tocadas
+
+
+def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
+    """Escribe el titulo del DF en la portada de la plantilla.
+
+    En modo esqueleto no se toca nada que no sea un apartado reconocido, y la
+    portada no lo es: el DF salia con el titulo de ejemplo de la plantilla.
+    Se busca el primer parrafo con estilo de titulo antes del primer apartado.
+    """
+    # Primero se busca el `Title`; el `Subtitle` solo si no hay ninguno. Al reves
+    # se pisaria un subtitulo con sentido --"Documento de Diseño Funcional"--
+    # dejando el titulo de ejemplo puesto justo encima.
+    for nombre in (est("Title"), est("Subtitle")):
+        if nombre is None:
+            continue
+        if _escribir_en_portada(doc, nombre, titulo, proyecto):
+            return True
+    return False
+
+
+def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
+    for p in doc.paragraphs:
+        if nivel_titulo(p) is not None:
+            break                      # ya estamos en el cuerpo del documento
+        if p.style is not None and p.style.name == nombre:
+            for run in list(p.runs)[1:]:
+                run._r.getparent().remove(run._r)
+            texto = f"{proyecto} · {titulo}" if proyecto else titulo
+            if p.runs:
+                p.runs[0].text = texto
+            else:
+                p.add_run(texto)
+            return True
+    return False
+
+
+def marcar_relleno(doc) -> list[str]:
+    """Resalta el texto de relleno que quede y dice donde esta.
+
+    No lo borra: un apartado propio del cliente puede tener que rellenarse de
+    verdad, y borrarlo dejaria el DF sin ese hueco. Lo pone en amarillo --la
+    misma marca que ya se usa para lo que completa una persona-- y lo devuelve
+    con el apartado en el que ha quedado, para que el skill lo resuelva antes
+    de dar el documento por entregado.
+    """
+    from docx.enum.text import WD_COLOR_INDEX
+
+    fuera: list[str] = []
+
+    def revisar(p, seccion: str) -> None:
+        texto = p.text
+        if not texto.strip() or MARCA_PENDIENTE.search(texto):
+            return                     # los [PENDIENTE] son nuestros y a proposito
+        if not RELLENO.search(texto):
+            return
+        # Se resalta el parrafo entero y no solo el trozo: partir los runs para
+        # pintar un fragmento rompe el formato que traiga la plantilla, y lo que
+        # importa es que la frase se vea.
+        for run in p.runs:
+            run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        fuera.append(f"{seccion}: {texto.strip()[:90]}")
+
+    seccion = "(portada)"
+    for p in doc.paragraphs:
+        if nivel_titulo(p) is not None:
+            seccion = p.text.strip() or seccion
+        revisar(p, seccion)
+    # Las plantillas meten el relleno tambien dentro de sus tablas.
+    for t in doc.tables:
+        for fila in t.rows:
+            for celda in fila.cells:
+                for p in celda.paragraphs:
+                    revisar(p, "tabla")
+    return fuera
+
+
 # --- Documento ---------------------------------------------------------------
 
 # Nombres de estilo por idioma. Word los traduce, asi que una plantilla en
@@ -334,9 +509,87 @@ EQUIVALENTES = {
     "Heading 1":   ["Heading 1", "Título 1", "Titulo 1"],
     "Heading 2":   ["Heading 2", "Título 2", "Titulo 2"],
     "Heading 3":   ["Heading 3", "Título 3", "Titulo 3"],
+    # Solo estilos que **numeran de verdad**. `List Paragraph` / `Parrafo de
+    # lista` esta aparte a proposito: es el estilo que Word usa como envoltorio
+    # de una lista --sangria y espaciado-- pero no lleva vineta ninguna, asi que
+    # tomarlo por un estilo de lista deja el DF lleno de parrafos sangrados sin
+    # punto delante. Se usa como acompanante de la numeracion, nunca en su lugar.
     "List Bullet": ["List Bullet", "Lista con viñetas", "Lista con vinetas",
-                    "List Paragraph", "Párrafo de lista"],
+                    "Lista de viñetas", "Viñeta", "Bullet List"],
+    "List Paragraph": ["List Paragraph", "Párrafo de lista", "Parrafo de lista"],
 }
+
+
+def _numera(estilo) -> bool:
+    """Si el estilo, o alguno del que hereda, trae `numPr` en su definicion.
+
+    Es lo que separa una vineta de verdad de un parrafo sangrado. Un estilo
+    puede llamarse `Lista con viñetas` y no numerar --pasa cuando la plantilla
+    lo trae como estilo latente sin definicion propia--, y entonces el DF sale
+    con el texto corrido aunque el nombre prometa otra cosa.
+    """
+    from docx.oxml.ns import qn
+
+    visto: set = set()
+    while estilo is not None and id(estilo._element) not in visto:
+        visto.add(id(estilo._element))
+        ppr = estilo._element.find(qn("w:pPr"))
+        if ppr is not None and ppr.find(qn("w:numPr")) is not None:
+            return True
+        estilo = estilo.base_style
+    return False
+
+
+def crear_vineta(doc) -> int | None:
+    """Anade al documento una definicion de vineta propia y devuelve su `numId`.
+
+    Hace falta cuando la plantilla del cliente no trae ningun estilo que numere.
+    Sin esto, la unica alternativa es escribir el punto a mano en el texto, que
+    ni se renumera, ni se promociona de nivel, ni se comporta como una lista al
+    copiarla. Devuelve `None` si el documento no admite numeracion, y entonces
+    quien llama recurre al punto literal.
+    """
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    try:
+        num = doc.part.numbering_part.element
+    except Exception:
+        return None
+    abstractos = num.findall(W + "abstractNum")
+    aid = max((int(a.get(W + "abstractNumId")) for a in abstractos), default=-1) + 1
+    nid = max((int(n.get(W + "numId")) for n in num.findall(W + "num")), default=0) + 1
+    abstracto = parse_xml(
+        f'<w:abstractNum {nsdecls("w")} w:abstractNumId="{aid}">'
+        '<w:multiLevelType w:val="hybridMultilevel"/>'
+        '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/>'
+        '<w:lvlText w:val="\uf0b7"/><w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>'
+        '<w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol" w:hint="default"/></w:rPr>'
+        "</w:lvl></w:abstractNum>")
+    # los `abstractNum` van antes que los `num`, y Word es estricto con el orden
+    if abstractos:
+        abstractos[-1].addnext(abstracto)
+    else:
+        num.insert(0, abstracto)
+    num.append(parse_xml(f'<w:num {nsdecls("w")} w:numId="{nid}">'
+                         f'<w:abstractNumId w:val="{aid}"/></w:num>'))
+    return nid
+
+
+def marcar_vineta(parrafo, num_id: int) -> None:
+    """Cuelga el parrafo de una numeracion concreta."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    ppr = parrafo._p.get_or_add_pPr()
+    numpr = OxmlElement("w:numPr")
+    for tag, val in (("w:ilvl", "0"), ("w:numId", str(num_id))):
+        hijo = OxmlElement(tag)
+        hijo.set(qn("w:val"), val)
+        numpr.append(hijo)
+    ppr.append(numpr)
 
 
 class Estilos:
@@ -344,16 +597,58 @@ class Estilos:
 
     Lo que no puede es fallar en silencio: cada estilo ausente se **reporta** y
     su parrafo se escribe sin estilo, en vez de reventar a mitad del documento.
+
+    Con la vineta va un paso mas alla, porque ahi fallar en silencio es lo que
+    venia pasando: el estilo se resolvia por nombre y bastaba con que la
+    plantilla trajera `Parrafo de lista` para dar la lista por buena, cuando ese
+    estilo sangra pero no pone vineta. El DF salia entonces como un parrafo
+    corrido. Ahora el estilo solo vale si **numera de verdad**, y si ninguno lo
+    hace se crea una numeracion propia en el documento.
     """
 
     def __init__(self, doc) -> None:
-        disponibles = {s.name for s in doc.styles}
-        self.mapa = {k: next((c for c in v if c in disponibles), None)
+        self.doc = doc
+        estilos = {s.name: s for s in doc.styles}
+        self.mapa = {k: next((c for c in v if c in estilos), None)
                      for k, v in EQUIVALENTES.items()}
-        self.faltan = sorted(k for k, v in self.mapa.items() if v is None)
+        # la vineta se exige que numere; el nombre solo no basta
+        vineta = next((c for c in EQUIVALENTES["List Bullet"]
+                       if c in estilos and _numera(estilos[c])), None)
+        self.mapa["List Bullet"] = vineta
+        # con que colgar los parrafos cuando la plantilla no trae vineta propia
+        self.num_vineta: int | None = None if vineta else crear_vineta(doc)
+        self.vineta_propia = vineta is None
+        self.sin_vineta = vineta is None and self.num_vineta is None
+        # `List Paragraph` nunca se reporta --es un acompanante, no un estilo
+        # que haga falta--, y la vineta solo si no se ha podido suplir.
+        self.faltan = sorted(k for k, v in self.mapa.items()
+                             if v is None and k != "List Paragraph"
+                             and not (k == "List Bullet" and not self.sin_vineta))
 
     def __call__(self, logico: str):
         return self.mapa.get(logico, logico)
+
+    def vineta(self, doc, texto: str):
+        """Escribe `texto` como elemento de lista, con vineta pase lo que pase.
+
+        Tres caminos, en orden de preferencia: el estilo de la plantilla si
+        numera --lo que respeta el formato del cliente--, una numeracion creada
+        aqui colgada del envoltorio que Word usa para las listas, y como ultimo
+        recurso el punto escrito en el texto, que al menos se ve.
+        """
+        estilo = self.mapa.get("List Bullet")
+        if estilo:
+            return parrafo_marcado(doc, texto, estilo)
+        if self.num_vineta is not None:
+            p = parrafo_marcado(doc, texto, self.mapa.get("List Paragraph"))
+            marcar_vineta(p, self.num_vineta)
+            return p
+        from docx.shared import Pt
+
+        p = parrafo_marcado(doc, "\u2022\u00a0" + texto)
+        p.paragraph_format.left_indent = Pt(18)
+        p.paragraph_format.first_line_indent = Pt(-12)
+        return p
 
 
 # Los apartados del DF, y como se llaman en las plantillas que se han visto. Se
@@ -614,6 +909,12 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
                       + ", ".join(est.faltan))
+    if est.vineta_propia and not est.sin_vineta:
+        avisos.append("la plantilla no trae ningun estilo de vineta que numere; las "
+                      "listas se cuelgan de una numeracion creada en el documento")
+    if est.sin_vineta:
+        avisos.append("el documento no admite numeracion: las listas salen con el "
+                      "punto escrito en el texto y sangria colgante")
     # Si la plantilla ya numera sus titulos, numerar aqui saca `1. 1. Introduccion`.
     # Se deduce en vez de preguntarse, porque **Word engancha la numeracion al
     # parrafo tan a menudo como al estilo** y mirando solo el estilo se concluye
@@ -658,10 +959,29 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         firma, nota = autor_persona(c.get("autor"))
         if nota and nota not in avisos:
             avisos.append(nota)
-        filas_cv.append([c.get("fecha", ""), c.get("version", ""), firma, c.get("cambio", "")])
+        filas_cv.append([c.get("fecha", ""), c.get("version", ""),
+                         firma or CELDA_PENDIENTE, c.get("cambio", "")])
     filas_ca = [[a.get("responsable", ""), a.get("cargo", ""), a.get("departamento", ""),
                  a.get("fecha", ""), a.get("version", "")]
                 for a in (m.get("control_aprobaciones") or [{}, {}, {}])]
+    # En el control de versiones un hueco es un dato que falta, y se marca. En
+    # el de aprobaciones **no**: esa tabla se entrega vacia a proposito --no se
+    # inventan aprobadores-- y marcar sus quince celdas la deja en amarillo
+    # entera, que es ruido y no informacion. Ahi la marca va una sola vez,
+    # debajo de la tabla. En las demas tablas una celda vacia suele significar
+    # "no aplica", asi que no se toca ninguna.
+    for fila in filas_cv:
+        for i, v in enumerate(fila):
+            if not str(v or "").strip():
+                fila[i] = CELDA_PENDIENTE
+    aprobaciones_vacias = not any("".join(str(v or "") for v in fila).strip()
+                                  for fila in filas_ca)
+    if not aprobaciones_vacias:
+        for fila in filas_ca:
+            if "".join(str(v or "") for v in fila).strip():
+                for i, v in enumerate(fila):
+                    if not str(v or "").strip():
+                        fila[i] = CELDA_PENDIENTE
     filas_pa = [[x.get("id", ""), x.get("descripcion", ""), x.get("estado", "Abierto"),
                  x.get("responsable", ""), x.get("estimada", ""), x.get("resolucion", "")]
                 for x in pa]
@@ -694,7 +1014,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         for e in esc:
             # El manifiesto los trae como "- Escenario X: ...". El guion sobra
             # dentro de una vineta: saldria una vineta y un guion.
-            parrafo_marcado(doc, str(e).lstrip("-* ").strip(), est("List Bullet"))
+            est.vineta(doc, str(e).lstrip("-*\u2022 ").strip())
         if not esc and not ca.get("contexto"):
             parrafo_marcado(doc, PENDIENTE)
 
@@ -730,6 +1050,11 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     sin_apartado: list[str] = []
 
     if modo == "esqueleto":
+        # La portada no es un apartado, asi que sin esto se queda con el titulo
+        # de ejemplo que traiga la plantilla.
+        if not poner_titulo(doc, est, titulo, proyecto):
+            avisos.append("la plantilla no trae un parrafo con estilo de titulo en la "
+                          "portada: el titulo del documento hay que ponerlo a mano")
         # El titulo de la historia es el unico que no se reconoce por su texto:
         # en la plantilla lleva el nombre del caso del cliente. Es el Titulo 1
         # que va entre Alcance y el primer apartado de la historia.
@@ -763,10 +1088,18 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 cols, filas = tabla
                 if propia is not None:
                     rellenar_tabla(propia, cols, filas)
+                    fin = propia._tbl
                 elif filas:
-                    mover_tras(doc, ancla._p, lambda c=cols, f=filas: add_table(doc, c, f, accent))
+                    fin = mover_tras(doc, ancla._p,
+                                     lambda c=cols, f=filas: add_table(doc, c, f, accent))
                 else:
-                    mover_tras(doc, ancla._p, lambda: doc.add_paragraph("N/A"))
+                    fin = mover_tras(doc, ancla._p, lambda: doc.add_paragraph("N/A"))
+                # La nota va **detras** de la tabla, como en el modo sin
+                # plantilla. Colgada del titulo caia entre el titulo y la tabla.
+                if k == "control_aprobaciones" and aprobaciones_vacias:
+                    mover_tras(doc, fin, lambda: parrafo_marcado(
+                        doc, "[PENDIENTE: completar el control de aprobaciones con "
+                             "los responsables que firman el documento]"))
             elif escritor:
                 mover_tras(doc, ancla._p, escritor)
     else:
@@ -780,6 +1113,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         add_table(doc, COLS_CV, filas_cv, accent)
         doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
         add_table(doc, COLS_CA, filas_ca, accent)
+        if aprobaciones_vacias:
+            parrafo_marcado(doc, "[PENDIENTE: completar el control de aprobaciones "
+                                 "con los responsables que firman el documento]")
         doc.add_paragraph("Índice", style=est("Heading 2"))
         add_toc(doc)
         doc.add_page_break()
@@ -806,6 +1142,24 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             doc.add_paragraph(extra.get("titulo", "Anexo"), style=est("Heading 1"))
         write_blocks(doc, extra.get("contenido"), est=est)
 
+    # El logo suele vivir solo en la cabecera de la portada; sin esto, el resto
+    # de paginas sale sin el.
+    propagadas = propagar_cabecera(doc)
+    if propagadas:
+        avisos.append("la cabecera de la portada se ha copiado al resto de paginas "
+                      "(seccion " + ", ".join(propagadas) + "), que la tenian vacia: "
+                      "asi el logo sale en todas")
+
+    # Lo que la plantilla traia como relleno y nadie ha sustituido.
+    relleno = marcar_relleno(doc)
+    if relleno:
+        avisos.append(f"queda texto de relleno de la plantilla sin sustituir "
+                      f"({len(relleno)}): va resaltado en amarillo, pero revisalo")
+
+    # El titulo del documento, el que ve Word en las propiedades del fichero.
+    doc.core_properties.title = f"{proyecto} · {titulo}" if proyecto else titulo
+    doc.core_properties.subject = "Documento de Diseño Funcional"
+
     salida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(salida)
     return {"output": str(salida), "puntos_abiertos": len(pa),
@@ -819,6 +1173,13 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             "apartados_plantilla": apartados_plantilla,
             "apartados_no_encontrados": sin_apartado,
             "plantilla_numera": numera_ella,
+            # De donde sale la vineta: el estilo de la plantilla, una
+            # numeracion creada aqui, o el punto escrito a mano.
+            "vinetas": ("plantilla" if not est.vineta_propia
+                        else "creada" if not est.sin_vineta else "literal"),
+            # Texto de relleno de la plantilla que ha quedado en el documento,
+            # con el apartado en el que esta. Resaltado, pero hay que resolverlo.
+            "relleno_sin_sustituir": relleno,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el

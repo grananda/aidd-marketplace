@@ -36,6 +36,8 @@ Complementa con `mapa-historias-usuario.md` (persona y fase), `requisitos.md` (l
 
 **Lo que se enumera sale como lista.** En cuanto hay más de dos elementos —validaciones, mensajes, campos, integraciones, pasos de un flujo— va uno por línea como viñeta de Word, no metido en un párrafo separado por comas. Quien revisa el DF necesita poder señalar el tercer elemento, y para eso tiene que existir como elemento.
 
+Y la viñeta sale **con la plantilla que sea**. El estilo se acepta solo si numera de verdad: `Párrafo de lista` sangra pero no pone punto, así que tomarlo por un estilo de lista dejaba el documento corrido aunque el nombre prometiera otra cosa. Si la plantilla del cliente no trae ninguno que numere, el generador añade la numeración al documento.
+
 Cada `[PENDIENTE: ...]` sale **resaltado en amarillo**, también dentro de las tablas. Un DF de veinte páginas se lee en diagonal, y un hueco sin resaltar acaba firmado como si fuera contenido.
 
 Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay nada; el segundo admite que no se sabe.
@@ -43,6 +45,14 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 **No cuenta lo que no es.** El apartado de Alcance dice **solo lo que entra**: lo que hace otra historia pertenece al alcance de esa otra historia, y listarlo aquí como exclusión se lee como que el producto no lo hará. Tampoco aparecen las opciones descartadas —quien revisa no distingue "descartado" de "pendiente" y acaba preguntando por algo que nadie va a construir—.
 
 **No usa códigos internos.** Ni `RF-014` ni `GAP-07`: se explica el contenido, que es lo que le dice algo a un lector de negocio. El generador devuelve `codigos_internos` con cada sigla que se haya colado y en qué sección está, para corregirla y volver a generar. `HU-xx` sí se queda: da nombre al fichero y engancha con `aiba test-plan` y con Jira.
+
+**El título y el logo no se quedan a medias.** El título del documento se escribe en la portada —sustituyendo el de ejemplo de la plantilla— y en las propiedades del fichero. Y si la plantilla trae el logo solo en la cabecera de la portada, como es habitual, se copia a la del resto de páginas cuando está vacía: así sale en todas.
+
+**Lo que falta se ve, lo escriba quien lo escriba.** Se resalta en amarillo el marcador `[PENDIENTE: ...]` y también las formas en prosa —«pendiente de definir», «por confirmar», «se desconoce»—, además de los huecos que deja el propio generador: un apartado sin contenido, la firma vaciada del control de versiones y el control de aprobaciones cuando se entrega vacío. Antes solo se resaltaba el marcador literal, así que el mismo documento salía con los huecos visibles o invisibles según qué modelo lo hubiera redactado.
+
+**La carpeta del proyecto queda limpia.** Si hace falta un script de usar y tirar para resolver una incidencia, se escribe en un directorio temporal y no en el proyecto: ahí solo van los `.docx`.
+
+**El relleno de la plantilla se canta.** Lo que quede sin sustituir —`<RELLENAR ...>`, `Lorem ipsum`, `TÍTULO DEL DOCUMENTO`, `TBD`— sale resaltado en amarillo y se devuelve con el apartado en el que está. No se borra: un apartado propio del cliente puede tener que rellenarse de verdad.
 
 **No firma por ti.** En el Control de Versiones va el analista que responde del documento ante el cliente. El generador vacía la celda y avisa si detecta ahí el nombre de una herramienta.
 

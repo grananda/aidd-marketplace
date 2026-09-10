@@ -24,6 +24,29 @@ def _campos(elemento) -> list[str]:
             if q.tag.rsplit("}", 1)[-1] in ("fldChar", "instrText", "t")]
 
 
+def _numera_de_verdad(doc, parrafo) -> bool:
+    """Si el parrafo saldra con vineta al abrirlo, venga de donde venga.
+
+    Puede venir de un `numPr` colgado del propio parrafo o del estilo --o de
+    alguno del que este herede--. Mirar solo el nombre del estilo no sirve.
+    """
+    from docx.oxml.ns import qn
+
+    ppr = parrafo._p.find(qn("w:pPr"))
+    if ppr is not None and ppr.find(qn("w:numPr")) is not None:
+        return True
+    estilos = {e.name: e for e in doc.styles}
+    est = estilos.get(parrafo.style.name) if parrafo.style is not None else None
+    visto = set()
+    while est is not None and id(est._element) not in visto:
+        visto.add(id(est._element))
+        spr = est._element.find(qn("w:pPr"))
+        if spr is not None and spr.find(qn("w:numPr")) is not None:
+            return True
+        est = est.base_style
+    return False
+
+
 def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     """Las cuatro reglas del generador, sobre el .docx ya escrito.
 
@@ -42,6 +65,46 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     from docx.oxml.ns import qn                                # noqa: PLC0415
 
     if etiqueta == "con esqueleto":
+        # Tres averias que llegaron a los analistas con la plantilla del
+        # cliente: el logo solo en la portada, el titulo de ejemplo sin
+        # sustituir y el texto de relleno entregado tal cual.
+        from docx.oxml.ns import qn as _q                       # noqa: PLC0415
+
+        cab = doc.sections[0].header
+        if next(cab._element.iter(_q("w:drawing")), None) is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: el logo solo queda en la "
+                          "cabecera de la portada; el resto de paginas sale sin el")
+        else:
+            for blip in cab._element.iter(_q("a:blip")):
+                rid = blip.get(_q("r:embed"))
+                if cab.part.related_parts.get(rid) is None:
+                    fallos.append(f"gen_df_docx.py {etiqueta}: la imagen copiada a "
+                                  f"la cabecera apunta a una relacion que no existe "
+                                  f"({rid}): sale como recuadro roto")
+
+        portada = " ".join(p_.text for p_ in doc.paragraphs[:6])
+        if "TÍTULO DEL DOCUMENTO" in portada:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva el titulo "
+                          "de ejemplo de la plantilla")
+        if not (doc.core_properties.title or "").strip():
+            fallos.append(f"gen_df_docx.py {etiqueta}: el titulo del documento (el de "
+                          "las propiedades del fichero) se queda vacio")
+
+        relleno = salida_json.get("relleno_sin_sustituir")
+        if relleno is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la salida no trae "
+                          "relleno_sin_sustituir")
+        elif not any("RELLENAR" in x for x in relleno):
+            fallos.append(f"gen_df_docx.py {etiqueta}: no caza el relleno "
+                          f"'<RELLENAR ...>' que trae la plantilla ({relleno})")
+        else:
+            from docx.enum.text import WD_COLOR_INDEX            # noqa: PLC0415
+            marcado = [p_ for p_ in doc.paragraphs if "RELLENAR" in p_.text
+                       and any(r_.font.highlight_color == WD_COLOR_INDEX.YELLOW
+                               for r_ in p_.runs)]
+            if not marcado:
+                fallos.append(f"gen_df_docx.py {etiqueta}: el relleno que queda no "
+                              "va resaltado, asi que nadie lo ve al revisar")
         return fallos          # el indice y las tablas los pone la plantilla
 
     cuerpo = doc.element.body
@@ -75,6 +138,19 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     if not any("PENDIENTE" in t for t in resaltados):
         fallos.append(f"gen_df_docx.py {etiqueta}: los [PENDIENTE] no salen "
                       "resaltados en amarillo")
+    # Y lo mismo escrito en prosa. Que el hueco se vea no puede depender de que
+    # modelo redacto el manifiesto: unos ponen el marcador y otros lo parafrasean.
+    if not any("pendiente de definir" in t.lower() for t in resaltados):
+        fallos.append(f"gen_df_docx.py {etiqueta}: un hueco escrito en prosa "
+                      "('pendiente de definir') no se resalta, asi que el DF sale "
+                      "distinto segun que modelo lo redacte")
+    # La firma que se vacia por ser la herramienta deja marca, no un hueco mudo.
+    celdas = [p_.text for t_ in doc.tables for f_ in t_.rows for c_ in f_.cells
+              for p_ in c_.paragraphs
+              if any(r_.font.highlight_color == WD_COLOR_INDEX.YELLOW for r_ in p_.runs)]
+    if not celdas:
+        fallos.append(f"gen_df_docx.py {etiqueta}: el control de versiones deja la "
+                      "firma vacia sin marcarla; nadie ve que falta")
 
     # El autor es una persona, nunca la herramienta.
     autores = [f.cells[2].text for t in doc.tables for f in t.rows[1:]
@@ -85,7 +161,13 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
 
     # Lo enumerado sale como vineta de Word. Un parrafo con cinco reglas
     # separadas por comas no se lee, no se revisa y no da casos de prueba.
-    vinetas = [p.text for p in doc.paragraphs if p.style.name in ("List Bullet", "Lista con viñetas")]
+    #
+    # Se mira si el parrafo **numera de verdad**, no como se llama su estilo: la
+    # averia que motivo esta comprobacion era justo esa. `Parrafo de lista`
+    # estaba en la lista de alias de vineta y sangra, pero no pone punto, asi
+    # que con una plantilla que no trajera `List Bullet` el DF salia corrido y
+    # el nombre del estilo decia que todo estaba bien.
+    vinetas = [p.text for p in doc.paragraphs if _numera_de_verdad(doc, p)]
     if not any("Node 20" in v for v in vinetas):
         fallos.append(f"gen_df_docx.py {etiqueta}: las lineas que empiezan por '- ' "
                       f"no salen como vineta ({vinetas[:3]})")
@@ -201,7 +283,10 @@ with tempfile.TemporaryDirectory() as tmp:
         manifiesto = {"proyecto": "P", "titulo": "T",
                       "introduccion": "Cubre el RF-014 del catalogo.",
                       "autor": "aiba-functional-design",
-                      "alcance": "x", "narrativa": {"como": "a", "quiero": "b", "para": "c"},
+                      # Un hueco escrito en prosa, como lo redacta un modelo que no
+                      # usa el marcador literal. Tiene que resaltarse igual.
+                      "alcance": "El plazo maximo esta pendiente de definir.",
+                      "narrativa": {"como": "a", "quiero": "b", "para": "c"},
                       "integraciones": "N/A",
                       "validaciones": {"frontal": "N/A", "core": "N/A"},
                       "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",
@@ -226,6 +311,7 @@ with tempfile.TemporaryDirectory() as tmp:
             + _chunk(b"IDAT", zlib.compress(crudo)) + _chunk(b"IEND", b""))
 
         import docx as _docx                                   # noqa: PLC0415
+        from docx.oxml.ns import qn as _qn                     # noqa: PLC0415
         from docx.shared import Cm                             # noqa: PLC0415
         tpl = _docx.Document()
         tpl.add_paragraph("RELLENO DE LA PLANTILLA")
@@ -240,22 +326,44 @@ with tempfile.TemporaryDirectory() as tmp:
         # cliente de verdad. Portada con logo en el cuerpo, tablas propias y
         # texto de ejemplo. El generador tiene que escribir DENTRO y no arrasar.
         esq = _docx.Document()
-        cab_e = esq.sections[0].header.paragraphs[0]
+        # Portada distinta y el logo **solo** ahi, que es como vienen: sin
+        # propagarla, el logo sale en la primera pagina y en ninguna mas.
+        esq.sections[0].different_first_page_header_footer = True
+        cab_e = esq.sections[0].first_page_header.paragraphs[0]
         cab_e.add_run().add_picture(str(d / "logo.png"), height=Cm(1))
         cab_e.add_run("CABECERA DEL CLIENTE")
         esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
+        esq.add_paragraph("TÍTULO DEL DOCUMENTO", style="Title")
         esq.add_paragraph("Control de Versiones")
         esq.add_table(rows=1, cols=4).style = "Table Grid"
         for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
                        ("Criterios de aceptación", 1), ("Puntos abiertos", 1)):
             esq.add_paragraph(t_, style=f"Heading {n_}")
             esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
+        # Un apartado del cliente que el DF no conoce, con relleno sin sustituir.
+        esq.add_paragraph("Anexo del cliente", style="Heading 1")
+        esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
         esq.save(str(d / "esq.docx"))
+
+        # Plantilla sin ningun estilo de vineta, que es lo normal en cliente:
+        # Word solo deja en el documento los estilos que alguien ha usado, y
+        # `Parrafo de lista` sobrevive --lo aplica cualquier lista-- mientras
+        # que `Lista con viñetas` no. El DF tiene que salir con vinetas igual.
+        sinv = _docx.Document()
+        for _n in ("List Bullet", "List Bullet 2", "List Bullet 3"):
+            _e = sinv.styles[_n]._element
+            _e.getparent().remove(_e)
+        sinv.styles["List Paragraph"]._element.find(
+            _qn("w:name")).set(_qn("w:val"), "Párrafo de lista")
+        sinv.add_paragraph("PLANTILLA SIN ESTILO DE VIÑETA")
+        sinv.save(str(d / "sinvin.docx"))
 
         for etiqueta, extra in (("sin plantilla", []),
                                 ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),
-                                ("con esqueleto", ["--plantilla", str(d / "esq.docx")])):
+                                ("con esqueleto", ["--plantilla", str(d / "esq.docx")]),
+                                ("sin estilo de vineta",
+                                 ["--plantilla", str(d / "sinvin.docx")])):
             salida = d / f"df-{etiqueta.split()[0]}.docx"
             r = subprocess.run([sys.executable, str(DF), "--manifest", str(d / "m.json"),
                                 "--output", str(salida), "--no-install"] + extra,
