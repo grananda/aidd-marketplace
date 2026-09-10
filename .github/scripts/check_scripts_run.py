@@ -82,13 +82,48 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
                                   f"la cabecera apunta a una relacion que no existe "
                                   f"({rid}): sale como recuadro roto")
 
-        portada = " ".join(p_.text for p_ in doc.paragraphs[:6])
-        if "TÍTULO DEL DOCUMENTO" in portada:
+        # La portada es una tabla: hay que mirar dentro, no solo los parrafos.
+        portada = " ".join(c_.text for t_ in doc.tables for f_ in t_.rows
+                           for c_ in f_.cells)
+        portada += " " + " ".join(p_.text for p_ in doc.paragraphs[:6])
+        if "Diseño Funcional de Ejemplo" in portada:
             fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva el titulo "
-                          "de ejemplo de la plantilla")
+                          "de ejemplo de la plantilla; en las plantillas reales va en "
+                          "una celda de tabla, no en un parrafo con estilo Title")
+        if "01/01/2020" in portada or " 0.1 " in f" {portada} ":
+            fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva la version "
+                          "o la fecha de la plantilla")
         if not (doc.core_properties.title or "").strip():
             fallos.append(f"gen_df_docx.py {etiqueta}: el titulo del documento (el de "
                           "las propiedades del fichero) se queda vacio")
+
+        cabecera = " ".join(p_.text for p_ in cab.paragraphs)
+        if "Diseño Funcional de Ejemplo" in cabecera:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la cabecera sigue nombrando al "
+                          "documento de la plantilla")
+        if "CABECERA DEL CLIENTE" not in cabecera:
+            fallos.append(f"gen_df_docx.py {etiqueta}: al poner al dia el nombre del "
+                          "documento se ha perdido el texto del cliente")
+        if next(cab._element.iter(_q("w:drawing")), None) is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: al reescribir la cabecera se ha "
+                          "perdido el logo")
+
+        for _t in ("w:commentRangeStart", "w:commentRangeEnd", "w:commentReference"):
+            if doc.element.body.findall(".//" + _q(_t)):
+                fallos.append(f"gen_df_docx.py {etiqueta}: quedan marcas de comentario "
+                              f"({_t}) de la plantilla en el documento entregado")
+        if salida_json.get("comentarios_quitados"):
+            import zipfile as _zip                                # noqa: PLC0415
+            with _zip.ZipFile(str(salida)) as _z:
+                sobran = [n_ for n_ in _z.namelist()
+                          if "comment" in n_ or "people" in n_]
+            if sobran:
+                fallos.append(f"gen_df_docx.py {etiqueta}: se quitaron las marcas pero "
+                              f"el paquete conserva {sobran}: Word abre el panel de "
+                              "revision con los comentarios huerfanos")
+        else:
+            fallos.append(f"gen_df_docx.py {etiqueta}: no se ha quitado el comentario "
+                          "de Word que traia la plantilla")
 
         relleno = salida_json.get("relleno_sin_sustituir")
         if relleno is None:
@@ -171,6 +206,14 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     if not any("Node 20" in v for v in vinetas):
         fallos.append(f"gen_df_docx.py {etiqueta}: las lineas que empiezan por '- ' "
                       f"no salen como vineta ({vinetas[:3]})")
+
+    # Una forma de manifiesto distinta no puede dejar el apartado mudo. `campos`
+    # como lista de diccionarios reventaba con `'list' object has no attribute
+    # 'get'`, y el analista se quedaba sin ningun DF del lote.
+    celdas = [c_.text for t_ in doc.tables for f_ in t_.rows for c_ in f_.cells]
+    if "Ramo" not in celdas or "NIF" not in celdas:
+        fallos.append(f"gen_df_docx.py {etiqueta}: Filtros y Campos no se rellena "
+                      "cuando `campos` viene como lista de diccionarios")
 
     # Los codigos internos se cazan y se dicen, con su seccion.
     codigos = salida_json.get("codigos_internos")
@@ -289,11 +332,15 @@ with tempfile.TemporaryDirectory() as tmp:
                       "narrativa": {"como": "a", "quiero": "b", "para": "c"},
                       "integraciones": "N/A",
                       "validaciones": {"frontal": "N/A", "core": "N/A"},
-                      "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",
-                                   "core": "N/A"},
+                      "mensajes": ["- Aviso de NIF incorrecto"],
                       "pantallas": "[PENDIENTE: insertar la pantalla de Figma]",
                       # Lo que se enumera sale como vineta, no como parrafo corrido.
-                      "especificaciones_tecnicas": ["- Node 20", "- PostgreSQL 15"]}
+                      "especificaciones_tecnicas": ["- Node 20", "- PostgreSQL 15"],
+                      # `campos` como lista de diccionarios y `mensajes` como
+                      # lista: dos formas que salen de un modelo mas flojo y que
+                      # antes reventaban la generacion entera.
+                      "campos": [{"nombre": "Ramo", "tipo": "Lista"},
+                                 {"nombre": "NIF", "tipo": "Texto"}]}
         (d / "m.json").write_text(json.dumps(manifiesto), encoding="utf-8")
 
         # Plantilla como la de un cliente: estilo en espanol, relleno, y una
@@ -332,9 +379,23 @@ with tempfile.TemporaryDirectory() as tmp:
         cab_e = esq.sections[0].first_page_header.paragraphs[0]
         cab_e.add_run().add_picture(str(d / "logo.png"), height=Cm(1))
         cab_e.add_run("CABECERA DEL CLIENTE")
+        # El nombre del documento, partido en dos runs como lo parte Word al
+        # editarlo: sustituirlo run a run no vale, hay que mirar el parrafo.
+        cab_e.add_run("  |  Diseño Funcional ")
+        cab_e.add_run("de Ejemplo")
         esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
-        esq.add_paragraph("TÍTULO DEL DOCUMENTO", style="Title")
+        # La portada de una plantilla corporativa suele ser **una tabla**, no un
+        # parrafo con estilo `Title`: buscando solo por estilo no se encuentra
+        # nada y el titulo de ejemplo se entrega tal cual.
+        port = esq.add_table(rows=3, cols=2)
+        port.style = "Table Grid"
+        port.rows[0].cells[0].text = "Título del documento:"
+        port.rows[0].cells[1].text = "Diseño Funcional de Ejemplo"
+        port.rows[1].cells[0].text = "Versión:"
+        port.rows[1].cells[1].text = "0.1"
+        port.rows[2].cells[0].text = "Fecha:"
+        port.rows[2].cells[1].text = "01/01/2020"
         esq.add_paragraph("Control de Versiones")
         esq.add_table(rows=1, cols=4).style = "Table Grid"
         for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
@@ -343,7 +404,11 @@ with tempfile.TemporaryDirectory() as tmp:
             esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
         # Un apartado del cliente que el DF no conoce, con relleno sin sustituir.
         esq.add_paragraph("Anexo del cliente", style="Heading 1")
-        esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
+        _relleno = esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
+        # Comentarios de Word como los que trae una plantilla que alguien estuvo
+        # editando. Son notas de aquel momento y no contenido del DF.
+        esq.add_comment(_relleno.runs, "Revisar con negocio antes de entregar",
+                        author="Plantilla", initials="PL")
         esq.save(str(d / "esq.docx"))
 
         # Plantilla sin ningun estilo de vineta, que es lo normal en cliente:
@@ -358,6 +423,75 @@ with tempfile.TemporaryDirectory() as tmp:
             _qn("w:name")).set(_qn("w:val"), "Párrafo de lista")
         sinv.add_paragraph("PLANTILLA SIN ESTILO DE VIÑETA")
         sinv.save(str(d / "sinvin.docx"))
+
+        # El indice de la plantilla, que es lo que el pre-flight ensena para
+        # poder preguntar que dejar en blanco. Sin numeros no se puede preguntar.
+        r_idx = subprocess.run([sys.executable, str(DF), "--indice", str(d / "esq.docx"),
+                                "--no-install"], capture_output=True, text=True,
+                               timeout=120)
+        if r_idx.returncode != 0:
+            errors.append(f"gen_df_docx.py --indice falla: {r_idx.stderr.strip()[:160]}")
+        else:
+            idx = json.loads(r_idx.stdout)
+            numeros = [a["numero"] for a in idx["apartados"]]
+            if not numeros or not any("." in n_ for n_ in numeros):
+                errors.append("gen_df_docx.py --indice no numera los apartados de "
+                              f"segundo nivel ({numeros}): el pre-flight pregunta por "
+                              "numero, asi que sin ellos no se puede preguntar")
+            if not any(a["apartado"] == "campos" for a in idx["apartados"]):
+                errors.append("gen_df_docx.py --indice no reconoce Filtros/Campos "
+                              "entre los apartados de la plantilla")
+
+            # Y dejarlo en blanco por numero tiene que dejarlo en blanco.
+            n_campos = next(a["numero"] for a in idx["apartados"]
+                            if a["apartado"] == "campos")
+            m_blanco = json.loads((d / "m.json").read_text(encoding="utf-8"))
+            m_blanco["secciones_en_blanco"] = [n_campos]
+            (d / "m-blanco.json").write_text(json.dumps(m_blanco, ensure_ascii=False),
+                                             encoding="utf-8")
+            r_b = subprocess.run([sys.executable, str(DF), "--manifest",
+                                  str(d / "m-blanco.json"), "--output",
+                                  str(d / "df-blanco.docx"), "--plantilla",
+                                  str(d / "esq.docx"), "--no-install"],
+                                 capture_output=True, text=True, timeout=120)
+            if r_b.returncode != 0:
+                errors.append(f"gen_df_docx.py con secciones_en_blanco falla: "
+                              f"{r_b.stderr.strip()[:160]}")
+            else:
+                if "campos" not in json.loads(r_b.stdout).get("secciones_en_blanco", []):
+                    errors.append("gen_df_docx.py: pedir en blanco el apartado "
+                                  f"{n_campos} no lo deja en blanco")
+                d_b = _docx.Document(str(d / "df-blanco.docx"))
+                if any("Ramo" in c_.text for t_ in d_b.tables for f_ in t_.rows
+                       for c_ in f_.cells):
+                    errors.append("gen_df_docx.py: el apartado pedido en blanco se "
+                                  "rellena igual")
+
+            # Y un apartado **propio del cliente**, que el DF no reconoce, tiene
+            # que poder dejarse en blanco igual: se identifica por su numero.
+            propio = next((a for a in idx["apartados"] if not a["apartado"]
+                           and a["nivel"] == 1), None)
+            if propio is None:
+                errors.append("el esqueleto de prueba ya no trae ningun apartado "
+                              "propio del cliente: la comprobacion de dejarlo en "
+                              "blanco no prueba nada")
+            else:
+                m_p = json.loads((d / "m.json").read_text(encoding="utf-8"))
+                m_p["secciones_en_blanco"] = [propio["numero"]]
+                (d / "m-propio.json").write_text(json.dumps(m_p, ensure_ascii=False),
+                                                 encoding="utf-8")
+                r_p = subprocess.run([sys.executable, str(DF), "--manifest",
+                                      str(d / "m-propio.json"), "--output",
+                                      str(d / "df-propio.docx"), "--plantilla",
+                                      str(d / "esq.docx"), "--no-install"],
+                                     capture_output=True, text=True, timeout=120)
+                if r_p.returncode != 0:
+                    errors.append(f"gen_df_docx.py en blanco un apartado propio falla: "
+                                  f"{r_p.stderr.strip()[:160]}")
+                elif not json.loads(r_p.stdout).get("secciones_en_blanco"):
+                    errors.append("gen_df_docx.py: pedir en blanco un apartado propio "
+                                  f"del cliente ({propio['numero']} "
+                                  f"{propio['titulo']}) no hace nada y no avisa")
 
         for etiqueta, extra in (("sin plantilla", []),
                                 ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),

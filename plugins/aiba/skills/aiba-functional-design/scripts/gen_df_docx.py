@@ -117,6 +117,12 @@ corchetes: parafrasearlos ("falta por definir") pierde el resaltado.
 
   "secciones_adicionales": [{"titulo":"Glosario","contenido":"texto o lista"}],
 
+  # Apartados que el usuario ha pedido dejar en blanco, por numero de indice de
+  # la plantilla --lo natural cuando se tiene el indice delante-- o por nombre.
+  # Dejar "2" en blanco deja tambien "2.1", "2.2"... Solo aplica con plantilla:
+  # sin ella no hay indice contra el que resolverlos.
+  "secciones_en_blanco": ["2.1", "4"],
+
   # Con --plantilla, la cabecera y el pie de la plantilla se respetan tal cual
   # (logo incluido) y `texto_cabecera` / `texto_pie` no se aplican.
   "branding": {                            # opcional; sin el, documento neutro
@@ -227,6 +233,62 @@ def parrafo_marcado(doc, texto: str, style=None):
 
 
 # --- Utilidades de contenido -------------------------------------------------
+
+def como_dict(valor, clave_por_defecto: str = "frontal") -> dict:
+    """Acepta un apartado que deberia ser `dict` aunque llegue de otra forma.
+
+    El manifiesto lo escribe un modelo, y no todos escriben la misma estructura:
+    `mensajes` o `validaciones` llegan a veces como lista o como texto suelto.
+    Antes eso reventaba la generacion entera --`'list' object has no attribute
+    'get'`-- y el analista se quedaba sin ningun DF por una diferencia de forma.
+    """
+    if isinstance(valor, dict):
+        return valor
+    if valor is None:
+        return {}
+    return {clave_por_defecto: valor}
+
+
+def como_tabla(valor, columnas: list[str]) -> tuple[list[str], list[list], list[str]]:
+    """Normaliza un apartado tabular. Devuelve (columnas, filas, texto suelto).
+
+    Las formas que se han visto salir de un modelo, y todas valen:
+
+    - `{"columnas": [...], "filas": [[...]]}` --la buena--;
+    - `[{...}, {...}]`, lista de diccionarios: las columnas salen de las claves;
+    - `[[...], [...]]`, lista de listas: se usan las columnas por defecto;
+    - una cadena, que no es una tabla y sale como parrafo.
+
+    Solo la primera funcionaba. Las otras tres reventaban la generacion, que es
+    peor que salir mal: un lote de veinte HU se quedaba en cero.
+    """
+    if valor is None:
+        return columnas, [], []
+    if isinstance(valor, str):
+        return columnas, [], as_blocks(valor)
+    if isinstance(valor, dict):
+        cols = valor.get("columnas") or columnas
+        filas = [list(f) if isinstance(f, (list, tuple)) else [f]
+                 for f in (valor.get("filas") or [])]
+        return list(cols), filas, []
+    if isinstance(valor, (list, tuple)):
+        if valor and all(isinstance(f, dict) for f in valor):
+            # Las columnas son la union de las claves, en el orden en que
+            # aparecen: asi no se pierde ninguna aunque las filas difieran.
+            cols: list[str] = []
+            for f in valor:
+                for k in f:
+                    if k not in cols:
+                        cols.append(k)
+            # `capitalize()` a secas convierte "NIF" en "Nif" y "URL" en
+            # "Url": solo se toca la clave que viene toda en minusculas.
+            titulos = [t if any(ch.isupper() for ch in t) else t.capitalize()
+                       for t in (str(c).replace("_", " ") for c in cols)]
+            return titulos, [[f.get(c, "") for c in cols] for f in valor], []
+        filas = [list(f) if isinstance(f, (list, tuple)) else [f] for f in valor]
+        return columnas, filas, []
+    return columnas, [], as_blocks(valor)
+
 
 def as_blocks(value) -> list[str]:
     """Normaliza texto suelto o lista a una lista de parrafos no vacios."""
@@ -423,29 +485,144 @@ def propagar_cabecera(doc) -> list[str]:
     return tocadas
 
 
-def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
+# Como llaman las plantillas a la celda que lleva el titulo. Se compara por
+# clave normalizada --sin tildes ni dos puntos-- porque cada cliente lo escribe
+# a su manera.
+ETIQUETAS_PORTADA = {
+    "titulo": {"titulo", "titulo del documento", "titulo documento",
+               "nombre del documento", "nombre documento", "documento",
+               "titulo del df", "denominacion"},
+    "proyecto": {"proyecto", "nombre del proyecto", "aplicacion", "sistema"},
+    "version": {"version", "version del documento", "n version", "num version",
+                "numero de version", "revision"},
+    "fecha": {"fecha", "fecha del documento", "fecha de emision",
+              "fecha de creacion", "fecha de version"},
+    "autor": {"autor", "elaborado por", "redactado por", "preparado por",
+              "responsable del documento"},
+}
+
+
+def _cuerpo_hasta_el_primer_titulo(doc):
+    """Los elementos de la portada: todo lo que va antes del primer `Heading`.
+
+    Hace falta recorrer el cuerpo y no `doc.paragraphs`, porque la portada suele
+    ser **una tabla** --o un cuadro de texto-- y esos no salen en esa lista.
+    """
+    from docx.oxml.ns import qn
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
+    for el in doc.element.body:
+        if el.tag == qn("w:p"):
+            p = Paragraph(el, doc)
+            if nivel_titulo(p) is not None:
+                return
+            yield p
+        elif el.tag == qn("w:tbl"):
+            yield Table(el, doc)
+
+
+def poner_titulo(doc, est, titulo: str, proyecto: str, version: str,
+                 fecha: str, autor: str) -> str | None:
     """Escribe el titulo del DF en la portada de la plantilla.
 
     En modo esqueleto no se toca nada que no sea un apartado reconocido, y la
     portada no lo es: el DF salia con el titulo de ejemplo de la plantilla.
-    Se busca el primer parrafo con estilo de titulo antes del primer apartado.
+
+    La portada no siempre es un parrafo con estilo `Title`. En las plantillas
+    corporativas suele ser **una tabla** --"Titulo del documento | ...",
+    "Version | ...", "Fecha | ..."-- o un cuadro de texto, y buscando solo por
+    estilo no se encuentra nada y el titulo de ejemplo se entrega tal cual. Se
+    intentan las tres formas, en este orden.
+
+    Devuelve el texto que habia, que es lo que hay que buscar despues en la
+    cabecera: suele repetirse ahi.
     """
-    # Primero se busca el `Title`; el `Subtitle` solo si no hay ninguno. Al reves
-    # se pisaria un subtitulo con sentido --"Documento de Diseño Funcional"--
-    # dejando el titulo de ejemplo puesto justo encima.
+    texto = f"{proyecto} · {titulo}" if proyecto else titulo
+
+    # 1. Parrafo con estilo de titulo. Primero `Title`; el `Subtitle` solo si no
+    # hay ninguno, o se pisaria un subtitulo con sentido --"Documento de Diseño
+    # Funcional"-- dejando el titulo de ejemplo puesto justo encima.
     for nombre in (est("Title"), est("Subtitle")):
         if nombre is None:
             continue
-        if _escribir_en_portada(doc, nombre, titulo, proyecto):
-            return True
-    return False
+        viejo = _escribir_en_portada(doc, nombre, titulo, proyecto)
+        if viejo is not None:
+            return viejo
+
+    # 2. Tabla de portada: cada celda que lleve al lado una etiqueta conocida.
+    # No solo el titulo: la version y la fecha de la plantilla tambien se
+    # entregaban tal cual, y un DF que dice "Version 0.1 - 01/01/2020" en la
+    # portada es tan falso como uno que lleva el titulo de otro documento.
+    viejo = _rellenar_portada(doc, {"titulo": texto, "proyecto": proyecto,
+                                    "version": version, "fecha": fecha,
+                                    "autor": autor})
+    if viejo is not None:
+        return viejo
+
+    # 3. Un hueco suelto en la portada: `<TITULO>`, `TITULO DEL DOCUMENTO`...
+    from docx.table import Table
+
+    for bloque in _cuerpo_hasta_el_primer_titulo(doc):
+        if isinstance(bloque, Table):
+            continue
+        if bloque.text.strip() and NOMBRE_DOC.search(bloque.text):
+            viejo = bloque.text.strip()
+            _sustituir_en_parrafo(bloque, lambda t: NOMBRE_DOC.sub(texto, t))
+            return viejo
+    return None
 
 
-def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
+def _rellenar_portada(doc, valores: dict) -> str | None:
+    """Rellena la tabla de portada por sus etiquetas. Devuelve el titulo viejo.
+
+    Solo se escribe donde la etiqueta se reconoce y hay valor: una celda que
+    diga "Cliente" o "Codigo" no se toca, porque eso no lo sabemos.
+    """
+    from docx.table import Table
+
+    viejo = None
+    for bloque in _cuerpo_hasta_el_primer_titulo(doc):
+        if not isinstance(bloque, Table):
+            continue
+        for fila in bloque.rows:
+            celdas = fila.cells
+            for i, celda in enumerate(celdas[:-1]):
+                etiqueta = clave(celda.text)
+                campo = next((k for k, v in ETIQUETAS_PORTADA.items()
+                              if etiqueta in v), None)
+                if campo is None:
+                    continue
+                valor = str(valores.get(campo) or "").strip()
+                if not valor:
+                    valor = CELDA_PENDIENTE if campo == "autor" else ""
+                if not valor:
+                    continue
+                destino = celdas[i + 1]
+                if campo == "titulo" and viejo is None:
+                    viejo = destino.text.strip() or None
+                for j, p in enumerate(destino.paragraphs):
+                    if j == 0:
+                        if not _sustituir_en_parrafo(p, lambda _, v=valor: v):
+                            _poner(p, valor)
+                    else:
+                        _sustituir_en_parrafo(p, lambda _: "")
+    return viejo
+
+
+def _poner(p, texto: str) -> bool:
+    """Escribe en un parrafo que no tenia ningun run con texto."""
+    p.add_run(texto)
+    return True
+
+
+def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> str | None:
+    """Devuelve el texto que habia, que es lo que hay que buscar en la cabecera."""
     for p in doc.paragraphs:
         if nivel_titulo(p) is not None:
             break                      # ya estamos en el cuerpo del documento
         if p.style is not None and p.style.name == nombre:
+            viejo = p.text.strip()
             for run in list(p.runs)[1:]:
                 run._r.getparent().remove(run._r)
             texto = f"{proyecto} · {titulo}" if proyecto else titulo
@@ -453,8 +630,183 @@ def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
                 p.runs[0].text = texto
             else:
                 p.add_run(texto)
-            return True
-    return False
+            return viejo
+    return None
+
+
+# Lo que en una cabecera nombra al documento y no a la empresa. Se sustituye;
+# el resto de la cabecera --logo, nombre del cliente, formato-- no se toca.
+NOMBRE_DOC = re.compile(
+    # Con corchetes se los come; sin ellos no toca los espacios de alrededor, o
+    # "TITULO DEL DOCUMENTO — pag." acaba pegado al guion.
+    r"\[\s*(?:t[ií]tulo|nombre)\s+del\s+documento\s*\]"
+    r"|\b(?:t[ií]tulo|nombre)\s+del\s+documento\b"
+    r"|<(?=\S)(?=[^<>\n]*(?:[ _]|(?-i:[A-ZÁÉÍÓÚÜÑ]{2})))[^<>\n]{1,58}\S>"
+    r"|\{\{[^}\n]{1,60}\}\}",
+    re.IGNORECASE)
+
+
+def _sustituir_en_parrafo(p, cambiar) -> bool:
+    """Cambia el texto de un parrafo **sin tocar los runs que llevan imagen**.
+
+    Reescribir el parrafo entero es lo que borraba el logo: un `w:drawing` vive
+    dentro de un run, y `p.text = ...` se lleva todos los runs por delante. Aqui
+    se tocan solo los que tienen texto; los demas se quedan como estan, y el
+    formato del primero se conserva porque es el que recibe el texto nuevo.
+    """
+    from docx.oxml.ns import qn
+
+    con_texto = [r for r in p.runs if r._r.find(qn("w:t")) is not None]
+    if not con_texto:
+        return False
+    entero = "".join(r.text for r in con_texto)
+    salida = cambiar(entero)
+    if salida == entero:
+        return False
+    con_texto[0].text = salida
+    for r in con_texto[1:]:
+        r.text = ""
+    return True
+
+
+def actualizar_cabecera(doc, viejo: str | None, nuevo: str) -> list[str]:
+    """Pone el nombre del documento en la cabecera y el pie de la plantilla.
+
+    La cabecera del cliente se respeta --logo, nombre de la empresa, formato--,
+    pero **el trozo que nombra al documento es del documento, no de la
+    plantilla**: dejarlo tal cual entrega un DF que en cada pagina dice que es
+    otra cosa. Se sustituye lo que se puede reconocer como tal: el titulo que
+    traia la portada, y las formas de hueco --`TITULO DEL DOCUMENTO`, `<...>`,
+    `{{...}}`--. Lo que no encaje en eso no se toca.
+    """
+    def cambiar(texto: str) -> str:
+        salida = texto
+        # El titulo de la portada, si era lo bastante largo como para no
+        # confundirse con una palabra suelta de la cabecera.
+        if viejo and len(viejo.strip()) >= 6 and viejo.strip() in salida:
+            salida = salida.replace(viejo.strip(), nuevo)
+        return NOMBRE_DOC.sub(nuevo, salida)
+
+    tocadas: list[str] = []
+    for i, sec in enumerate(doc.sections, 1):
+        for cual in ("first_page_header", "header", "even_page_header",
+                     "first_page_footer", "footer", "even_page_footer"):
+            parte = getattr(sec, cual, None)
+            if parte is None:
+                continue
+            for p in parte.paragraphs:
+                if _sustituir_en_parrafo(p, cambiar):
+                    tocadas.append(f"seccion {i}/{cual}")
+            for t in parte.tables:
+                for fila in t.rows:
+                    for celda in fila.cells:
+                        for p in celda.paragraphs:
+                            if _sustituir_en_parrafo(p, cambiar):
+                                tocadas.append(f"seccion {i}/{cual} (tabla)")
+    return tocadas
+
+
+# Lo que Word cuelga de un comentario. Se quita todo: las marcas del cuerpo, el
+# run que lleva la referencia, y las partes con el texto y los autores.
+REL_COMENTARIOS = (
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments",
+    "http://schemas.microsoft.com/office/2011/relationships/commentsExtended",
+    "http://schemas.microsoft.com/office/2016/09/relationships/commentsIds",
+    "http://schemas.microsoft.com/office/2018/08/relationships/commentsExtensible",
+    "http://schemas.microsoft.com/office/2011/relationships/people",
+)
+
+
+def quitar_comentarios(doc) -> int:
+    """Borra los comentarios de Word que venian en la plantilla.
+
+    Sirvieron mientras alguien redactaba la plantilla --"revisar esto",
+    "hablar con negocio"-- y no pintan nada en el documento que se entrega al
+    cliente: son conversaciones internas de otro equipo y de otro momento.
+
+    Hay que quitar las tres marcas del cuerpo *y* las partes del paquete: con
+    dejar `comments.xml` colgando, Word abre el panel de revision con los
+    comentarios huerfanos, y quitando solo la parte se queda una referencia
+    rota que da error al abrir.
+    """
+    from docx.oxml.ns import qn
+
+    quitados = 0
+    raices = [doc.element.body]
+    for sec in doc.sections:
+        for cual in ("first_page_header", "header", "even_page_header",
+                     "first_page_footer", "footer", "even_page_footer"):
+            parte = getattr(sec, cual, None)
+            if parte is not None:
+                raices.append(parte._element)
+
+    for raiz in raices:
+        for tag in ("w:commentRangeStart", "w:commentRangeEnd"):
+            for el in list(raiz.iter(qn(tag))):
+                el.getparent().remove(el)
+                quitados += 1
+        for ref in list(raiz.iter(qn("w:commentReference"))):
+            # La referencia vive dentro de un run que no lleva nada mas; se va
+            # el run entero para no dejar un run vacio en mitad del parrafo.
+            run = ref.getparent()
+            objetivo = run if run is not None and run.tag == qn("w:r") else ref
+            padre = objetivo.getparent()
+            if padre is not None:
+                padre.remove(objetivo)
+                quitados += 1
+
+    for rid, rel in list(doc.part.rels.items()):
+        if rel.reltype in REL_COMENTARIOS:
+            doc.part.drop_rel(rid)
+    return quitados
+
+
+def hay_revisiones(doc) -> int:
+    """Cuantas marcas de control de cambios trae el documento.
+
+    No se aceptan ni se rechazan aqui: aceptar cambia el contenido y rechazar
+    lo tira, y ninguna de las dos es una decision del generador. Pero hay que
+    decirlo, porque un DF entregado con marcas de revision se lee como un
+    borrador y ensena quien escribio que.
+    """
+    from docx.oxml.ns import qn
+
+    n = 0
+    for tag in ("w:ins", "w:del", "w:moveFrom", "w:moveTo"):
+        n += len(doc.element.body.findall(".//" + qn(tag)))
+    return n
+
+
+def resaltar_pendientes(doc) -> int:
+    """Resalta en amarillo todo lo pendiente, se haya escrito por donde se haya.
+
+    `escribir_marcado` resalta lo que pasa por el, pero no todo pasa: la portada
+    se rellena sustituyendo texto dentro de celdas que ya existian, y por ahi un
+    `[PENDIENTE]` se colaba sin pintar. Esta pasada va al final y no depende del
+    camino por el que se escribiera.
+    """
+    from docx.enum.text import WD_COLOR_INDEX
+
+    n = 0
+
+    def repasar(p) -> None:
+        nonlocal n
+        if not MARCA_PENDIENTE.search(p.text or ""):
+            return
+        for run in p.runs:
+            if run.text and MARCA_PENDIENTE.search(run.text) \
+                    and run.font.highlight_color != WD_COLOR_INDEX.YELLOW:
+                run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+                n += 1
+
+    for p in doc.paragraphs:
+        repasar(p)
+    for t in doc.tables:
+        for fila in t.rows:
+            for celda in fila.cells:
+                for p in celda.paragraphs:
+                    repasar(p)
+    return n
 
 
 def marcar_relleno(doc) -> list[str]:
@@ -470,10 +822,17 @@ def marcar_relleno(doc) -> list[str]:
 
     fuera: list[str] = []
 
+    etiquetas = {e for v in ETIQUETAS_PORTADA.values() for e in v}
+
     def revisar(p, seccion: str) -> None:
         texto = p.text
         if not texto.strip() or MARCA_PENDIENTE.search(texto):
             return                     # los [PENDIENTE] son nuestros y a proposito
+        # "Titulo del documento:" en una celda de portada es la **etiqueta** de
+        # la fila, no relleno sin sustituir: el relleno estaba en la celda de al
+        # lado y ya se ha reemplazado. Marcarla deja la portada en amarillo.
+        if clave(texto) in etiquetas:
+            return
         if not RELLENO.search(texto):
             return
         # Se resalta el parrafo entero y no solo el trozo: partir los runs para
@@ -878,6 +1237,14 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     hoy = m.get("fecha") or date.today().isoformat()
 
     avisos: list[str] = []
+    comentarios_quitados = 0
+    # Apartados que el usuario ha pedido dejar en blanco. Sin plantilla no hay
+    # indice contra el que resolverlos, asi que solo aplica con plantilla.
+    blancos: set = set()
+    sin_resolver: list[str] = []
+    # El titulo que traia la portada de la plantilla. Se guarda porque es lo que
+    # hay que buscar en la cabecera: suele repetirse ahi.
+    titulo_plantilla: str | None = None
     numera_ella = False
     apartados_plantilla: list[str] = []
     modo = "generar"
@@ -888,8 +1255,27 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         # Se interroga a la plantilla **antes** de vaciarla: despues no queda
         # nada que mirar. La numeracion vive en los parrafos de titulo y los
         # apartados en su texto, y los dos desaparecen con el cuerpo.
+        # Los comentarios de la plantilla se van antes de nada: son de quien la
+        # redacto y no del DF que se entrega.
+        comentarios_quitados = quitar_comentarios(doc)
+        if comentarios_quitados:
+            avisos.append(f"se han quitado los comentarios de Word que traia la "
+                          f"plantilla ({comentarios_quitados} marcas): eran notas de "
+                          "edicion, no contenido del documento")
+        revisiones = hay_revisiones(doc)
+        if revisiones:
+            avisos.append(f"la plantilla trae {revisiones} marcas de control de "
+                          "cambios: acepta o rechaza las revisiones en Word antes de "
+                          "entregar, o el DF se lee como un borrador")
         numera_ella = plantilla_numera(doc)
         apartados_plantilla = sorted(localizar_apartados(doc))
+        # Que apartados ha pedido el usuario dejar en blanco, resueltos contra
+        # el indice de **esta** plantilla: por eso se pregunta con el delante.
+        blancos, sin_resolver = en_blanco(m.get("secciones_en_blanco"), indice_de(doc))
+        if sin_resolver:
+            avisos.append("estos apartados pedidos en blanco no estan en el indice de "
+                          "la plantilla y se han rellenado igual: "
+                          + ", ".join(sin_resolver))
         # Con los apartados reconocidos se escribe **dentro** de ellos y no se
         # toca nada mas: portada, logo, indice, tablas, cabecera y secciones se
         # quedan como el cliente las monto. Vaciar el cuerpo se lleva por delante
@@ -905,6 +1291,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             limpiar_cuerpo(doc)
     else:
         doc = Document()
+        if m.get("secciones_en_blanco"):
+            avisos.append("`secciones_en_blanco` se ha ignorado: se resuelve contra el "
+                          "indice de la plantilla, y aqui no hay plantilla")
     est = Estilos(doc)
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
@@ -941,13 +1330,23 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     # anade al final del documento; en modo esqueleto se traslada despues al
     # apartado que la plantilla ya trae.
     nar = m.get("narrativa") or {}
-    campos = m.get("campos") or {}
-    val = m.get("validaciones") or {}
-    msg = m.get("mensajes") or {}
-    ca = m.get("criterios_aceptacion") or {}
+    # El manifiesto lo escribe un modelo, y no todos escriben la misma forma.
+    # Se normaliza en vez de exigir una: una diferencia de estructura no puede
+    # dejar sin DF a las veinte historias del lote.
+    val = como_dict(m.get("validaciones"))
+    msg = como_dict(m.get("mensajes"))
+    ca = como_dict(m.get("criterios_aceptacion"), "contexto")
     pa = m.get("puntos_abiertos") or []
+    if isinstance(pa, dict):
+        pa = [pa]
 
-    cols_campos = campos.get("columnas") or ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"]
+    cols_campos, filas_campos, campos_texto = como_tabla(
+        m.get("campos"), ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"])
+    if not filas_campos and not campos_texto:
+        avisos.append("Filtros y Campos se queda sin tabla: el manifiesto no trae "
+                      "`campos`. Es un apartado que casi siempre tiene contenido, "
+                      "asi que revisa si falta en el detalle de la HU o si el "
+                      "manifiesto no lo recogio")
     COLS_PA = ["ID", "Descripción", "Estado", "Responsable", "F. Estimada", "F. Resolución"]
     COLS_CV = ["Fecha", "Versión", "Autor", "Descripción del cambio"]
     COLS_CA = ["Responsable", "Cargo", "Departamento", "Fecha", "Versión del documento"]
@@ -982,6 +1381,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 for i, v in enumerate(fila):
                     if not str(v or "").strip():
                         fila[i] = CELDA_PENDIENTE
+    # Filtros y Campos: tabla si hay filas, parrafos si vino como texto, y marca
+    # de pendiente si no vino nada. Lo que no puede es salir mudo: una tabla con
+    # solo la cabecera se lee como "aqui no habia nada que decir".
+    if filas_campos:
+        escritor_campos, tabla_campos = None, (cols_campos, filas_campos)
+    elif campos_texto:
+        escritor_campos = lambda: write_blocks(doc, campos_texto, est=est)  # noqa: E731
+        tabla_campos = None
+    else:
+        escritor_campos = lambda: parrafo_marcado(                          # noqa: E731
+            doc, "[PENDIENTE: la relación de filtros y campos no está en el detalle "
+                 "de la historia de usuario]")
+        tabla_campos = None
+
     filas_pa = [[x.get("id", ""), x.get("descripcion", ""), x.get("estado", "Abierto"),
                  x.get("responsable", ""), x.get("estimada", ""), x.get("resolucion", "")]
                 for x in pa]
@@ -1028,7 +1441,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         ("introduccion", "Introducción", 1, prosa(m.get("introduccion")), None),
         ("alcance", "Alcance", 2, prosa(m.get("alcance")), None),
         ("historia", titulo, 1, narrativa, None),
-        ("campos", "Filtros/Campos", 2, None, (cols_campos, campos.get("filas"))),
+        ("campos", "Filtros/Campos", 2, escritor_campos, tabla_campos),
         ("integraciones", "Integraciones otros aplicativos", 2,
          prosa(m.get("integraciones")), None),
         ("validaciones", "Validaciones / Reglas / Acciones", 2, None, None),
@@ -1046,13 +1459,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         ("puntos_abiertos", "Puntos abiertos", 1, None, (COLS_PA, filas_pa)),
     ]
 
+    from docx.oxml.ns import qn as _qn
+    from docx.table import Table
+
+    qn_tbl = _qn("w:tbl")
     anclas = localizar_apartados(doc) if modo == "esqueleto" else {}
     sin_apartado: list[str] = []
+    dejados: list[str] = []
 
     if modo == "esqueleto":
         # La portada no es un apartado, asi que sin esto se queda con el titulo
         # de ejemplo que traiga la plantilla.
-        if not poner_titulo(doc, est, titulo, proyecto):
+        titulo_plantilla = poner_titulo(doc, est, titulo, proyecto, version,
+                                        hoy, filas_cv[0][2] if filas_cv else "")
+        if titulo_plantilla is None:
             avisos.append("la plantilla no trae un parrafo con estilo de titulo en la "
                           "portada: el titulo del documento hay que ponerlo a mano")
         # El titulo de la historia es el unico que no se reconoce por su texto:
@@ -1078,6 +1498,19 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             if ancla is None:
                 sin_apartado.append(k)
                 continue
+            if k in blancos:
+                # Se vacia el tramo --fuera el texto de ejemplo-- y no se
+                # escribe nada. La tabla de la plantilla se queda con su
+                # cabecera, lista para que alguien la rellene a mano.
+                for el in rango_seccion(doc, ancla):
+                    if el.tag == qn_tbl:
+                        # La tabla de la plantilla se queda: vaciarla de datos
+                        # y dejar la cabecera es lo que se pidio, no borrarla.
+                        rellenar_tabla(Table(el, doc), [], [])
+                        continue
+                    el.getparent().remove(el)
+                dejados.append(k)
+                continue
             tramo = rango_seccion(doc, ancla)
             propia = tabla_de(doc, tramo) if tabla else None
             for el in tramo:
@@ -1102,6 +1535,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                              "los responsables que firman el documento]"))
             elif escritor:
                 mover_tras(doc, ancla._p, escritor)
+        # Los apartados propios del cliente --los que el DF no reconoce-- se
+        # identifican por su numero. Sin esto, pedir en blanco "4. Anexo del
+        # cliente" no hacia nada **y no avisaba**, que es el peor de los dos.
+        propios = {c[1:] for c in blancos if c.startswith("#")}
+        for entrada in indice_de(doc) if propios else []:
+            if entrada["numero"] not in propios:
+                continue
+            for el in rango_seccion(doc, entrada["_p"]):
+                if el.tag == qn_tbl:
+                    rellenar_tabla(Table(el, doc), [], [])
+                    continue
+                el.getparent().remove(el)
+            dejados.append(entrada["numero"] + " " + entrada["titulo"])
+
     else:
         # Portada y control, que con esqueleto ya trae la plantilla.
         if proyecto:
@@ -1142,6 +1589,14 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             doc.add_paragraph(extra.get("titulo", "Anexo"), style=est("Heading 1"))
         write_blocks(doc, extra.get("contenido"), est=est)
 
+    # La cabecera nombra al documento, y ese nombre es del documento y no de la
+    # plantilla. Va **antes** de propagar, para que la copia salga ya corregida.
+    cabecera_actualizada = actualizar_cabecera(
+        doc, titulo_plantilla, f"{proyecto} · {titulo}" if proyecto else titulo)
+    if cabecera_actualizada:
+        avisos.append("el nombre del documento en la cabecera o el pie se ha puesto al "
+                      "dia (" + ", ".join(dict.fromkeys(cabecera_actualizada)) + ")")
+
     # El logo suele vivir solo en la cabecera de la portada; sin esto, el resto
     # de paginas sale sin el.
     propagadas = propagar_cabecera(doc)
@@ -1149,6 +1604,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         avisos.append("la cabecera de la portada se ha copiado al resto de paginas "
                       "(seccion " + ", ".join(propagadas) + "), que la tenian vacia: "
                       "asi el logo sale en todas")
+
+    resaltar_pendientes(doc)
 
     # Lo que la plantilla traia como relleno y nadie ha sustituido.
     relleno = marcar_relleno(doc)
@@ -1172,6 +1629,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # ella. Los segundos no se pierden: van al final con su titulo.
             "apartados_plantilla": apartados_plantilla,
             "apartados_no_encontrados": sin_apartado,
+            # Los que se han dejado en blanco a peticion del usuario, y
+            # los que pidio pero no estaban en el indice.
+            "secciones_en_blanco": dejados,
+            "en_blanco_no_encontradas": sin_resolver,
             "plantilla_numera": numera_ella,
             # De donde sale la vineta: el estilo de la plantilla, una
             # numeracion creada aqui, o el punto escrito a mano.
@@ -1180,12 +1641,97 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # Texto de relleno de la plantilla que ha quedado en el documento,
             # con el apartado en el que esta. Resaltado, pero hay que resolverlo.
             "relleno_sin_sustituir": relleno,
+            # Donde se ha puesto al dia el nombre del documento.
+            "cabecera_actualizada": cabecera_actualizada,
+            "comentarios_quitados": comentarios_quitados,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el
             # documento sale con partes sin formato y nadie se entera hasta
             # abrirlo.
             "avisos": avisos}
+
+
+def indice_plantilla(ruta: Path) -> dict:
+    """El indice de una plantilla: cada apartado con su numero y su nivel.
+
+    Es lo que el pre-flight necesita para preguntar. El skill tiene que servir
+    para **cualquier cliente**, y eso no se consigue adivinando que quiere decir
+    cada titulo ajeno: se consigue ensenando el indice tal cual y dejando que
+    una persona diga que apartados se rellenan y cuales se dejan en blanco.
+
+    El numero sale del propio titulo cuando la plantilla lo trae escrito
+    --`2.1 Filtros y Campos`--, y si no se calcula por la jerarquia de niveles,
+    que es lo que hara Word al numerarlos.
+    """
+    import docx
+
+    return {"plantilla": str(ruta), **_indice(docx.Document(ruta))}
+
+
+def indice_de(doc) -> list[dict]:
+    """El indice de un documento ya abierto, con el parrafo de cada apartado."""
+    return _indice(doc)["apartados"]
+
+
+def _indice(d) -> dict:
+    fuera: list[dict] = []
+    contador: list[int] = []
+    for p in d.paragraphs:
+        nivel = nivel_titulo(p)
+        if nivel is None or not p.text.strip():
+            continue
+        texto = p.text.strip()
+        propio = re.match(r"^(\d+(?:\.\d+)*)[.)]?\s+(.*)$", texto)
+        if propio:
+            numero, nombre = propio.group(1), propio.group(2).strip()
+            contador = [int(x) for x in numero.split(".")]
+        else:
+            nombre = texto
+            del contador[nivel:]
+            while len(contador) < nivel:
+                contador.append(0)
+            contador[nivel - 1] += 1
+            numero = ".".join(str(x) for x in contador)
+        fuera.append({"numero": numero, "nivel": nivel, "titulo": nombre,
+                      # Con que apartado del DF se corresponde, si se reconoce.
+                      # Lo que no se reconoce no es un error: es un apartado
+                      # propio del cliente, y por eso se pregunta.
+                      "apartado": ALIAS.get(clave(texto)), "_p": p})
+    return {"apartados": fuera,
+            "reconocidos": sum(1 for x in fuera if x["apartado"]),
+            "total": len(fuera)}
+
+
+def en_blanco(pedidas, indice: list[dict]) -> tuple[set, list[str]]:
+    """Que apartados hay que dejar en blanco, resueltos contra el indice.
+
+    Se admite el **numero** --`2.1`, que es como los nombra una persona que
+    tiene el indice delante-- y tambien el nombre. Lo que no case con nada se
+    devuelve aparte para decirlo: callarselo dejaria al usuario creyendo que ha
+    dejado en blanco un apartado que se ha rellenado igual.
+    """
+    if not pedidas:
+        return set(), []
+    if isinstance(pedidas, str):
+        pedidas = [x.strip() for x in re.split(r"[,;]", pedidas) if x.strip()]
+    por_numero = {x["numero"]: x for x in indice}
+    por_nombre = {clave(x["titulo"]): x for x in indice}
+    claves, sin_resolver = set(), []
+    for pedida in pedidas:
+        t = str(pedida).strip().rstrip(".")
+        entrada = por_numero.get(t) or por_nombre.get(clave(t))
+        if entrada is None:
+            sin_resolver.append(str(pedida))
+            continue
+        # Un apartado se identifica hacia dentro por su clave del DF; si es uno
+        # propio del cliente, por su numero, que es lo unico estable que tiene.
+        claves.add(entrada["apartado"] or ("#" + entrada["numero"]))
+        # Dejar en blanco un apartado deja en blanco lo que cuelga de el.
+        for x in indice:
+            if x["numero"].startswith(entrada["numero"] + "."):
+                claves.add(x["apartado"] or ("#" + x["numero"]))
+    return claves, sin_resolver
 
 
 def extraer(ruta: Path) -> dict:
@@ -1231,6 +1777,10 @@ def main() -> int:
     ap.add_argument("--manifest", help="JSON con el contenido del DF; sin el, stdin")
     ap.add_argument("--output", help="ruta del .docx de salida")
     ap.add_argument("--schema", action="store_true", help="imprime el esquema del manifiesto y sale")
+    ap.add_argument("--indice", metavar="PLANTILLA",
+                    help="vuelca a JSON el indice de una plantilla --cada apartado con "
+                         "su numero, su nivel y si el DF lo reconoce--, para poder "
+                         "preguntar en el pre-flight que dejar en blanco, y sale")
     ap.add_argument("--extraer", metavar="RUTA",
                     help="vuelca a JSON el texto y las tablas de un DF ya generado, "
                          "para que otro skill pueda leerlo, y sale")
@@ -1242,6 +1792,12 @@ def main() -> int:
 
     if args.schema:
         print(SCHEMA)
+        return 0
+    if args.indice:
+        datos = indice_plantilla(Path(args.indice))
+        datos["apartados"] = [{k: v for k, v in a.items() if k != "_p"}
+                              for a in datos["apartados"]]
+        print(json.dumps(datos, ensure_ascii=False, indent=2))
         return 0
     if args.extraer:
         _ensure_docx(not args.no_install)
