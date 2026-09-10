@@ -325,6 +325,130 @@ def add_toc(doc) -> None:
     ancla._p.getparent().remove(ancla._p)
 
 
+# Texto de relleno que trae la plantilla del cliente y que nadie ha sustituido.
+# No se borra --puede haber un apartado del cliente que haya que rellenar de
+# verdad-- pero se resalta y se canta, que es lo que no pasaba: el DF se
+# entregaba con el "TITULO DEL DOCUMENTO" de la plantilla todavia puesto.
+RELLENO = re.compile(
+    r"<[^<>\n]{2,60}>"                         # <RELLENAR CON LO QUE PROCEDA>
+    r"|\{\{[^}\n]{1,60}\}\}"                   # {{campo}}
+    r"|lorem ipsum"
+    r"|\btexto de (?:ejemplo|muestra|prueba|relleno)\b"
+    r"|\bsustituir por\b|\brellenar (?:con|aqui|aquí)\b"
+    r"|\ba completar\b|\bpendiente de (?:completar|rellenar)\b"
+    r"|\bTITULO DEL DOCUMENTO\b|\bTÍTULO DEL DOCUMENTO\b"
+    r"|\bnombre del (?:proyecto|cliente|documento)\b"
+    r"|\bXXXX+\b|\bTBD\b",
+    re.IGNORECASE)
+
+
+def _con_contenido(parte) -> bool:
+    """Si una cabecera o un pie tienen algo dentro: texto, imagen o campo."""
+    from docx.oxml.ns import qn
+
+    el = parte._element
+    if any((t.text or "").strip() for t in el.iter(qn("w:t"))):
+        return True
+    return any(next(el.iter(qn(tag)), None) is not None
+               for tag in ("w:drawing", "w:pict", "w:object", "w:fldChar"))
+
+
+def propagar_cabecera(doc) -> list[str]:
+    """Lleva la cabecera de la portada al resto de paginas si estas no tienen.
+
+    Una plantilla con "primera pagina distinta" suele traer el logo **solo** en
+    la cabecera de la portada, y el resto del documento sale sin el. Se nota al
+    imprimir y es lo que se reporto. Solo se copia cuando la cabecera normal
+    esta vacia: si el cliente puso ahi otra cosa, manda la suya.
+
+    Copiar el XML no basta. La imagen se referencia por un identificador de
+    relacion que **pertenece a la parte de origen**, asi que hay que registrar
+    la imagen tambien en la parte de destino y reescribir el identificador, o
+    el logo aparece como un recuadro roto.
+    """
+    import copy
+
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+    from docx.oxml.ns import qn
+
+    tocadas: list[str] = []
+    for i, sec in enumerate(doc.sections):
+        if not sec.different_first_page_header_footer:
+            continue
+        primera, normal = sec.first_page_header, sec.header
+        if not _con_contenido(primera) or _con_contenido(normal):
+            continue
+        normal.is_linked_to_previous = False
+        for hijo in list(normal._element):
+            normal._element.remove(hijo)
+        for hijo in primera._element:
+            copia = copy.deepcopy(hijo)
+            # `v:imagedata` es VML, de las plantillas antiguas; python-docx no
+            # trae ese prefijo en su mapa de espacios de nombres.
+            vml = "{urn:schemas-microsoft-com:vml}imagedata"
+            for ref, attr in ((qn("a:blip"), qn("r:embed")), (vml, qn("r:id"))):
+                for nodo in copia.iter(ref):
+                    rid = nodo.get(attr)
+                    if not rid:
+                        continue
+                    imagen = primera.part.related_parts[rid]
+                    nodo.set(attr, normal.part.relate_to(imagen, RT.IMAGE))
+            normal._element.append(copia)
+        tocadas.append(str(i + 1))
+    return tocadas
+
+
+def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
+    """Escribe el titulo del DF en la portada de la plantilla.
+
+    En modo esqueleto no se toca nada que no sea un apartado reconocido, y la
+    portada no lo es: el DF salia con el titulo de ejemplo de la plantilla.
+    Se busca el primer parrafo con estilo de titulo antes del primer apartado.
+    """
+    nombres = {est("Title"), est("Subtitle")} - {None}
+    for p in doc.paragraphs:
+        if nivel_titulo(p) is not None:
+            break                      # ya estamos en el cuerpo del documento
+        if p.style is not None and p.style.name in nombres:
+            for run in list(p.runs)[1:]:
+                run._r.getparent().remove(run._r)
+            texto = f"{proyecto} · {titulo}" if proyecto else titulo
+            if p.runs:
+                p.runs[0].text = texto
+            else:
+                p.add_run(texto)
+            return True
+    return False
+
+
+def marcar_relleno(doc) -> list[str]:
+    """Resalta el texto de relleno que quede y dice donde esta.
+
+    No lo borra: un apartado propio del cliente puede tener que rellenarse de
+    verdad, y borrarlo dejaria el DF sin ese hueco. Lo pone en amarillo --la
+    misma marca que ya se usa para lo que completa una persona-- y lo devuelve
+    con el apartado en el que ha quedado, para que el skill lo resuelva antes
+    de dar el documento por entregado.
+    """
+    from docx.enum.text import WD_COLOR_INDEX
+
+    fuera: list[str] = []
+    seccion = "(portada)"
+    for p in doc.paragraphs:
+        if nivel_titulo(p) is not None:
+            seccion = p.text.strip() or seccion
+        texto = p.text
+        if not texto.strip() or MARCA_PENDIENTE.search(texto):
+            continue                   # los [PENDIENTE] son nuestros y a proposito
+        hallado = RELLENO.search(texto)
+        if not hallado:
+            continue
+        for run in p.runs:
+            run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        fuera.append(f"{seccion}: {texto.strip()[:90]}")
+    return fuera
+
+
 # --- Documento ---------------------------------------------------------------
 
 # Nombres de estilo por idioma. Word los traduce, asi que una plantilla en
@@ -859,6 +983,11 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     sin_apartado: list[str] = []
 
     if modo == "esqueleto":
+        # La portada no es un apartado, asi que sin esto se queda con el titulo
+        # de ejemplo que traiga la plantilla.
+        if not poner_titulo(doc, est, titulo, proyecto):
+            avisos.append("la plantilla no trae un parrafo con estilo de titulo en la "
+                          "portada: el titulo del documento hay que ponerlo a mano")
         # El titulo de la historia es el unico que no se reconoce por su texto:
         # en la plantilla lleva el nombre del caso del cliente. Es el Titulo 1
         # que va entre Alcance y el primer apartado de la historia.
@@ -935,6 +1064,24 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             doc.add_paragraph(extra.get("titulo", "Anexo"), style=est("Heading 1"))
         write_blocks(doc, extra.get("contenido"), est=est)
 
+    # El logo suele vivir solo en la cabecera de la portada; sin esto, el resto
+    # de paginas sale sin el.
+    propagadas = propagar_cabecera(doc)
+    if propagadas:
+        avisos.append("la cabecera de la portada se ha copiado al resto de paginas "
+                      "(seccion " + ", ".join(propagadas) + "), que la tenian vacia: "
+                      "asi el logo sale en todas")
+
+    # Lo que la plantilla traia como relleno y nadie ha sustituido.
+    relleno = marcar_relleno(doc)
+    if relleno:
+        avisos.append(f"queda texto de relleno de la plantilla sin sustituir "
+                      f"({len(relleno)}): va resaltado en amarillo, pero revisalo")
+
+    # El titulo del documento, el que ve Word en las propiedades del fichero.
+    doc.core_properties.title = f"{proyecto} · {titulo}" if proyecto else titulo
+    doc.core_properties.subject = "Documento de Diseño Funcional"
+
     salida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(salida)
     return {"output": str(salida), "puntos_abiertos": len(pa),
@@ -952,6 +1099,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             # numeracion creada aqui, o el punto escrito a mano.
             "vinetas": ("plantilla" if not est.vineta_propia
                         else "creada" if not est.sin_vineta else "literal"),
+            # Texto de relleno de la plantilla que ha quedado en el documento,
+            # con el apartado en el que esta. Resaltado, pero hay que resolverlo.
+            "relleno_sin_sustituir": relleno,
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el

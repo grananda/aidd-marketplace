@@ -65,6 +65,46 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     from docx.oxml.ns import qn                                # noqa: PLC0415
 
     if etiqueta == "con esqueleto":
+        # Tres averias que llegaron a los analistas con la plantilla del
+        # cliente: el logo solo en la portada, el titulo de ejemplo sin
+        # sustituir y el texto de relleno entregado tal cual.
+        from docx.oxml.ns import qn as _q                       # noqa: PLC0415
+
+        cab = doc.sections[0].header
+        if next(cab._element.iter(_q("w:drawing")), None) is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: el logo solo queda en la "
+                          "cabecera de la portada; el resto de paginas sale sin el")
+        else:
+            for blip in cab._element.iter(_q("a:blip")):
+                rid = blip.get(_q("r:embed"))
+                if cab.part.related_parts.get(rid) is None:
+                    fallos.append(f"gen_df_docx.py {etiqueta}: la imagen copiada a "
+                                  f"la cabecera apunta a una relacion que no existe "
+                                  f"({rid}): sale como recuadro roto")
+
+        portada = " ".join(p_.text for p_ in doc.paragraphs[:6])
+        if "TÍTULO DEL DOCUMENTO" in portada:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la portada conserva el titulo "
+                          "de ejemplo de la plantilla")
+        if not (doc.core_properties.title or "").strip():
+            fallos.append(f"gen_df_docx.py {etiqueta}: el titulo del documento (el de "
+                          "las propiedades del fichero) se queda vacio")
+
+        relleno = salida_json.get("relleno_sin_sustituir")
+        if relleno is None:
+            fallos.append(f"gen_df_docx.py {etiqueta}: la salida no trae "
+                          "relleno_sin_sustituir")
+        elif not any("RELLENAR" in x for x in relleno):
+            fallos.append(f"gen_df_docx.py {etiqueta}: no caza el relleno "
+                          f"'<RELLENAR ...>' que trae la plantilla ({relleno})")
+        else:
+            from docx.enum.text import WD_COLOR_INDEX            # noqa: PLC0415
+            marcado = [p_ for p_ in doc.paragraphs if "RELLENAR" in p_.text
+                       and any(r_.font.highlight_color == WD_COLOR_INDEX.YELLOW
+                               for r_ in p_.runs)]
+            if not marcado:
+                fallos.append(f"gen_df_docx.py {etiqueta}: el relleno que queda no "
+                              "va resaltado, asi que nadie lo ve al revisar")
         return fallos          # el indice y las tablas los pone la plantilla
 
     cuerpo = doc.element.body
@@ -270,17 +310,24 @@ with tempfile.TemporaryDirectory() as tmp:
         # cliente de verdad. Portada con logo en el cuerpo, tablas propias y
         # texto de ejemplo. El generador tiene que escribir DENTRO y no arrasar.
         esq = _docx.Document()
-        cab_e = esq.sections[0].header.paragraphs[0]
+        # Portada distinta y el logo **solo** ahi, que es como vienen: sin
+        # propagarla, el logo sale en la primera pagina y en ninguna mas.
+        esq.sections[0].different_first_page_header_footer = True
+        cab_e = esq.sections[0].first_page_header.paragraphs[0]
         cab_e.add_run().add_picture(str(d / "logo.png"), height=Cm(1))
         cab_e.add_run("CABECERA DEL CLIENTE")
         esq.sections[0].footer.paragraphs[0].text = "PIE DEL CLIENTE"
         esq.add_paragraph().add_run().add_picture(str(d / "logo.png"), height=Cm(2))
+        esq.add_paragraph("TÍTULO DEL DOCUMENTO", style="Title")
         esq.add_paragraph("Control de Versiones")
         esq.add_table(rows=1, cols=4).style = "Table Grid"
         for t_, n_ in (("Introducción", 1), ("Alcance", 2), ("Filtros/Campos", 2),
                        ("Criterios de aceptación", 1), ("Puntos abiertos", 1)):
             esq.add_paragraph(t_, style=f"Heading {n_}")
             esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
+        # Un apartado del cliente que el DF no conoce, con relleno sin sustituir.
+        esq.add_paragraph("Anexo del cliente", style="Heading 1")
+        esq.add_paragraph("<RELLENAR CON LO QUE PROCEDA>")
         esq.save(str(d / "esq.docx"))
 
         # Plantilla sin ningun estilo de vineta, que es lo normal en cliente:

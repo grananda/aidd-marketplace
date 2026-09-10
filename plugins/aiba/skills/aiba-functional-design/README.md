@@ -46,6 +46,10 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 
 **No usa códigos internos.** Ni `RF-014` ni `GAP-07`: se explica el contenido, que es lo que le dice algo a un lector de negocio. El generador devuelve `codigos_internos` con cada sigla que se haya colado y en qué sección está, para corregirla y volver a generar. `HU-xx` sí se queda: da nombre al fichero y engancha con `aiba test-plan` y con Jira.
 
+**El título y el logo no se quedan a medias.** El título del documento se escribe en la portada —sustituyendo el de ejemplo de la plantilla— y en las propiedades del fichero. Y si la plantilla trae el logo solo en la cabecera de la portada, como es habitual, se copia a la del resto de páginas cuando está vacía: así sale en todas.
+
+**El relleno de la plantilla se canta.** Lo que quede sin sustituir —`<RELLENAR ...>`, `Lorem ipsum`, `TÍTULO DEL DOCUMENTO`, `TBD`— sale resaltado en amarillo y se devuelve con el apartado en el que está. No se borra: un apartado propio del cliente puede tener que rellenarse de verdad.
+
 **No firma por ti.** En el Control de Versiones va el analista que responde del documento ante el cliente. El generador vacía la celda y avisa si detecta ahí el nombre de una herramienta.
 
 ## Diseño: genérico, pero estructurado
