@@ -148,7 +148,8 @@ MARCA_PENDIENTE = re.compile(
     r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]"
     r"|\bpendientes? de (?:definir|concretar|confirmar|validar|detallar|decidir"
     r"|aportar|recibir|documentar)\b"
-    r"|\b(?:por|a|sin) (?:definir|concretar|confirmar|determinar|detallar|decidir)\b"
+    # `a definir` se cae a proposito: "vamos a definir el alcance" no es un hueco.
+    r"|\b(?:por|sin) (?:definir|concretar|confirmar|determinar|detallar|decidir)\b"
     r"|\bfalta(?:n)? por (?:definir|concretar|confirmar|detallar|decidir)\b"
     r"|\bse desconoce\b|\bno se dispone de\b|\bno consta\b",
     re.IGNORECASE)
@@ -345,14 +346,22 @@ def add_toc(doc) -> None:
 # No se borra --puede haber un apartado del cliente que haya que rellenar de
 # verdad-- pero se resalta y se canta, que es lo que no pasaba: el DF se
 # entregaba con el "TITULO DEL DOCUMENTO" de la plantilla todavia puesto.
+# Los angulos piden cuidado. `<[^<>]+>` tambien casa con "si el saldo < 0 y el
+# plazo > 30" y con `<div>`, y resaltar eso es peor que no resaltar nada. Se
+# exige que no haya espacio pegado a los angulos --un hueco se escribe `<FOO>`,
+# no `< foo >`-- y que dentro haya espacio, guion bajo o mayusculas, que es lo
+# que distingue un hueco de una etiqueta de marcado.
 RELLENO = re.compile(
-    r"<[^<>\n]{2,60}>"                         # <RELLENAR CON LO QUE PROCEDA>
+    # `(?-i:...)` mantiene el tramo sensible a mayusculas dentro de un patron que
+    # no lo es: sin eso, `IGNORECASE` hace que `[A-Z]{2}` case con "di" y `<div>`
+    # se marque como hueco.
+    r"<(?=\S)(?=[^<>\n]*(?:[ _]|(?-i:[A-ZÁÉÍÓÚÜÑ]{2})))[^<>\n]{1,58}\S>"
     r"|\{\{[^}\n]{1,60}\}\}"                   # {{campo}}
     r"|lorem ipsum"
     r"|\btexto de (?:ejemplo|muestra|prueba|relleno)\b"
     r"|\bsustituir por\b|\brellenar (?:con|aqui|aquí)\b"
-    r"|\ba completar\b|\bpendiente de (?:completar|rellenar)\b"
-    r"|\bTITULO DEL DOCUMENTO\b|\bTÍTULO DEL DOCUMENTO\b"
+    r"|\bpendiente de (?:completar|rellenar)\b"
+    r"|\bT[IÍ]TULO DEL DOCUMENTO\b"
     r"|\bnombre del (?:proyecto|cliente|documento)\b"
     r"|\bXXXX+\b|\bTBD\b",
     re.IGNORECASE)
@@ -421,11 +430,22 @@ def poner_titulo(doc, est, titulo: str, proyecto: str) -> bool:
     portada no lo es: el DF salia con el titulo de ejemplo de la plantilla.
     Se busca el primer parrafo con estilo de titulo antes del primer apartado.
     """
-    nombres = {est("Title"), est("Subtitle")} - {None}
+    # Primero se busca el `Title`; el `Subtitle` solo si no hay ninguno. Al reves
+    # se pisaria un subtitulo con sentido --"Documento de Diseño Funcional"--
+    # dejando el titulo de ejemplo puesto justo encima.
+    for nombre in (est("Title"), est("Subtitle")):
+        if nombre is None:
+            continue
+        if _escribir_en_portada(doc, nombre, titulo, proyecto):
+            return True
+    return False
+
+
+def _escribir_en_portada(doc, nombre: str, titulo: str, proyecto: str) -> bool:
     for p in doc.paragraphs:
         if nivel_titulo(p) is not None:
             break                      # ya estamos en el cuerpo del documento
-        if p.style is not None and p.style.name in nombres:
+        if p.style is not None and p.style.name == nombre:
             for run in list(p.runs)[1:]:
                 run._r.getparent().remove(run._r)
             texto = f"{proyecto} · {titulo}" if proyecto else titulo
@@ -449,19 +469,31 @@ def marcar_relleno(doc) -> list[str]:
     from docx.enum.text import WD_COLOR_INDEX
 
     fuera: list[str] = []
+
+    def revisar(p, seccion: str) -> None:
+        texto = p.text
+        if not texto.strip() or MARCA_PENDIENTE.search(texto):
+            return                     # los [PENDIENTE] son nuestros y a proposito
+        if not RELLENO.search(texto):
+            return
+        # Se resalta el parrafo entero y no solo el trozo: partir los runs para
+        # pintar un fragmento rompe el formato que traiga la plantilla, y lo que
+        # importa es que la frase se vea.
+        for run in p.runs:
+            run.font.highlight_color = WD_COLOR_INDEX.YELLOW
+        fuera.append(f"{seccion}: {texto.strip()[:90]}")
+
     seccion = "(portada)"
     for p in doc.paragraphs:
         if nivel_titulo(p) is not None:
             seccion = p.text.strip() or seccion
-        texto = p.text
-        if not texto.strip() or MARCA_PENDIENTE.search(texto):
-            continue                   # los [PENDIENTE] son nuestros y a proposito
-        hallado = RELLENO.search(texto)
-        if not hallado:
-            continue
-        for run in p.runs:
-            run.font.highlight_color = WD_COLOR_INDEX.YELLOW
-        fuera.append(f"{seccion}: {texto.strip()[:90]}")
+        revisar(p, seccion)
+    # Las plantillas meten el relleno tambien dentro de sus tablas.
+    for t in doc.tables:
+        for fila in t.rows:
+            for celda in fila.cells:
+                for p in celda.paragraphs:
+                    revisar(p, "tabla")
     return fuera
 
 
@@ -1054,16 +1086,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 el.getparent().remove(el)
             if tabla:
                 cols, filas = tabla
-                if k == "control_aprobaciones" and aprobaciones_vacias:
-                    mover_tras(doc, ancla._p, lambda: parrafo_marcado(
-                        doc, "[PENDIENTE: completar el control de aprobaciones con "
-                             "los responsables que firman el documento]"))
                 if propia is not None:
                     rellenar_tabla(propia, cols, filas)
+                    fin = propia._tbl
                 elif filas:
-                    mover_tras(doc, ancla._p, lambda c=cols, f=filas: add_table(doc, c, f, accent))
+                    fin = mover_tras(doc, ancla._p,
+                                     lambda c=cols, f=filas: add_table(doc, c, f, accent))
                 else:
-                    mover_tras(doc, ancla._p, lambda: doc.add_paragraph("N/A"))
+                    fin = mover_tras(doc, ancla._p, lambda: doc.add_paragraph("N/A"))
+                # La nota va **detras** de la tabla, como en el modo sin
+                # plantilla. Colgada del titulo caia entre el titulo y la tabla.
+                if k == "control_aprobaciones" and aprobaciones_vacias:
+                    mover_tras(doc, fin, lambda: parrafo_marcado(
+                        doc, "[PENDIENTE: completar el control de aprobaciones con "
+                             "los responsables que firman el documento]"))
             elif escritor:
                 mover_tras(doc, ancla._p, escritor)
     else:
