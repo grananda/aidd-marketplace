@@ -138,8 +138,24 @@ PENDIENTE = "[PENDIENTE: sin información en la documentación de origen]"
 # de veinte paginas se lee en diagonal, y un `[PENDIENTE]` en texto normal pasa
 # desapercibido: acaba firmado como si fuera contenido. El resaltado es la
 # unica forma de que un hueco se vea sin leer el documento entero.
+# El marcador entre corchetes sigue siendo la forma correcta de escribirlo, pero
+# **no puede ser la unica que se resalte**: segun el modelo que redacte, el hueco
+# sale como "pendiente de definir" o "falta por confirmar con negocio", y con la
+# marca literal como unico criterio esos huecos se entregaban sin resaltar. Se
+# reconocen tambien las formas en prosa, que es lo que hace que el resultado no
+# dependa de que modelo genero el documento.
 MARCA_PENDIENTE = re.compile(
-    r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]")
+    r"\[(?:PENDIENTE|Imagen no encontrada|No se pudo insertar)[^\]]*\]"
+    r"|\bpendientes? de (?:definir|concretar|confirmar|validar|detallar|decidir"
+    r"|aportar|recibir|documentar)\b"
+    r"|\b(?:por|a|sin) (?:definir|concretar|confirmar|determinar|detallar|decidir)\b"
+    r"|\bfalta(?:n)? por (?:definir|concretar|confirmar|detallar|decidir)\b"
+    r"|\bse desconoce\b|\bno se dispone de\b|\bno consta\b",
+    re.IGNORECASE)
+
+# Lo que se escribe en una celda que alguien tiene que rellenar a mano. Va entre
+# corchetes para que lo pille la marca de arriba y salga en amarillo.
+CELDA_PENDIENTE = "[PENDIENTE]"
 
 # Codigos internos que no pintan nada en un DF: quien lo revisa no tiene esos
 # documentos y el codigo no le dice nada. `HU-` y `PA-` se quedan --dan nombre
@@ -911,10 +927,29 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         firma, nota = autor_persona(c.get("autor"))
         if nota and nota not in avisos:
             avisos.append(nota)
-        filas_cv.append([c.get("fecha", ""), c.get("version", ""), firma, c.get("cambio", "")])
+        filas_cv.append([c.get("fecha", ""), c.get("version", ""),
+                         firma or CELDA_PENDIENTE, c.get("cambio", "")])
     filas_ca = [[a.get("responsable", ""), a.get("cargo", ""), a.get("departamento", ""),
                  a.get("fecha", ""), a.get("version", "")]
                 for a in (m.get("control_aprobaciones") or [{}, {}, {}])]
+    # En el control de versiones un hueco es un dato que falta, y se marca. En
+    # el de aprobaciones **no**: esa tabla se entrega vacia a proposito --no se
+    # inventan aprobadores-- y marcar sus quince celdas la deja en amarillo
+    # entera, que es ruido y no informacion. Ahi la marca va una sola vez,
+    # debajo de la tabla. En las demas tablas una celda vacia suele significar
+    # "no aplica", asi que no se toca ninguna.
+    for fila in filas_cv:
+        for i, v in enumerate(fila):
+            if not str(v or "").strip():
+                fila[i] = CELDA_PENDIENTE
+    aprobaciones_vacias = not any("".join(str(v or "") for v in fila).strip()
+                                  for fila in filas_ca)
+    if not aprobaciones_vacias:
+        for fila in filas_ca:
+            if "".join(str(v or "") for v in fila).strip():
+                for i, v in enumerate(fila):
+                    if not str(v or "").strip():
+                        fila[i] = CELDA_PENDIENTE
     filas_pa = [[x.get("id", ""), x.get("descripcion", ""), x.get("estado", "Abierto"),
                  x.get("responsable", ""), x.get("estimada", ""), x.get("resolucion", "")]
                 for x in pa]
@@ -1019,6 +1054,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 el.getparent().remove(el)
             if tabla:
                 cols, filas = tabla
+                if k == "control_aprobaciones" and aprobaciones_vacias:
+                    mover_tras(doc, ancla._p, lambda: parrafo_marcado(
+                        doc, "[PENDIENTE: completar el control de aprobaciones con "
+                             "los responsables que firman el documento]"))
                 if propia is not None:
                     rellenar_tabla(propia, cols, filas)
                 elif filas:
@@ -1038,6 +1077,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         add_table(doc, COLS_CV, filas_cv, accent)
         doc.add_paragraph("Control de Aprobaciones", style=est("Heading 2"))
         add_table(doc, COLS_CA, filas_ca, accent)
+        if aprobaciones_vacias:
+            parrafo_marcado(doc, "[PENDIENTE: completar el control de aprobaciones "
+                                 "con los responsables que firman el documento]")
         doc.add_paragraph("Índice", style=est("Heading 2"))
         add_toc(doc)
         doc.add_page_break()

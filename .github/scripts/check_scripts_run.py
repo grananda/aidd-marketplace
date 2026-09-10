@@ -138,6 +138,19 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     if not any("PENDIENTE" in t for t in resaltados):
         fallos.append(f"gen_df_docx.py {etiqueta}: los [PENDIENTE] no salen "
                       "resaltados en amarillo")
+    # Y lo mismo escrito en prosa. Que el hueco se vea no puede depender de que
+    # modelo redacto el manifiesto: unos ponen el marcador y otros lo parafrasean.
+    if not any("pendiente de definir" in t.lower() for t in resaltados):
+        fallos.append(f"gen_df_docx.py {etiqueta}: un hueco escrito en prosa "
+                      "('pendiente de definir') no se resalta, asi que el DF sale "
+                      "distinto segun que modelo lo redacte")
+    # La firma que se vacia por ser la herramienta deja marca, no un hueco mudo.
+    celdas = [p_.text for t_ in doc.tables for f_ in t_.rows for c_ in f_.cells
+              for p_ in c_.paragraphs
+              if any(r_.font.highlight_color == WD_COLOR_INDEX.YELLOW for r_ in p_.runs)]
+    if not celdas:
+        fallos.append(f"gen_df_docx.py {etiqueta}: el control de versiones deja la "
+                      "firma vacia sin marcarla; nadie ve que falta")
 
     # El autor es una persona, nunca la herramienta.
     autores = [f.cells[2].text for t in doc.tables for f in t.rows[1:]
@@ -270,7 +283,10 @@ with tempfile.TemporaryDirectory() as tmp:
         manifiesto = {"proyecto": "P", "titulo": "T",
                       "introduccion": "Cubre el RF-014 del catalogo.",
                       "autor": "aiba-functional-design",
-                      "alcance": "x", "narrativa": {"como": "a", "quiero": "b", "para": "c"},
+                      # Un hueco escrito en prosa, como lo redacta un modelo que no
+                      # usa el marcador literal. Tiene que resaltarse igual.
+                      "alcance": "El plazo maximo esta pendiente de definir.",
+                      "narrativa": {"como": "a", "quiero": "b", "para": "c"},
                       "integraciones": "N/A",
                       "validaciones": {"frontal": "N/A", "core": "N/A"},
                       "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",

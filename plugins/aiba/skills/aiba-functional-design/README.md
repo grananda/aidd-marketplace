@@ -48,6 +48,10 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 
 **El título y el logo no se quedan a medias.** El título del documento se escribe en la portada —sustituyendo el de ejemplo de la plantilla— y en las propiedades del fichero. Y si la plantilla trae el logo solo en la cabecera de la portada, como es habitual, se copia a la del resto de páginas cuando está vacía: así sale en todas.
 
+**Lo que falta se ve, lo escriba quien lo escriba.** Se resalta en amarillo el marcador `[PENDIENTE: ...]` y también las formas en prosa —«pendiente de definir», «por confirmar», «se desconoce»—, además de los huecos que deja el propio generador: un apartado sin contenido, la firma vaciada del control de versiones y el control de aprobaciones cuando se entrega vacío. Antes solo se resaltaba el marcador literal, así que el mismo documento salía con los huecos visibles o invisibles según qué modelo lo hubiera redactado.
+
+**La carpeta del proyecto queda limpia.** Si hace falta un script de usar y tirar para resolver una incidencia, se escribe en un directorio temporal y no en el proyecto: ahí solo van los `.docx`.
+
 **El relleno de la plantilla se canta.** Lo que quede sin sustituir —`<RELLENAR ...>`, `Lorem ipsum`, `TÍTULO DEL DOCUMENTO`, `TBD`— sale resaltado en amarillo y se devuelve con el apartado en el que está. No se borra: un apartado propio del cliente puede tener que rellenarse de verdad.
 
 **No firma por ti.** En el Control de Versiones va el analista que responde del documento ante el cliente. El generador vacía la celda y avisa si detecta ahí el nombre de una herramienta.
