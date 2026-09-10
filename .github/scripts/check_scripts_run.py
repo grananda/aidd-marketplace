@@ -467,6 +467,32 @@ with tempfile.TemporaryDirectory() as tmp:
                     errors.append("gen_df_docx.py: el apartado pedido en blanco se "
                                   "rellena igual")
 
+            # Y un apartado **propio del cliente**, que el DF no reconoce, tiene
+            # que poder dejarse en blanco igual: se identifica por su numero.
+            propio = next((a for a in idx["apartados"] if not a["apartado"]
+                           and a["nivel"] == 1), None)
+            if propio is None:
+                errors.append("el esqueleto de prueba ya no trae ningun apartado "
+                              "propio del cliente: la comprobacion de dejarlo en "
+                              "blanco no prueba nada")
+            else:
+                m_p = json.loads((d / "m.json").read_text(encoding="utf-8"))
+                m_p["secciones_en_blanco"] = [propio["numero"]]
+                (d / "m-propio.json").write_text(json.dumps(m_p, ensure_ascii=False),
+                                                 encoding="utf-8")
+                r_p = subprocess.run([sys.executable, str(DF), "--manifest",
+                                      str(d / "m-propio.json"), "--output",
+                                      str(d / "df-propio.docx"), "--plantilla",
+                                      str(d / "esq.docx"), "--no-install"],
+                                     capture_output=True, text=True, timeout=120)
+                if r_p.returncode != 0:
+                    errors.append(f"gen_df_docx.py en blanco un apartado propio falla: "
+                                  f"{r_p.stderr.strip()[:160]}")
+                elif not json.loads(r_p.stdout).get("secciones_en_blanco"):
+                    errors.append("gen_df_docx.py: pedir en blanco un apartado propio "
+                                  f"del cliente ({propio['numero']} "
+                                  f"{propio['titulo']}) no hace nada y no avisa")
+
         for etiqueta, extra in (("sin plantilla", []),
                                 ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),
                                 ("con esqueleto", ["--plantilla", str(d / "esq.docx")]),

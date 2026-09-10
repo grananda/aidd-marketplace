@@ -280,7 +280,10 @@ def como_tabla(valor, columnas: list[str]) -> tuple[list[str], list[list], list[
                 for k in f:
                     if k not in cols:
                         cols.append(k)
-            titulos = [str(c).replace("_", " ").capitalize() for c in cols]
+            # `capitalize()` a secas convierte "NIF" en "Nif" y "URL" en
+            # "Url": solo se toca la clave que viene toda en minusculas.
+            titulos = [t if any(ch.isupper() for ch in t) else t.capitalize()
+                       for t in (str(c).replace("_", " ") for c in cols)]
             return titulos, [[f.get(c, "") for c in cols] for f in valor], []
         filas = [list(f) if isinstance(f, (list, tuple)) else [f] for f in valor]
         return columnas, filas, []
@@ -1268,8 +1271,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         apartados_plantilla = sorted(localizar_apartados(doc))
         # Que apartados ha pedido el usuario dejar en blanco, resueltos contra
         # el indice de **esta** plantilla: por eso se pregunta con el delante.
-        blancos, sin_resolver = en_blanco(m.get("secciones_en_blanco"),
-                                          indice_plantilla(plantilla)["apartados"])
+        blancos, sin_resolver = en_blanco(m.get("secciones_en_blanco"), indice_de(doc))
         if sin_resolver:
             avisos.append("estos apartados pedidos en blanco no estan en el indice de "
                           "la plantilla y se han rellenado igual: "
@@ -1289,6 +1291,9 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             limpiar_cuerpo(doc)
     else:
         doc = Document()
+        if m.get("secciones_en_blanco"):
+            avisos.append("`secciones_en_blanco` se ha ignorado: se resuelve contra el "
+                          "indice de la plantilla, y aqui no hay plantilla")
     est = Estilos(doc)
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
@@ -1454,8 +1459,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         ("puntos_abiertos", "Puntos abiertos", 1, None, (COLS_PA, filas_pa)),
     ]
 
+    from docx.oxml.ns import qn as _qn
     from docx.table import Table
 
+    qn_tbl = _qn("w:tbl")
     anclas = localizar_apartados(doc) if modo == "esqueleto" else {}
     sin_apartado: list[str] = []
     dejados: list[str] = []
@@ -1495,10 +1502,8 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 # Se vacia el tramo --fuera el texto de ejemplo-- y no se
                 # escribe nada. La tabla de la plantilla se queda con su
                 # cabecera, lista para que alguien la rellene a mano.
-                from docx.oxml.ns import qn as _qn
-
                 for el in rango_seccion(doc, ancla):
-                    if el.tag == _qn("w:tbl"):
+                    if el.tag == qn_tbl:
                         # La tabla de la plantilla se queda: vaciarla de datos
                         # y dejar la cabecera es lo que se pidio, no borrarla.
                         rellenar_tabla(Table(el, doc), [], [])
@@ -1530,6 +1535,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                              "los responsables que firman el documento]"))
             elif escritor:
                 mover_tras(doc, ancla._p, escritor)
+        # Los apartados propios del cliente --los que el DF no reconoce-- se
+        # identifican por su numero. Sin esto, pedir en blanco "4. Anexo del
+        # cliente" no hacia nada **y no avisaba**, que es el peor de los dos.
+        propios = {c[1:] for c in blancos if c.startswith("#")}
+        for entrada in indice_de(doc) if propios else []:
+            if entrada["numero"] not in propios:
+                continue
+            for el in rango_seccion(doc, entrada["_p"]):
+                if el.tag == qn_tbl:
+                    rellenar_tabla(Table(el, doc), [], [])
+                    continue
+                el.getparent().remove(el)
+            dejados.append(entrada["numero"] + " " + entrada["titulo"])
+
     else:
         # Portada y control, que con esqueleto ya trae la plantilla.
         if proyecto:
@@ -1647,7 +1666,15 @@ def indice_plantilla(ruta: Path) -> dict:
     """
     import docx
 
-    d = docx.Document(ruta)
+    return {"plantilla": str(ruta), **_indice(docx.Document(ruta))}
+
+
+def indice_de(doc) -> list[dict]:
+    """El indice de un documento ya abierto, con el parrafo de cada apartado."""
+    return _indice(doc)["apartados"]
+
+
+def _indice(d) -> dict:
     fuera: list[dict] = []
     contador: list[int] = []
     for p in d.paragraphs:
@@ -1670,8 +1697,8 @@ def indice_plantilla(ruta: Path) -> dict:
                       # Con que apartado del DF se corresponde, si se reconoce.
                       # Lo que no se reconoce no es un error: es un apartado
                       # propio del cliente, y por eso se pregunta.
-                      "apartado": ALIAS.get(clave(texto))})
-    return {"plantilla": str(ruta), "apartados": fuera,
+                      "apartado": ALIAS.get(clave(texto)), "_p": p})
+    return {"apartados": fuera,
             "reconocidos": sum(1 for x in fuera if x["apartado"]),
             "total": len(fuera)}
 
@@ -1767,7 +1794,10 @@ def main() -> int:
         print(SCHEMA)
         return 0
     if args.indice:
-        print(json.dumps(indice_plantilla(Path(args.indice)), ensure_ascii=False, indent=2))
+        datos = indice_plantilla(Path(args.indice))
+        datos["apartados"] = [{k: v for k, v in a.items() if k != "_p"}
+                              for a in datos["apartados"]]
+        print(json.dumps(datos, ensure_ascii=False, indent=2))
         return 0
     if args.extraer:
         _ensure_docx(not args.no_install)
