@@ -228,6 +228,59 @@ def parrafo_marcado(doc, texto: str, style=None):
 
 # --- Utilidades de contenido -------------------------------------------------
 
+def como_dict(valor, clave_por_defecto: str = "frontal") -> dict:
+    """Acepta un apartado que deberia ser `dict` aunque llegue de otra forma.
+
+    El manifiesto lo escribe un modelo, y no todos escriben la misma estructura:
+    `mensajes` o `validaciones` llegan a veces como lista o como texto suelto.
+    Antes eso reventaba la generacion entera --`'list' object has no attribute
+    'get'`-- y el analista se quedaba sin ningun DF por una diferencia de forma.
+    """
+    if isinstance(valor, dict):
+        return valor
+    if valor is None:
+        return {}
+    return {clave_por_defecto: valor}
+
+
+def como_tabla(valor, columnas: list[str]) -> tuple[list[str], list[list], list[str]]:
+    """Normaliza un apartado tabular. Devuelve (columnas, filas, texto suelto).
+
+    Las formas que se han visto salir de un modelo, y todas valen:
+
+    - `{"columnas": [...], "filas": [[...]]}` --la buena--;
+    - `[{...}, {...}]`, lista de diccionarios: las columnas salen de las claves;
+    - `[[...], [...]]`, lista de listas: se usan las columnas por defecto;
+    - una cadena, que no es una tabla y sale como parrafo.
+
+    Solo la primera funcionaba. Las otras tres reventaban la generacion, que es
+    peor que salir mal: un lote de veinte HU se quedaba en cero.
+    """
+    if valor is None:
+        return columnas, [], []
+    if isinstance(valor, str):
+        return columnas, [], as_blocks(valor)
+    if isinstance(valor, dict):
+        cols = valor.get("columnas") or columnas
+        filas = [list(f) if isinstance(f, (list, tuple)) else [f]
+                 for f in (valor.get("filas") or [])]
+        return list(cols), filas, []
+    if isinstance(valor, (list, tuple)):
+        if valor and all(isinstance(f, dict) for f in valor):
+            # Las columnas son la union de las claves, en el orden en que
+            # aparecen: asi no se pierde ninguna aunque las filas difieran.
+            cols: list[str] = []
+            for f in valor:
+                for k in f:
+                    if k not in cols:
+                        cols.append(k)
+            titulos = [str(c).replace("_", " ").capitalize() for c in cols]
+            return titulos, [[f.get(c, "") for c in cols] for f in valor], []
+        filas = [list(f) if isinstance(f, (list, tuple)) else [f] for f in valor]
+        return columnas, filas, []
+    return columnas, [], as_blocks(valor)
+
+
 def as_blocks(value) -> list[str]:
     """Normaliza texto suelto o lista a una lista de parrafos no vacios."""
     if value is None:
@@ -1254,13 +1307,23 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     # anade al final del documento; en modo esqueleto se traslada despues al
     # apartado que la plantilla ya trae.
     nar = m.get("narrativa") or {}
-    campos = m.get("campos") or {}
-    val = m.get("validaciones") or {}
-    msg = m.get("mensajes") or {}
-    ca = m.get("criterios_aceptacion") or {}
+    # El manifiesto lo escribe un modelo, y no todos escriben la misma forma.
+    # Se normaliza en vez de exigir una: una diferencia de estructura no puede
+    # dejar sin DF a las veinte historias del lote.
+    val = como_dict(m.get("validaciones"))
+    msg = como_dict(m.get("mensajes"))
+    ca = como_dict(m.get("criterios_aceptacion"), "contexto")
     pa = m.get("puntos_abiertos") or []
+    if isinstance(pa, dict):
+        pa = [pa]
 
-    cols_campos = campos.get("columnas") or ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"]
+    cols_campos, filas_campos, campos_texto = como_tabla(
+        m.get("campos"), ["Nombre", "Editable", "Oblig", "Tipo", "Comentario"])
+    if not filas_campos and not campos_texto:
+        avisos.append("Filtros y Campos se queda sin tabla: el manifiesto no trae "
+                      "`campos`. Es un apartado que casi siempre tiene contenido, "
+                      "asi que revisa si falta en el detalle de la HU o si el "
+                      "manifiesto no lo recogio")
     COLS_PA = ["ID", "Descripción", "Estado", "Responsable", "F. Estimada", "F. Resolución"]
     COLS_CV = ["Fecha", "Versión", "Autor", "Descripción del cambio"]
     COLS_CA = ["Responsable", "Cargo", "Departamento", "Fecha", "Versión del documento"]
@@ -1295,6 +1358,20 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
                 for i, v in enumerate(fila):
                     if not str(v or "").strip():
                         fila[i] = CELDA_PENDIENTE
+    # Filtros y Campos: tabla si hay filas, parrafos si vino como texto, y marca
+    # de pendiente si no vino nada. Lo que no puede es salir mudo: una tabla con
+    # solo la cabecera se lee como "aqui no habia nada que decir".
+    if filas_campos:
+        escritor_campos, tabla_campos = None, (cols_campos, filas_campos)
+    elif campos_texto:
+        escritor_campos = lambda: write_blocks(doc, campos_texto, est=est)  # noqa: E731
+        tabla_campos = None
+    else:
+        escritor_campos = lambda: parrafo_marcado(                          # noqa: E731
+            doc, "[PENDIENTE: la relación de filtros y campos no está en el detalle "
+                 "de la historia de usuario]")
+        tabla_campos = None
+
     filas_pa = [[x.get("id", ""), x.get("descripcion", ""), x.get("estado", "Abierto"),
                  x.get("responsable", ""), x.get("estimada", ""), x.get("resolucion", "")]
                 for x in pa]
@@ -1341,7 +1418,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         ("introduccion", "Introducción", 1, prosa(m.get("introduccion")), None),
         ("alcance", "Alcance", 2, prosa(m.get("alcance")), None),
         ("historia", titulo, 1, narrativa, None),
-        ("campos", "Filtros/Campos", 2, None, (cols_campos, campos.get("filas"))),
+        ("campos", "Filtros/Campos", 2, escritor_campos, tabla_campos),
         ("integraciones", "Integraciones otros aplicativos", 2,
          prosa(m.get("integraciones")), None),
         ("validaciones", "Validaciones / Reglas / Acciones", 2, None, None),

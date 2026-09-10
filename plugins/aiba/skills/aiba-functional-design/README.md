@@ -52,6 +52,8 @@ Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay na
 
 **La carpeta del proyecto queda limpia.** Lo que la herramienta se fabrique para trabajar —scripts de cualquier lenguaje, `package.json`, `node_modules/`, entornos virtuales, ficheros intermedios— se escribe en un directorio temporal, nunca en el proyecto. En la carpeta del DF solo van los `.docx`.
 
+**El resultado no depende de qué modelo escriba el manifiesto.** Los apartados tabulares se aceptan en varias formas —objeto con columnas y filas, lista de diccionarios, lista de listas o texto— porque no todos los modelos escriben la misma estructura, y antes una diferencia de forma reventaba la generación de todo el lote. Y un apartado que no llega no sale con una tabla vacía: sale con la marca de pendiente y un aviso.
+
 **Los comentarios de la plantilla se van.** Las notas de Word con las que alguien redactó la plantilla —«revisar esto», «hablar con negocio»— se eliminan enteras: las marcas del cuerpo, de la cabecera y del pie, y las partes del paquete. No son contenido del documento que firma el cliente. Si además la plantilla trae control de cambios, se avisa: aceptarlo o rechazarlo es decisión de una persona.
 
 **El relleno de la plantilla se canta.** Lo que quede sin sustituir —`<RELLENAR ...>`, `Lorem ipsum`, `TÍTULO DEL DOCUMENTO`, `TBD`— sale resaltado en amarillo y se devuelve con el apartado en el que está. No se borra: un apartado propio del cliente puede tener que rellenarse de verdad.

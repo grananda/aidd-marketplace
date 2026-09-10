@@ -207,6 +207,14 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
         fallos.append(f"gen_df_docx.py {etiqueta}: las lineas que empiezan por '- ' "
                       f"no salen como vineta ({vinetas[:3]})")
 
+    # Una forma de manifiesto distinta no puede dejar el apartado mudo. `campos`
+    # como lista de diccionarios reventaba con `'list' object has no attribute
+    # 'get'`, y el analista se quedaba sin ningun DF del lote.
+    celdas = [c_.text for t_ in doc.tables for f_ in t_.rows for c_ in f_.cells]
+    if "Ramo" not in celdas or "NIF" not in celdas:
+        fallos.append(f"gen_df_docx.py {etiqueta}: Filtros y Campos no se rellena "
+                      "cuando `campos` viene como lista de diccionarios")
+
     # Los codigos internos se cazan y se dicen, con su seccion.
     codigos = salida_json.get("codigos_internos")
     if codigos is None:
@@ -324,11 +332,15 @@ with tempfile.TemporaryDirectory() as tmp:
                       "narrativa": {"como": "a", "quiero": "b", "para": "c"},
                       "integraciones": "N/A",
                       "validaciones": {"frontal": "N/A", "core": "N/A"},
-                      "mensajes": {"frontal": "N/A", "integracion_no_core": "N/A",
-                                   "core": "N/A"},
+                      "mensajes": ["- Aviso de NIF incorrecto"],
                       "pantallas": "[PENDIENTE: insertar la pantalla de Figma]",
                       # Lo que se enumera sale como vineta, no como parrafo corrido.
-                      "especificaciones_tecnicas": ["- Node 20", "- PostgreSQL 15"]}
+                      "especificaciones_tecnicas": ["- Node 20", "- PostgreSQL 15"],
+                      # `campos` como lista de diccionarios y `mensajes` como
+                      # lista: dos formas que salen de un modelo mas flojo y que
+                      # antes reventaban la generacion entera.
+                      "campos": [{"nombre": "Ramo", "tipo": "Lista"},
+                                 {"nombre": "NIF", "tipo": "Texto"}]}
         (d / "m.json").write_text(json.dumps(manifiesto), encoding="utf-8")
 
         # Plantilla como la de un cliente: estilo en espanol, relleno, y una
