@@ -24,6 +24,29 @@ def _campos(elemento) -> list[str]:
             if q.tag.rsplit("}", 1)[-1] in ("fldChar", "instrText", "t")]
 
 
+def _numera_de_verdad(doc, parrafo) -> bool:
+    """Si el parrafo saldra con vineta al abrirlo, venga de donde venga.
+
+    Puede venir de un `numPr` colgado del propio parrafo o del estilo --o de
+    alguno del que este herede--. Mirar solo el nombre del estilo no sirve.
+    """
+    from docx.oxml.ns import qn
+
+    ppr = parrafo._p.find(qn("w:pPr"))
+    if ppr is not None and ppr.find(qn("w:numPr")) is not None:
+        return True
+    estilos = {e.name: e for e in doc.styles}
+    est = estilos.get(parrafo.style.name) if parrafo.style is not None else None
+    visto = set()
+    while est is not None and id(est._element) not in visto:
+        visto.add(id(est._element))
+        spr = est._element.find(qn("w:pPr"))
+        if spr is not None and spr.find(qn("w:numPr")) is not None:
+            return True
+        est = est.base_style
+    return False
+
+
 def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
     """Las cuatro reglas del generador, sobre el .docx ya escrito.
 
@@ -85,7 +108,13 @@ def _revisar_df(doc, salida_json: dict, etiqueta: str) -> list[str]:
 
     # Lo enumerado sale como vineta de Word. Un parrafo con cinco reglas
     # separadas por comas no se lee, no se revisa y no da casos de prueba.
-    vinetas = [p.text for p in doc.paragraphs if p.style.name in ("List Bullet", "Lista con viñetas")]
+    #
+    # Se mira si el parrafo **numera de verdad**, no como se llama su estilo: la
+    # averia que motivo esta comprobacion era justo esa. `Parrafo de lista`
+    # estaba en la lista de alias de vineta y sangra, pero no pone punto, asi
+    # que con una plantilla que no trajera `List Bullet` el DF salia corrido y
+    # el nombre del estilo decia que todo estaba bien.
+    vinetas = [p.text for p in doc.paragraphs if _numera_de_verdad(doc, p)]
     if not any("Node 20" in v for v in vinetas):
         fallos.append(f"gen_df_docx.py {etiqueta}: las lineas que empiezan por '- ' "
                       f"no salen como vineta ({vinetas[:3]})")
@@ -226,6 +255,7 @@ with tempfile.TemporaryDirectory() as tmp:
             + _chunk(b"IDAT", zlib.compress(crudo)) + _chunk(b"IEND", b""))
 
         import docx as _docx                                   # noqa: PLC0415
+        from docx.oxml.ns import qn as _qn                     # noqa: PLC0415
         from docx.shared import Cm                             # noqa: PLC0415
         tpl = _docx.Document()
         tpl.add_paragraph("RELLENO DE LA PLANTILLA")
@@ -253,9 +283,24 @@ with tempfile.TemporaryDirectory() as tmp:
             esq.add_paragraph("TEXTO DE EJEMPLO DE LA PLANTILLA")
         esq.save(str(d / "esq.docx"))
 
+        # Plantilla sin ningun estilo de vineta, que es lo normal en cliente:
+        # Word solo deja en el documento los estilos que alguien ha usado, y
+        # `Parrafo de lista` sobrevive --lo aplica cualquier lista-- mientras
+        # que `Lista con viñetas` no. El DF tiene que salir con vinetas igual.
+        sinv = _docx.Document()
+        for _n in ("List Bullet", "List Bullet 2", "List Bullet 3"):
+            _e = sinv.styles[_n]._element
+            _e.getparent().remove(_e)
+        sinv.styles["List Paragraph"]._element.find(
+            _qn("w:name")).set(_qn("w:val"), "Párrafo de lista")
+        sinv.add_paragraph("PLANTILLA SIN ESTILO DE VIÑETA")
+        sinv.save(str(d / "sinvin.docx"))
+
         for etiqueta, extra in (("sin plantilla", []),
                                 ("con plantilla", ["--plantilla", str(d / "tpl.docx")]),
-                                ("con esqueleto", ["--plantilla", str(d / "esq.docx")])):
+                                ("con esqueleto", ["--plantilla", str(d / "esq.docx")]),
+                                ("sin estilo de vineta",
+                                 ["--plantilla", str(d / "sinvin.docx")])):
             salida = d / f"df-{etiqueta.split()[0]}.docx"
             r = subprocess.run([sys.executable, str(DF), "--manifest", str(d / "m.json"),
                                 "--output", str(salida), "--no-install"] + extra,

@@ -36,6 +36,8 @@ Complementa con `mapa-historias-usuario.md` (persona y fase), `requisitos.md` (l
 
 **Lo que se enumera sale como lista.** En cuanto hay más de dos elementos —validaciones, mensajes, campos, integraciones, pasos de un flujo— va uno por línea como viñeta de Word, no metido en un párrafo separado por comas. Quien revisa el DF necesita poder señalar el tercer elemento, y para eso tiene que existir como elemento.
 
+Y la viñeta sale **con la plantilla que sea**. El estilo se acepta solo si numera de verdad: `Párrafo de lista` sangra pero no pone punto, así que tomarlo por un estilo de lista dejaba el documento corrido aunque el nombre prometiera otra cosa. Si la plantilla del cliente no trae ninguno que numere, el generador añade la numeración al documento.
+
 Cada `[PENDIENTE: ...]` sale **resaltado en amarillo**, también dentro de las tablas. Un DF de veinte páginas se lee en diagonal, y un hueco sin resaltar acaba firmado como si fuera contenido.
 
 Ojo a la diferencia entre `N/A` y `[PENDIENTE]`: el primero afirma que no hay nada; el segundo admite que no se sabe.

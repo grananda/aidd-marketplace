@@ -232,9 +232,12 @@ def write_blocks(doc, value, vacio: str = PENDIENTE, est=None) -> None:
         parrafo_marcado(doc, vacio)
         return
     for b in blocks:
-        if b.startswith(("- ", "* ")):
-            parrafo_marcado(doc, b[2:].strip(),
-                            est("List Bullet") if est else "List Bullet")
+        if b.startswith(("- ", "* ", "\u2022 ")):
+            texto = b[1:].strip() if b[0] == "\u2022" else b[2:].strip()
+            if est is not None:
+                est.vineta(doc, texto)
+            else:
+                parrafo_marcado(doc, texto, "List Bullet")
         else:
             parrafo_marcado(doc, b)
 
@@ -334,9 +337,87 @@ EQUIVALENTES = {
     "Heading 1":   ["Heading 1", "Título 1", "Titulo 1"],
     "Heading 2":   ["Heading 2", "Título 2", "Titulo 2"],
     "Heading 3":   ["Heading 3", "Título 3", "Titulo 3"],
+    # Solo estilos que **numeran de verdad**. `List Paragraph` / `Parrafo de
+    # lista` esta aparte a proposito: es el estilo que Word usa como envoltorio
+    # de una lista --sangria y espaciado-- pero no lleva vineta ninguna, asi que
+    # tomarlo por un estilo de lista deja el DF lleno de parrafos sangrados sin
+    # punto delante. Se usa como acompanante de la numeracion, nunca en su lugar.
     "List Bullet": ["List Bullet", "Lista con viñetas", "Lista con vinetas",
-                    "List Paragraph", "Párrafo de lista"],
+                    "Lista de viñetas", "Viñeta", "Bullet List"],
+    "List Paragraph": ["List Paragraph", "Párrafo de lista", "Parrafo de lista"],
 }
+
+
+def _numera(estilo) -> bool:
+    """Si el estilo, o alguno del que hereda, trae `numPr` en su definicion.
+
+    Es lo que separa una vineta de verdad de un parrafo sangrado. Un estilo
+    puede llamarse `Lista con viñetas` y no numerar --pasa cuando la plantilla
+    lo trae como estilo latente sin definicion propia--, y entonces el DF sale
+    con el texto corrido aunque el nombre prometa otra cosa.
+    """
+    from docx.oxml.ns import qn
+
+    visto: set = set()
+    while estilo is not None and id(estilo._element) not in visto:
+        visto.add(id(estilo._element))
+        ppr = estilo._element.find(qn("w:pPr"))
+        if ppr is not None and ppr.find(qn("w:numPr")) is not None:
+            return True
+        estilo = estilo.base_style
+    return False
+
+
+def crear_vineta(doc) -> int | None:
+    """Anade al documento una definicion de vineta propia y devuelve su `numId`.
+
+    Hace falta cuando la plantilla del cliente no trae ningun estilo que numere.
+    Sin esto, la unica alternativa es escribir el punto a mano en el texto, que
+    ni se renumera, ni se promociona de nivel, ni se comporta como una lista al
+    copiarla. Devuelve `None` si el documento no admite numeracion, y entonces
+    quien llama recurre al punto literal.
+    """
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+
+    W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    try:
+        num = doc.part.numbering_part.element
+    except Exception:
+        return None
+    abstractos = num.findall(W + "abstractNum")
+    aid = max((int(a.get(W + "abstractNumId")) for a in abstractos), default=-1) + 1
+    nid = max((int(n.get(W + "numId")) for n in num.findall(W + "num")), default=0) + 1
+    abstracto = parse_xml(
+        f'<w:abstractNum {nsdecls("w")} w:abstractNumId="{aid}">'
+        '<w:multiLevelType w:val="hybridMultilevel"/>'
+        '<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/>'
+        '<w:lvlText w:val="\uf0b7"/><w:lvlJc w:val="left"/>'
+        '<w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>'
+        '<w:rPr><w:rFonts w:ascii="Symbol" w:hAnsi="Symbol" w:hint="default"/></w:rPr>'
+        "</w:lvl></w:abstractNum>")
+    # los `abstractNum` van antes que los `num`, y Word es estricto con el orden
+    if abstractos:
+        abstractos[-1].addnext(abstracto)
+    else:
+        num.insert(0, abstracto)
+    num.append(parse_xml(f'<w:num {nsdecls("w")} w:numId="{nid}">'
+                         f'<w:abstractNumId w:val="{aid}"/></w:num>'))
+    return nid
+
+
+def marcar_vineta(parrafo, num_id: int) -> None:
+    """Cuelga el parrafo de una numeracion concreta."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    ppr = parrafo._p.get_or_add_pPr()
+    numpr = OxmlElement("w:numPr")
+    for tag, val in (("w:ilvl", "0"), ("w:numId", str(num_id))):
+        hijo = OxmlElement(tag)
+        hijo.set(qn("w:val"), val)
+        numpr.append(hijo)
+    ppr.append(numpr)
 
 
 class Estilos:
@@ -344,16 +425,58 @@ class Estilos:
 
     Lo que no puede es fallar en silencio: cada estilo ausente se **reporta** y
     su parrafo se escribe sin estilo, en vez de reventar a mitad del documento.
+
+    Con la vineta va un paso mas alla, porque ahi fallar en silencio es lo que
+    venia pasando: el estilo se resolvia por nombre y bastaba con que la
+    plantilla trajera `Parrafo de lista` para dar la lista por buena, cuando ese
+    estilo sangra pero no pone vineta. El DF salia entonces como un parrafo
+    corrido. Ahora el estilo solo vale si **numera de verdad**, y si ninguno lo
+    hace se crea una numeracion propia en el documento.
     """
 
     def __init__(self, doc) -> None:
-        disponibles = {s.name for s in doc.styles}
-        self.mapa = {k: next((c for c in v if c in disponibles), None)
+        self.doc = doc
+        estilos = {s.name: s for s in doc.styles}
+        self.mapa = {k: next((c for c in v if c in estilos), None)
                      for k, v in EQUIVALENTES.items()}
-        self.faltan = sorted(k for k, v in self.mapa.items() if v is None)
+        # la vineta se exige que numere; el nombre solo no basta
+        vineta = next((c for c in EQUIVALENTES["List Bullet"]
+                       if c in estilos and _numera(estilos[c])), None)
+        self.mapa["List Bullet"] = vineta
+        # con que colgar los parrafos cuando la plantilla no trae vineta propia
+        self.num_vineta: int | None = None if vineta else crear_vineta(doc)
+        self.vineta_propia = vineta is None
+        self.sin_vineta = vineta is None and self.num_vineta is None
+        # `List Paragraph` nunca se reporta --es un acompanante, no un estilo
+        # que haga falta--, y la vineta solo si no se ha podido suplir.
+        self.faltan = sorted(k for k, v in self.mapa.items()
+                             if v is None and k != "List Paragraph"
+                             and not (k == "List Bullet" and not self.sin_vineta))
 
     def __call__(self, logico: str):
         return self.mapa.get(logico, logico)
+
+    def vineta(self, doc, texto: str):
+        """Escribe `texto` como elemento de lista, con vineta pase lo que pase.
+
+        Tres caminos, en orden de preferencia: el estilo de la plantilla si
+        numera --lo que respeta el formato del cliente--, una numeracion creada
+        aqui colgada del envoltorio que Word usa para las listas, y como ultimo
+        recurso el punto escrito en el texto, que al menos se ve.
+        """
+        estilo = self.mapa.get("List Bullet")
+        if estilo:
+            return parrafo_marcado(doc, texto, estilo)
+        if self.num_vineta is not None:
+            p = parrafo_marcado(doc, texto, self.mapa.get("List Paragraph"))
+            marcar_vineta(p, self.num_vineta)
+            return p
+        from docx.shared import Pt
+
+        p = parrafo_marcado(doc, "\u2022\u00a0" + texto)
+        p.paragraph_format.left_indent = Pt(18)
+        p.paragraph_format.first_line_indent = Pt(-12)
+        return p
 
 
 # Los apartados del DF, y como se llaman en las plantillas que se han visto. Se
@@ -614,6 +737,12 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
     if est.faltan:
         avisos.append("estilos que la plantilla no trae (esas partes salen sin formato): "
                       + ", ".join(est.faltan))
+    if est.vineta_propia and not est.sin_vineta:
+        avisos.append("la plantilla no trae ningun estilo de vineta que numere; las "
+                      "listas se cuelgan de una numeracion creada en el documento")
+    if est.sin_vineta:
+        avisos.append("el documento no admite numeracion: las listas salen con el "
+                      "punto escrito en el texto y sangria colgante")
     # Si la plantilla ya numera sus titulos, numerar aqui saca `1. 1. Introduccion`.
     # Se deduce en vez de preguntarse, porque **Word engancha la numeracion al
     # parrafo tan a menudo como al estilo** y mirando solo el estilo se concluye
@@ -694,7 +823,7 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
         for e in esc:
             # El manifiesto los trae como "- Escenario X: ...". El guion sobra
             # dentro de una vineta: saldria una vineta y un guion.
-            parrafo_marcado(doc, str(e).lstrip("-* ").strip(), est("List Bullet"))
+            est.vineta(doc, str(e).lstrip("-*\u2022 ").strip())
         if not esc and not ca.get("contexto"):
             parrafo_marcado(doc, PENDIENTE)
 
@@ -819,6 +948,10 @@ def build(m: dict, salida: Path, plantilla: Path | None = None) -> dict:
             "apartados_plantilla": apartados_plantilla,
             "apartados_no_encontrados": sin_apartado,
             "plantilla_numera": numera_ella,
+            # De donde sale la vineta: el estilo de la plantilla, una
+            # numeracion creada aqui, o el punto escrito a mano.
+            "vinetas": ("plantilla" if not est.vineta_propia
+                        else "creada" if not est.sin_vineta else "literal"),
             "secciones_adicionales": len(m.get("secciones_adicionales") or []),
             "plantilla": str(plantilla) if plantilla else None,
             # Los estilos que la plantilla no traia. Sin reportarlos, el
