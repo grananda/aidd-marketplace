@@ -192,6 +192,7 @@ DOC_TYPES = {
     "sprint-plan": {"label": "Plan de sprints", "phase": "Fase 3.5 · 3.5.2"},
     "kpis-ia": {"label": "KPIs de uso de IA", "phase": "Medicion"},
     "onboarding": {"label": "Onboarding del proyecto", "phase": "Transversal"},
+    "traspaso": {"label": "Traspaso al equipo de mantenimiento", "phase": "Transversal"},
 }
 
 

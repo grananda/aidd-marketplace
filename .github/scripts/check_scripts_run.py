@@ -13,6 +13,7 @@ parseable. Es un humo, y es el que faltaba.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -726,6 +727,186 @@ with tempfile.TemporaryDirectory() as tmp_vacio:
             errors.append("compute_onboarding.py: sin historias dice que no queda nada, "
                           "cuando lo que pasa es que no hay nada definido")
 
+# 6. `aiba handover`: el cuestionario, los hechos, el documento y la regla de los
+#    secretos. Lo operativo sale del cuestionario y lo que falta, como hueco; y si
+#    algo tiene pinta de secreto el script se niega, dice donde y no lo repite.
+HAN = ROOT / "plugins/aiba/skills/aiba-handover/scripts/compute_handover.py"
+
+
+def han(*extra):
+    return subprocess.run([sys.executable, str(HAN), *extra],
+                          capture_output=True, text=True, timeout=120)
+
+
+with tempfile.TemporaryDirectory() as tmp_han:
+    t = Path(tmp_han)
+
+    def w(rel: str, texto: str) -> None:
+        f = t / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(texto, encoding="utf-8")
+
+    w("docs/arquitectura-base.md",
+      "# Arquitectura\n\n## 3. Estructura\n\n### Repositorios\n\n| id | Contiene |\n"
+      "|---|---|\n| `front` | SPA |\n| `api` | Servicios |\n\n"
+      "## 10. Integracion con APIs y servicios externos\n\n| Servicio | Uso |\n"
+      "|---|---|\n| Redsys | Cobro |\n")
+    w("docs/planificacion-proyecto.md",
+      "# Plan\n\n## 2. Perfiles y equipo recomendado\n\n| Perfil | Dedicacion |\n"
+      "|---|---|\n| Backend | 100 % |\n\n## 4. Infraestructura y entornos\n\n"
+      "Dev, pre y pro en Azure.\n")
+    w("openspec/specs/polizas/spec.md", "## Purpose\n\nAlta y baja de polizas.\n\n"
+      "## Requirements\n\n### Requirement: Alta\n\n### Requirement: Baja\n")
+    w("openspec/changes/archive/2026-09-01-alta/specs/polizas/spec.md", "x")
+    w("openspec/changes/archive/2026-09-01-alta/decisions.md",
+      "## baja-logica\n\n- **Tipo**: correccion\n- **Decision**: la baja es logica\n"
+      "- **Justificacion**: lo exige el regulador\n")
+    w("openspec/changes/archive/2026-09-05-cobro/specs/pagos/spec.md", "x")
+
+    def aud(i: str, cmd: str, cid: str) -> str:
+        return json.dumps({"id": i, "command": cmd, "change_id": cid,
+                           "timestamp": "2026-09-05T10:00:00Z"})
+
+    # `polizas` la conoce solo ana; `pagos`, ana y luis.
+    w("openspec/audit/2026-09/ana.jsonl", aud("1", "aisdd close change", "alta") + "\n"
+      + aud("2", "aisdd implement change", "cobro") + "\n")
+    w("openspec/audit/2026-09/luis.jsonl", aud("3", "aisdd close change", "cobro") + "\n")
+    cuest = t / "docs" / "traspaso-cuestionario.md"
+
+    r = han("--root", str(t), "--preparar")
+    if r.returncode != 0 or not cuest.is_file():
+        errors.append(f"compute_handover.py --preparar falla: {r.stderr.strip()[-300:]}")
+    else:
+        base = cuest.read_text(encoding="utf-8")
+        # Lo que ya se sabe no se pregunta: los repositorios y las integraciones
+        # de la arquitectura, y quien aparece en la auditoria.
+        for fila in ("| front |", "| api |", "| Redsys |", "| ana |", "| luis |"):
+            if fila not in base:
+                errors.append(f"compute_handover.py --preparar no precarga «{fila}»")
+        han("--root", str(t), "--preparar")
+        if cuest.read_text(encoding="utf-8") != base:
+            errors.append("compute_handover.py --preparar reescribe un cuestionario que ya "
+                          "existe; tiene que respetar lo contestado")
+        # Contestado como lo haria un equipo, con cosas que parecen secretos y no lo
+        # son: el tamano de una VM, la ruta de un secreto en su gestor, una URL.
+        relleno = (base
+                   .replace("| front |  |  |  |  |", "| front | App Service | P1v3 | api | Sistemas |")
+                   .replace("| api |  |  |  |  |", "| api | AKS Standard_D2s_v3 | 3 nodos | BD, Redsys |  |")
+                   .replace("| Producción |  |  |  |",
+                            "| Producción | https://polizas.cliente.es | real | Sistemas |"))
+        relleno = re.sub(r"(<!-- id: almacenes -->.*?\|---\|---\|---\|---\|\n)\|  \|  \|  \|  \|",
+                         r"\1| BD | Azure SQL | diaria | nunca |", relleno, flags=re.S)
+        relleno = re.sub(r"(<!-- id: secretos -->.*?\|---\|---\|---\|\n)\|  \|  \|  \|",
+                         r"\1| Contraseña de la BD | Key Vault, kv-prod/db-password | Sistemas |",
+                         relleno, flags=re.S)
+        cuest.write_text(relleno, encoding="utf-8")
+        r = han("--root", str(t), "--out", str(t / "h.json"), "--hoy", "2026-09-11")
+        if r.returncode != 0:
+            errors.append("compute_handover.py se niega con contenido que parece un secreto "
+                          f"y no lo es: {r.stderr.strip()[-300:]}")
+        else:
+            h = json.loads((t / "h.json").read_text(encoding="utf-8"))
+            riesgos = " ".join(h["riesgos"])
+            for trozo, motivo in (
+                    ("restaurar «BD»", "la restauracion que nunca se ha probado"),
+                    ("administra «api»", "el componente que no administra nadie"),
+                    ("«polizas» la ha construido solo ana",
+                     "la capacidad que solo conoce una persona")):
+                if trozo not in riesgos:
+                    errors.append(f"compute_handover.py no senala como riesgo {motivo} "
+                                  f"({h['riesgos']})")
+            if "«pagos»" in riesgos:
+                errors.append("compute_handover.py marca como de una sola persona una "
+                              "capacidad que conocen dos")
+            mer = h["despliegue"].get("mermaid") or ""
+            if "-->" not in mer or "Redsys" not in mer:
+                errors.append("compute_handover.py no dibuja el despliegue con las "
+                              "conexiones de la tabla de componentes")
+            if h["cuestionario"]["contestadas"] != 4:
+                errors.append("compute_handover.py cuenta mal las preguntas contestadas "
+                              f"({h['cuestionario']['contestadas']}, esperaba 4)")
+
+            # Lo que anade el skill: un diagrama de datos que no lo es y un perfil
+            # sin dedicacion. Ninguno de los dos puede pasar como si nada.
+            h["narrativa"] = {"que_es": "Gestiona polizas.", "como_esta_construido": "Dos repos."}
+            h["diagramas"] = {"contexto": "flowchart LR\n  A --> B", "datos": "graph TD\n  A --> B"}
+            h["equipo"] = {"perfiles": [{"perfil": "Backend", "dedicacion": "30 %"},
+                                        {"perfil": "Soporte", "dedicacion": "a demanda"}],
+                           "diferencias": ["Sobra UX."]}
+            (t / "h.json").write_text(json.dumps(h, ensure_ascii=False), encoding="utf-8")
+            r = han("--render", str(t / "h.json"), "--output", str(t / "docs" / "traspaso.md"))
+            if r.returncode != 0:
+                errors.append(f"compute_handover.py falla al escribir: {r.stderr.strip()[-300:]}")
+            else:
+                md = (t / "docs" / "traspaso.md").read_text(encoding="utf-8")
+                if not md.split("\n## ")[1].startswith("1. Lo que hay que resolver"):
+                    errors.append("compute_handover.py: el documento no empieza por lo que "
+                                  "hay que resolver antes de cerrar el traspaso")
+                for esperado, motivo in (
+                        ("(14 de 18", "no cuenta lo que queda sin contestar"),
+                        ("> **Hueco:** «Cómo se vuelve atrás»",
+                         "no declara como hueco la vuelta atras sin contestar"),
+                        ("```mermaid\nflowchart LR\n  subgraph",
+                         "no incluye el diagrama de despliegue"),
+                        ("[PENDIENTE: dedicación en %]",
+                         "no marca el perfil sin dedicacion, que no se puede presupuestar"),
+                        ("falta el diagrama del modelo de datos",
+                         "no declara el hueco del diagrama que ha descartado"),
+                        ("| polizas | Alta y baja de polizas. | 2 |",
+                         "no cuenta las capacidades de las specs y sus requisitos"),
+                        ("| alta | correccion | la baja es logica |",
+                         "pierde las decisiones del archivo de changes")):
+                    if esperado not in md:
+                        errors.append(f"compute_handover.py: el documento {motivo}")
+                if "graph TD" in md:
+                    errors.append("compute_handover.py incluye como modelo de datos un "
+                                  "diagrama que no lo es")
+
+            # Un secreto en lo que escribe el skill: el documento no se escribe, y
+            # el aviso dice en que clave del JSON esta sin repetirlo.
+            h["narrativa"]["que_es"] = "Conecta con postgres://app:Sup3rS3creta@db:5432/polizas"
+            (t / "h3.json").write_text(json.dumps(h, ensure_ascii=False), encoding="utf-8")
+            r = han("--render", str(t / "h3.json"), "--output", str(t / "otro.md"))
+            if r.returncode != 2 or (t / "otro.md").exists():
+                errors.append("compute_handover.py escribe un documento con una cadena de "
+                              "conexion que lleva la contrasena")
+            if "Sup3rS3creta" in r.stdout + r.stderr:
+                errors.append("compute_handover.py repite el secreto que ha encontrado: lo "
+                              "acaba de copiar a la terminal y al log")
+            elif "narrativa.que_es" not in r.stderr:
+                errors.append("compute_handover.py no dice en que clave del JSON esta el secreto")
+
+        # Y un secreto en el cuestionario: no se lee, y el aviso dice la linea.
+        cuest.write_text(relleno.replace("| Contraseña de la BD | Key Vault, kv-prod/db-password |",
+                                         "| Contraseña de la BD | Pa55w0rd!Prod |"),
+                         encoding="utf-8")
+        r = han("--root", str(t), "--out", str(t / "h2.json"))
+        if r.returncode != 2 or (t / "h2.json").exists():
+            errors.append("compute_handover.py lee un cuestionario con una contrasena y sigue")
+        if "Pa55w0rd" in r.stdout + r.stderr:
+            errors.append("compute_handover.py repite la contrasena que ha encontrado en el "
+                          "cuestionario")
+        elif "traspaso-cuestionario.md:" not in r.stderr:
+            errors.append("compute_handover.py no dice en que linea del cuestionario esta el "
+                          "secreto")
+
+# Y un proyecto sin nada: el traspaso sale, y dice que falta todo.
+with tempfile.TemporaryDirectory() as tmp_hv:
+    v = Path(tmp_hv)
+    r = han("--root", str(v), "--preparar")
+    if r.returncode == 0:
+        r = han("--root", str(v), "--out", str(v / "h.json"))
+    if r.returncode == 0:
+        r = han("--render", str(v / "h.json"), "--output", str(v / "t.md"))
+    if r.returncode != 0:
+        errors.append(f"compute_handover.py revienta en un proyecto sin documentos: "
+                      f"{r.stderr.strip()[-300:]}")
+    else:
+        md = (v / "t.md").read_text(encoding="utf-8")
+        if "(18 de 18" not in md or "Nada pendiente" in md:
+            errors.append("compute_handover.py: en un proyecto sin nada no declara que "
+                          "falta todo")
+
 if errors:
     print("Scripts que compilan pero no funcionan:", file=sys.stderr)
     for e in errors:
@@ -734,7 +915,8 @@ if errors:
 # Decir que se ejercito y que no. Un "correcto" que oculta una parte sin
 # ejecutar es el mismo fallo que esta comprobacion existe para cazar.
 print("Humo de scripts correcto: compute_kpis (json y md), compute_onboarding "
-      "(con y sin OpenSpec) y audit.py se ejecutan "
+      "(con y sin OpenSpec), compute_handover (cuestionario, documento y secretos) "
+      "y audit.py se ejecutan "
       "de punta a punta sobre un proyecto minimo"
       + (", y gen_df_docx con plantilla y sin ella." if df_ejercitado
          else ". AVISO: gen_df_docx **no** se ha ejercitado (falta python-docx)."))
