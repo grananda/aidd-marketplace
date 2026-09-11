@@ -28,7 +28,7 @@
     {
       "name": "aiba",
       "source": "./plugins/aiba",
-      "description": "AIBA — AI Business Analyst: la capa que da la cara ante el negocio. Diseno funcional en Word (`aiba functional-design`), plan de revision de HU (`aiba hu-review-plan`), plan de recursos (`aiba project-plan`), plan de sprints con volcado a Jira (`aiba sprint-planning`) KPIs medidos del uso de IA (`aiba metrics`) y el onboarding del proyecto para quien se incorpora (`aiba onboarding`). Metodologia propia."
+      "description": "AIBA — AI Business Analyst: la capa que da la cara ante el negocio. Diseno funcional en Word (`aiba functional-design`), plan de revision de HU (`aiba hu-review-plan`), plan de recursos (`aiba project-plan`), plan de sprints con volcado a Jira (`aiba sprint-planning`), KPIs medidos del uso de IA (`aiba metrics`), el onboarding del proyecto para quien se incorpora (`aiba onboarding`) y el traspaso al equipo que lo mantiene (`aiba handover`). Metodologia propia."
     },
     {
       "name": "aifg",

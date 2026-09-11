@@ -27,6 +27,7 @@
 | `aiba-sprint-planning` | `aiba sprint-planning` | Plan de sprints `docs/sprint-plan.md`, con volcado opcional a Jira |
 | `aiba-metrics` | `aiba metrics` | KPIs medidos del uso de IA en `docs/kpis-ia.md` |
 | `aiba-onboarding` | `aiba onboarding` | Onboarding versionado en `docs/onboarding.md`: visión global para quien se incorpora |
+| `aiba-handover` | `aiba handover` | Traspaso versionado en `docs/traspaso.md` para el equipo que mantiene el sistema: cómo se opera, quién lo conoce y qué equipo hace falta |
 | `aiba-status-report` | `aiba status-report` | Informe de situación en `docs/html/estado-proyecto.html`, con el avance medido por **trabajo ejecutado** |
 
 ## 2. El rol

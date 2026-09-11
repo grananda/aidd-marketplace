@@ -25,12 +25,12 @@ import argparse
 import json
 import re
 import sys
-import unicodedata
 from collections import Counter
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from documentos import leer_proyecto  # noqa: E402
 from sprints import SPRINT_RE, _fecha, clasificar_sprints, leer_sprints  # noqa: E402
 
 HU_RE = re.compile(r"\bHU-[A-Za-z0-9]+\b")
@@ -83,60 +83,8 @@ DONDE_SE_EJECUTA = {
 
 # --- Lectura de los documentos ------------------------------------------------
 
-def _clave(texto: str) -> str:
-    t = unicodedata.normalize("NFKD", texto or "")
-    t = "".join(c for c in t if not unicodedata.combining(c)).lower()
-    t = re.sub(r"^[\d.\s]+", "", t.strip())
-    return re.sub(r"[^a-z0-9]+", " ", t).strip()
-
-
-def _secciones(md: str) -> dict:
-    """Cuerpo de cada seccion de segundo nivel, por su titulo normalizado."""
-    fuera = {}
-    for bloque in re.split(r"^##\s+", md, flags=re.M)[1:]:
-        titulo, _, cuerpo = bloque.partition("\n")
-        fuera[_clave(titulo)] = cuerpo
-    return fuera
-
-
-def _buscar(sec: dict, palabra: str) -> str:
-    return next((v for k, v in sec.items() if palabra in k), "")
-
-
-def _parrafo(cuerpo: str, limite: int = 700) -> str:
-    lineas = []
-    for l in cuerpo.splitlines():
-        l = l.strip()
-        if not l:
-            if lineas:
-                break
-            continue
-        if l.startswith(("#", "|", ">")):
-            continue
-        lineas.append(l.lstrip("-* ").strip())
-    return " ".join(lineas)[:limite]
-
-
-def _vinetas(cuerpo: str, n: int = 6) -> list[str]:
-    return [l.strip()[2:].strip() for l in cuerpo.splitlines()
-            if l.strip().startswith(("- ", "* "))][:n]
-
-
-def leer_proyecto(root: Path) -> dict:
-    """Nombre, contexto, usuarios y stack, del brief del cliente."""
-    f = root / "docs" / "cliente-requisitos.md"
-    if not f.is_file():
-        return {"nombre": "", "contexto": "", "usuarios": [], "stack": []}
-    md = f.read_text(encoding="utf-8", errors="replace")
-    h1 = re.search(r"^#\s+(.+)$", md, re.M)
-    partes = re.split(r"\s[—–-]\s", h1.group(1)) if h1 else []
-    # Sin separador el titulo es el del documento --"Brief del cliente"--, no el
-    # nombre del proyecto: mejor el respaldo que llamar asi al proyecto.
-    nombre = partes[-1].strip() if len(partes) > 1 else ""
-    sec = _secciones(md)
-    return {"nombre": nombre, "contexto": _parrafo(_buscar(sec, "contexto")),
-            "usuarios": _vinetas(_buscar(sec, "usuario")),
-            "stack": _vinetas(_buscar(sec, "stack"))}
+# El brief se lee con el lector compartido (`documentos.py`), el mismo que usa
+# `aiba-handover`: nombre, contexto, usuarios y stack.
 
 
 def _titulo_de_enunciado(texto: str) -> str:

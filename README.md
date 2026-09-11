@@ -12,7 +12,7 @@ Marketplace de plugins para instalar los conjuntos **AIDD** (AI Driven Developme
 | `aidd` | 9 skills `aidd-*` (Fases 0, 1 y 2) + metodología | Capturar requisitos del cliente, formalizarlos, definir y detallar las historias de usuario, y diseñar la arquitectura y la guía de estilos. Es el «qué se construye». |
 | `aisdd` | `aisdd-specs` + `aisdd-amend` + metodología | Ejecutar con OpenSpec: onboarding de proyectos existentes con specs base, roadmap (consciente del sprint-plan, con **tres modos de paralelismo**) y ciclo open/implement/close change, pre-flight de dudas configurable, auditoría e integración Jira. Comandos `aisdd …` (alias legacy `native-ai …`). *Fork mantenido del antiguo `sdd`.* |
 | `boosters` | `booster-ux`, `booster-uml`, `booster-docs` | Generar prototipos UX, diagramas UML y vistas HTML de los documentos de planificación. **Lo usan `aidd`, `aisdd` y `aiba`.** |
-| `aiba` | 5 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
+| `aiba` | 9 skills `aiba-*` (negocio, entrega y medición) + metodología propia | **AI Business Analyst**: la capa que da la cara ante el negocio. Diseño funcional en Word por historia, plan de revisión de HU con negocio y TI, plan de recursos, plan de sprints con volcado opcional a Jira, y KPIs **medidos** del uso de IA. Autónomo de OpenSpec. |
 | `aifg` | `aifg-capture` + `aifg-update` | **AI Figma**: lleva el diseño de Figma **hasta la HU que lo implementa**. Extrae los nodos, los normaliza en definiciones de componente reutilizables más un mapa de composición por historia, y re-captura lo que cambia diciendo a qué HU afecta. **Opcional y aditivo**: sin él, `aisdd implement change` tira de la guía de estilos. |
 | `aiad` | 11 skills `aiad-*` + hook de bitácora + subagente de review + metodología | **Ejecución human-first (*ia-in-the-loop*)**: tú escribes el código y la IA te aumenta a demanda. **Independiente y opcional**; alternativa a `aisdd` para la fase de ejecución. |
 
@@ -203,7 +203,7 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | `booster-uml` | `booster-uml` | Diagramas UML (Mermaid) en HTML para un change de OpenSpec |
 | `booster-docs` | `booster-docs` | Vista HTML dinámica de un documento de planificación AIDD/SDD |
 
-### `aiba` — Negocio, entrega y medición (plugin `aiba`, 5 comandos)
+### `aiba` — Negocio, entrega y medición (plugin `aiba`, 9 comandos)
 
 > **La capa que da la cara ante el negocio**: lo que el cliente firma (el DF), lo que aprueba (el plan de recursos), el calendario que sigue (los sprints) y los KPIs con los que juzga si mereció la pena.
 >
@@ -221,8 +221,9 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo, y **por qué se desvió cada change** atribuido a las señales de la auditoría —retrasos y adelantos por igual—. Con **varios repositorios**, `--root` repetido agrega los `openspec/` de todos y añade el desglose por repo |
 | transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA). El esfuerzo humano real sale del **worklog de Jira** vía MCP, con la cobertura declarada junto a la cifra |
 | transversal | `aiba onboarding` | `aiba-onboarding` | `docs/onboarding.md` + `docs/html/onboarding.html`: **visión global para quien se incorpora** —dev, BA, PM—: qué es el proyecto, cómo se trabaja, en qué sprint estamos, qué historias están hechas y cuáles quedan, y qué leer primero. Sale de los documentos de negocio; OpenSpec solo dice qué está construido. **Versionado y con aprobación** |
+| transversal | `aiba handover` | `aiba-handover` | `docs/traspaso.md` + `docs/html/traspaso.html`: el **traspaso al equipo que se queda con el mantenimiento**. Lo operativo primero —dónde corre, cómo se despliega y se vuelve atrás, datos y restauraciones, alertas, accesos, dependencias, contactos—, el **equipo de mantenimiento** con su dedicación y el **conocimiento de una sola persona** según la auditoría; después qué hace el sistema, cómo está construido y qué queda. Lo que nunca se escribió sale de un **cuestionario** que rellena quien lo sabe (`docs/traspaso-cuestionario.md`), lo que falta sale como hueco y **nunca lleva secretos**: dice dónde viven. **Versionado y con aprobación** |
 
-Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis` · `aiba bienvenida`.
+Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis` · `aiba bienvenida` · `aiba traspaso`.
 
 > `aiba metrics` no es un paso del método: es una capa de observación **independiente del resto y ejecutable en cualquier momento**. Distingue siempre lo medido de lo estimado, y se niega a publicar cifras de ahorro que no se sostienen — un KPI de ROI inventado hace más daño que no tener ninguno, porque se usa para decidir.
 
@@ -526,7 +527,7 @@ Los skills de `aifg` necesitan además poder **exportar la imagen de un nodo**. 
 
 La metodología AIDD-SDD viaja **dentro** de los plugins `aidd` y `aisdd` (carpeta `methodology/`, copias espejo). Los skills la referencian con `${CLAUDE_PLUGIN_ROOT}/methodology/native-ai-aidd-sdd.md`, así que resuelve tras instalar en cualquier repo. Es referencia de solo lectura; no se carga automáticamente.
 
-Los plugins `aiba` y `aiad` llevan la suya propia, porque cubren capas que el documento AIDD-SDD ya no describe: `native-ai-aiba.md` (el conjunto que da la cara ante el negocio: los siete skills, el rol de AI Delivery Manager, el Paso 1.4, la Fase 3.5 y la medición) y `native-ai-aiad.md` (el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría).
+Los plugins `aiba` y `aiad` llevan la suya propia, porque cubren capas que el documento AIDD-SDD ya no describe: `native-ai-aiba.md` (el conjunto que da la cara ante el negocio: los nueve skills, el rol de AI Delivery Manager, el Paso 1.4, la Fase 3.5 y la medición) y `native-ai-aiad.md` (el manifiesto *ia-in-the-loop*, el catálogo de skills, el puente HU ↔ change y la bitácora de autoría).
 
 **FAQ.** [FAQ.md](FAQ.md) responde las preguntas frecuentes del ciclo AISDD: qué crea cada comando (`open`/`implement`/`close change`), qué ocurre en Jira en cada paso, quién crea Stories y sprints, y los casos límite (enlace perdido, re-faseado, sprints de horas).
 

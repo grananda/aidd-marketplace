@@ -3,7 +3,7 @@ name: aiba-onboarding
 description: AIBA (AI Business Analyst) — genera el documento de onboarding del proyecto, `docs/onboarding.md`, y su vista HTML, mediante el comando `aiba onboarding` (alias `aiba bienvenida`). Da a quien se incorpora --dev, BA, PM o cualquier otro perfil-- una **vision global** del proyecto sin entrar en detalle: que es y para quien, como se trabaja aqui, en que sprint estamos y con que objetivo, que historias de usuario estan hechas y cuales quedan, y que documentos leer y en que orden. Lo controla el BA. Las fuentes principales son las del negocio --el brief del cliente, el mapa y el detalle de historias, el plan de revision de HU y el plan de sprints--; OpenSpec se consulta solo para saber que se ha construido ya, y el comando funciona igual en un proyecto que todavia no lo tiene. Los numeros y las listas los calcula un script y la narrativa la escribe el skill, asi que la estructura del documento no depende del modelo que lo genere; lo que no se puede derivar sale como hueco declarado junto al comando que lo genera. El documento es **versionado** y lleva sello de version, fecha y estado de aprobacion, que distingue un onboarding aprobado de uno que ha cambiado despues de aprobarse. Usar cuando el usuario pida "onboarding", "documento de bienvenida", "que le cuento a alguien que entra al proyecto", "vision general del proyecto", "resumen del proyecto para un recien llegado" o equivalentes. Skill de planificacion, sin auditoria estructurada.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # aiba-onboarding (AIBA · onboarding del proyecto)
