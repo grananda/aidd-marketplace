@@ -45,6 +45,9 @@ EFFORT_DAYS = {"XS": 0.5, "S": 1.5, "M": 3.0, "L": 5.0, "XL": 8.0}
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 from atribucion import (  # noqa: E402 - despues de fijar sys.path
     LABORABLE_DEFECTO, acumular_senales, atribuir, dias_laborables, _duracion)
+# Los sprints del plan, compartidos con `aiba-onboarding`: dos lectores del mismo
+# fichero con dos expresiones distintas acabarian discrepando sin avisar.
+from sprints import _fecha, clasificar_sprints, leer_sprints  # noqa: E402
 
 
 def _ensure_yaml(allow_install: bool):
@@ -255,31 +258,6 @@ def leer_tallas(root: Path) -> tuple[dict, str | None]:
     return tallas, None
 
 
-SPRINT_RE = re.compile(
-    r"^#{2,4}\s*(Sprint\s*[0-9]+[^\n|]{0,60}?)\s*(?:[—–-]\s*)?"
-    r"(?:\(?\s*(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\s*(?:a|–|—|-|hasta)\s*"
-    r"(\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)\s*\)?)?\s*$",
-    re.M)
-
-
-def leer_sprints(root: Path) -> tuple[list[dict], str | None]:
-    """Sprints y sus fechas del plan de sprints.
-
-    Es markdown escrito por otro skill, no un formato de datos: se extrae lo que
-    se reconoce con seguridad --el nombre y, si esta, el rango de fechas-- y lo
-    demas se deja vacio en vez de adivinarse.
-    """
-    f = root / "docs" / "sprint-plan.md"
-    if not f.is_file():
-        return [], "no existe docs/sprint-plan.md"
-    texto = f.read_text(encoding="utf-8", errors="replace")
-    sprints = []
-    for m in SPRINT_RE.finditer(texto):
-        sprints.append({"nombre": m.group(1).strip(),
-                        "desde": m.group(2) or "", "hasta": m.group(3) or ""})
-    if not sprints:
-        return [], "docs/sprint-plan.md existe pero no se reconocio ningun sprint"
-    return sprints, None
 
 
 # --- Calculo -----------------------------------------------------------------
@@ -455,21 +433,6 @@ def ritmo(eventos: dict, cerrados: set, cal: dict) -> dict:
     return out
 
 
-def _fecha(txt: str, hoy: date) -> date | None:
-    """`19/09/2026`, `19-09-26` o `19/09` -> fecha. Sin ano, se asume el actual."""
-    if not txt:
-        return None
-    p = re.split(r"[/-]", txt.strip())
-    try:
-        d, m = int(p[0]), int(p[1])
-        a = int(p[2]) if len(p) > 2 else hoy.year
-        if a < 100:
-            a += 2000
-        return date(a, m, d)
-    except (ValueError, IndexError):
-        return None
-
-
 def clave_sprint(nombre: str) -> str:
     """`Sprint 1 — Funnel de cotizacion` y `sprint 1` son el mismo sprint.
 
@@ -497,14 +460,8 @@ def previsto(fases: list, pesos: dict, sprints: list, hoy: date,
         return {"pct": None, "dias": None, "base": "docs/sprint-plan.md",
                 "motivo_si_falta": "los sprints del plan no traen fechas de fin"}
 
-    cerrados, actual = [], None
-    for s in sprints:
-        fin = _fecha(s.get("hasta", ""), hoy)
-        ini = _fecha(s.get("desde", ""), hoy)
-        if fin and fin < hoy:
-            cerrados.append(s["nombre"])
-        elif ini and ini <= hoy and (not fin or fin >= hoy):
-            actual = s["nombre"]
+    punto = clasificar_sprints(sprints, hoy)
+    cerrados, actual = punto["cerrados"], punto["actual"]
 
     nombres = {clave_sprint(c) for c in cerrados}
     dias = sum(pesos.get(str(f.get("id")), 0.0) for f in fases

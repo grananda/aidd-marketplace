@@ -588,6 +588,127 @@ with tempfile.TemporaryDirectory() as tmp:
                                   "plantilla acaba dentro del DF")
                 errors.extend(_revisar_plantilla(doc, etiqueta))
 
+# 5. `aiba onboarding`: los hechos y el documento, sin OpenSpec, con el y en un
+#    proyecto vacio. Lo cuantitativo sale del script para que el onboarding no
+#    dependa del modelo que lo redacte: si el script falla, falla todo lo demas.
+ONB = ROOT / "plugins/aiba/skills/aiba-onboarding/scripts/compute_onboarding.py"
+with tempfile.TemporaryDirectory() as tmp_onb:
+    o = Path(tmp_onb)
+    (o / "docs").mkdir()
+    (o / "docs" / "sprint-plan.md").write_text(
+        "# Plan de sprints\n\n## 4. Distribucion en sprints\n\n"
+        "### Sprint 1 — (25/08/2026 a 05/09/2026)\n\nObjetivo: alta. Unidades: HU-01.\n\n"
+        "### Sprint 2 — (08/09/2026 a 19/09/2026)\n\n"
+        "Objetivo: suplementos. Unidades: HU-02.\n\n"
+        # Una historia nombrada fuera de los sprints: no puede colarse en el ultimo.
+        "## 5. Hitos\n\n- El MVP necesita HU-03 cerrada\n", encoding="utf-8")
+    (o / "docs" / "mapa-historias-usuario.md").write_text(
+        "# Mapa\n\n## 3. Historias por fase\n\n### F1 — Alta\n\n"
+        "| ID | Historia | RF | MoSCoW |\n|---|---|---|---|\n"
+        "| HU-01 | Como gestor, quiero dar de alta una poliza para cubrir | RF-01 | Must |\n"
+        "| HU-02 | Como gestor, quiero anadir un suplemento para ampliar | RF-02 | Must |\n"
+        "| HU-03 | Como gestor, quiero dar de baja para cerrar | RF-03 | Should |\n",
+        encoding="utf-8")
+    (o / "docs" / "plan-revision-hu.json").write_text(json.dumps({"hus": [
+        {"id": "HU-01", "estado": "Cerrada"}, {"id": "HU-02", "estado": "Cerrada"},
+        {"id": "HU-03", "estado": "En revision", "bloqueada": True}]}), encoding="utf-8")
+
+    def onb(*extra, dest="h.json"):
+        return subprocess.run([sys.executable, str(ONB), "--root", str(o), "--out",
+                               str(o / dest), "--hoy", "2026-09-11", *extra],
+                              capture_output=True, text=True, timeout=120)
+
+    r = onb()
+    if r.returncode != 0:
+        errors.append(f"compute_onboarding.py falla al calcular: {r.stderr.strip()[-300:]}")
+    else:
+        h = json.loads((o / "h.json").read_text(encoding="utf-8"))
+        s2 = next((x for x in h["sprints"]["lista"] if x["nombre"] == "Sprint 2"), {})
+        if h["sprints"]["actual"] != "Sprint 2":
+            errors.append("compute_onboarding.py no reconoce el sprint en curso "
+                          f"({h['sprints']['actual']})")
+        if s2.get("hus") != ["HU-02"]:
+            errors.append("compute_onboarding.py: el ultimo sprint se queda con historias "
+                          f"de la seccion siguiente del plan ({s2.get('hus')})")
+        if "Unidades" in s2.get("objetivo", ""):
+            errors.append("compute_onboarding.py: el objetivo del sprint arrastra el resto "
+                          f"de la linea ({s2.get('objetivo')!r})")
+        if h["resumen"]["total"] != 3 or h["resumen"]["bloqueadas"] != ["HU-03"]:
+            errors.append("compute_onboarding.py: cuenta mal las historias o las "
+                          f"bloqueadas ({h['resumen']})")
+        if h["resumen"]["construidas"] is not None:
+            errors.append("compute_onboarding.py: sin OpenSpec afirma cuantas historias "
+                          "estan construidas; eso no lo sabe")
+        if "docs/cliente-requisitos.md" not in {f["ruta"] for f in h["fuentes"]
+                                                if not f["existe"]}:
+            errors.append("compute_onboarding.py: no declara el brief como fuente que falta")
+
+        r = subprocess.run([sys.executable, str(ONB), "--render", str(o / "h.json"),
+                            "--output", str(o / "docs" / "onboarding.md")],
+                           capture_output=True, text=True, timeout=120)
+        if r.returncode != 0:
+            errors.append(f"compute_onboarding.py falla al escribir: {r.stderr.strip()[-300:]}")
+        else:
+            md = (o / "docs" / "onboarding.md").read_text(encoding="utf-8")
+            for esperado, motivo in (
+                    ("## 7. Lo que falta", "no escribe la seccion de huecos"),
+                    ("[PENDIENTE", "no marca como pendiente la narrativa que falta"),
+                    ("(bloqueada)", "no senala las historias bloqueadas"),
+                    ("2 cerradas", "no concuerda en plural el estado de revision"),
+                    ("en revisión", "pinta el estado de revision sin tilde")):
+                if esperado not in md:
+                    errors.append(f"compute_onboarding.py: el documento {motivo}")
+
+    # Con OpenSpec: lo construido sale del estado que da compute_status.py.
+    (o / "estado.json").write_text(json.dumps({
+        "topology": "externalizado", "modo_faseado": "atomic",
+        "avance": {"hus": {"ids_ok": ["HU-02"], "ids_en_curso": [],
+                           "ids_todas": ["HU-01", "HU-02", "HU-03"]}}}), encoding="utf-8")
+    r = onb("--estado", str(o / "estado.json"), dest="h2.json")
+    if r.returncode != 0:
+        errors.append(f"compute_onboarding.py con --estado falla: {r.stderr.strip()[-300:]}")
+    else:
+        h2 = json.loads((o / "h2.json").read_text(encoding="utf-8"))
+        if h2["resumen"]["construidas"] != 1:
+            errors.append("compute_onboarding.py no cuenta lo construido desde OpenSpec "
+                          f"({h2['resumen']['construidas']})")
+        if not h2["openspec"].get("donde_se_ejecuta"):
+            errors.append("compute_onboarding.py: en topologia externalizado no dice desde "
+                          "donde se ejecuta cada comando, que es lo primero que se pregunta")
+        # HU-01 estaba en un sprint cerrado y no esta construida: la unica senal de
+        # desfase que cabe en una vision global.
+        if h2["resumen"]["planificadas_sin_construir"] != ["HU-01"]:
+            errors.append("compute_onboarding.py no senala lo planificado en sprints "
+                          "cerrados y sin construir "
+                          f"({h2['resumen']['planificadas_sin_construir']})")
+
+    # Un --estado que no existe --el modelo lo pasa aunque se salte el paso 1-- no
+    # puede tumbar el comando: se sigue sin OpenSpec y se dice.
+    r = onb("--estado", str(o / "no-existe.json"), dest="h3.json")
+    if r.returncode != 0 or "no existe" not in r.stderr:
+        errors.append("compute_onboarding.py con un --estado inexistente revienta o calla "
+                      f"(salida {r.returncode})")
+
+# Y un proyecto sin ningun documento: el onboarding sale y dice que falta todo.
+with tempfile.TemporaryDirectory() as tmp_vacio:
+    v = Path(tmp_vacio)
+    r = subprocess.run([sys.executable, str(ONB), "--root", str(v), "--out",
+                        str(v / "h.json"), "--hoy", "2026-09-11"],
+                       capture_output=True, text=True, timeout=120)
+    r2 = subprocess.run([sys.executable, str(ONB), "--render", str(v / "h.json"),
+                         "--output", str(v / "onboarding.md")],
+                        capture_output=True, text=True, timeout=120) if r.returncode == 0 else r
+    if r.returncode != 0 or r2.returncode != 0:
+        errors.append("compute_onboarding.py revienta en un proyecto sin documentos")
+    else:
+        md = (v / "onboarding.md").read_text(encoding="utf-8")
+        if "| # | Documento |" in md:
+            errors.append("compute_onboarding.py: sin documentos escribe una tabla de "
+                          "lectura vacia, que se lee como un fallo")
+        if "No queda ninguna historia pendiente" in md:
+            errors.append("compute_onboarding.py: sin historias dice que no queda nada, "
+                          "cuando lo que pasa es que no hay nada definido")
+
 if errors:
     print("Scripts que compilan pero no funcionan:", file=sys.stderr)
     for e in errors:
@@ -595,7 +716,8 @@ if errors:
     sys.exit(1)
 # Decir que se ejercito y que no. Un "correcto" que oculta una parte sin
 # ejecutar es el mismo fallo que esta comprobacion existe para cazar.
-print("Humo de scripts correcto: compute_kpis (json y md) y audit.py se ejecutan "
+print("Humo de scripts correcto: compute_kpis (json y md), compute_onboarding "
+      "(con y sin OpenSpec) y audit.py se ejecutan "
       "de punta a punta sobre un proyecto minimo"
       + (", y gen_df_docx con plantilla y sin ella." if df_ejercitado
          else ". AVISO: gen_df_docx **no** se ha ejercitado (falta python-docx)."))

@@ -220,8 +220,9 @@ Los invocan `aidd`, `aisdd` y `aiba`, pero también se pueden llamar directament
 | 3.5.2 | `aiba sprint-planning` | `aiba-sprint-planning` | `docs/sprint-plan.md` (+ volcado opcional a Jira) |
 | transversal | `aiba status-report` | `aiba-status-report` | `docs/estado-proyecto.json` + `docs/html/estado-proyecto.html`: informe de situación ejecutivo con el **avance medido por trabajo ejecutado** (fases cerradas ponderadas por su esfuerzo, no por fechas), previsto vs real, bloqueos medidos en la auditoría, camino crítico, ritmo de entrega, riesgos y acciones con responsable y plazo, y **por qué se desvió cada change** atribuido a las señales de la auditoría —retrasos y adelantos por igual—. Con **varios repositorios**, `--root` repetido agrega los `openspec/` de todos y añade el desglose por repo |
 | transversal | `aiba metrics` | `aiba-metrics` | `docs/kpis-ia.md` (KPIs **medidos** de uso de IA). El esfuerzo humano real sale del **worklog de Jira** vía MCP, con la cobertura declarada junto a la cifra |
+| transversal | `aiba onboarding` | `aiba-onboarding` | `docs/onboarding.md` + `docs/html/onboarding.html`: **visión global para quien se incorpora** —dev, BA, PM—: qué es el proyecto, cómo se trabaja, en qué sprint estamos, qué historias están hechas y cuáles quedan, y qué leer primero. Sale de los documentos de negocio; OpenSpec solo dice qué está construido. **Versionado y con aprobación** |
 
-Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis`.
+Alias: `aiba df` · `aiba planificacion sprints` · `aiba planificacion proyecto` · `aiba kpis` · `aiba bienvenida`.
 
 > `aiba metrics` no es un paso del método: es una capa de observación **independiente del resto y ejecutable en cualquier momento**. Distingue siempre lo medido de lo estimado, y se niega a publicar cifras de ahorro que no se sostienen — un KPI de ROI inventado hace más daño que no tener ninguno, porque se usa para decidir.
 
