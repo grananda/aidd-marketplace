@@ -172,7 +172,7 @@ Anade la cabecera `> **Version N** - **Generado:** fecha hora - **Pendiente de a
 
 Genera `docs/html/traspaso.html` con el skill `booster-docs`, con `docs/traspaso.md` como entrada (crea `docs/html/` si no existe), y sigue lo que diga `booster-docs` sobre los diagramas Mermaid: el traspaso los lleva. Pasa `--open` para abrirlo al terminar, salvo en modo no interactivo. Si `booster-docs` no esta disponible, avisa de que la vista no se genero y de que se instala con el plugin `boosters`, **pero no bloquees**: el `.md` basta. El HTML se versiona junto al `.md`.
 
-Hoy el traspaso no sale en `.docx`. Si el cliente lo pide en Word, dilo en vez de improvisar un conversor: el HTML se imprime a PDF.
+El traspaso no sale en `.docx`: el entregable es el HTML, que se imprime a PDF si hace falta. Si el cliente lo pide en Word, dilo en vez de improvisar un conversor.
 
 ## Verificacion final
 
