@@ -129,7 +129,10 @@ def leer_proyecto(root: Path) -> dict:
         return {"nombre": "", "contexto": "", "usuarios": [], "stack": []}
     md = f.read_text(encoding="utf-8", errors="replace")
     h1 = re.search(r"^#\s+(.+)$", md, re.M)
-    nombre = re.split(r"\s[—–-]\s", h1.group(1))[-1].strip() if h1 else ""
+    partes = re.split(r"\s[—–-]\s", h1.group(1)) if h1 else []
+    # Sin separador el titulo es el del documento --"Brief del cliente"--, no el
+    # nombre del proyecto: mejor el respaldo que llamar asi al proyecto.
+    nombre = partes[-1].strip() if len(partes) > 1 else ""
     sec = _secciones(md)
     return {"nombre": nombre, "contexto": _parrafo(_buscar(sec, "contexto")),
             "usuarios": _vinetas(_buscar(sec, "usuario")),
@@ -163,8 +166,8 @@ def leer_hus(root: Path) -> dict:
                 fase = ""
             h = re.match(r"^#{3,4}\s+(.*)$", linea)
             if h:
-                mf = re.search(r"\b(F\d+)\b", h.group(1))
-                fase = mf.group(1) if mf else fase
+                mf = re.search(r"\b(?:F|Fase\s*)(\d+)\b", h.group(1), re.I)
+                fase = f"F{mf.group(1)}" if mf else fase
             fila = re.match(r"^\|\s*(HU-[A-Za-z0-9]+)\s*\|\s*([^|]*?)\s*\|", linea)
             if fila:
                 x = hu(fila.group(1))
@@ -214,7 +217,7 @@ def hus_por_sprint(root: Path) -> tuple[dict, dict]:
         return {}, {}
     texto = f.read_text(encoding="utf-8", errors="replace")
     cab = list(SPRINT_RE.finditer(texto))
-    asignacion, objetivos = {}, {}
+    asignacion, objetivos, tramos = {}, {}, []
     for k, m in enumerate(cab):
         fin = cab[k + 1].start() if k + 1 < len(cab) else len(texto)
         tramo = texto[m.end():fin]
@@ -228,8 +231,24 @@ def hus_por_sprint(root: Path) -> tuple[dict, dict]:
             # carga: el objetivo es la primera frase y nada mas.
             primera = re.split(r"(?<=\w)\.(?:\s|$)|\s\|\s", obj.group(1), maxsplit=1)[0]
             objetivos[nombre] = primera.strip().rstrip(".")
-        for i in HU_RE.findall(tramo):
+        # Lo que el sprint **incluye** esta en su linea de unidades o en su
+        # tabla. El resto del texto puede nombrar otras historias de pasada
+        # --"deja preparada la base que necesitara HU-05"-- y eso no las mete en
+        # este sprint: se asignaban al primero que las mencionaba.
+        declaradas = [i for linea in tramo.splitlines()
+                      if re.search(r"(?i)\bunidad|\bincluid|^\s*\|", linea)
+                      for i in HU_RE.findall(linea)]
+        tramos.append((nombre, declaradas, HU_RE.findall(tramo)))
+    for nombre, declaradas, _ in tramos:
+        for i in declaradas:
             asignacion.setdefault(i, nombre)
+    # Solo de los sprints que no declaran nada se toma todo lo que mencionan:
+    # un plan escrito en prosa sigue funcionando, y uno con unidades no se
+    # contamina con las menciones.
+    for nombre, declaradas, todas in tramos:
+        if not declaradas:
+            for i in todas:
+                asignacion.setdefault(i, nombre)
     return asignacion, objetivos
 
 
@@ -466,9 +485,17 @@ def render(d: dict) -> str:
     L += ["## 5. Qué queda", ""]
     pendientes = [x for x in hus if x["construida"] != "sí"
                   and (res["construidas"] is not None or x["sprint_estado"] != "cerrado")]
+    # Planificadas en un sprint que ya termino y sin construir. Solo pueden
+    # existir con OpenSpec --sin el no se sabe que esta construido--, y son lo
+    # mas urgente de lo que queda: antes se contaban en la seccion 4 y aqui no
+    # aparecian, justo en la lista que mira quien llega para saber que falta.
+    arrastradas = [x for x in pendientes if x["sprint_estado"] == "cerrado"]
     en_curso = [x for x in pendientes if x["sprint_estado"] == "en curso"]
     futuras = [x for x in pendientes if x["sprint_estado"] in ("futuro", "sin fechas")]
     sin = [x for x in pendientes if x["sprint_estado"] == "sin sprint"]
+    if arrastradas:
+        L += ["### De sprints ya cerrados, sin construir", ""] + _tabla(arrastradas,
+                                                                      con_sprint=True)
     if en_curso:
         L += [f"### En el sprint en curso ({sp['actual']})", ""] + _tabla(en_curso)
     if futuras:
@@ -478,7 +505,7 @@ def render(d: dict) -> str:
     if not hus:
         L += ["No hay historias de usuario definidas todavía: las genera "
               "`aidd user-stories`.", ""]
-    elif not (en_curso or futuras or sin):
+    elif not (arrastradas or en_curso or futuras or sin):
         L += ["No queda ninguna historia pendiente.", ""]
 
     L += ["## 6. Qué leer y en qué orden", ""]

@@ -69,6 +69,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/aiba-status-report/scripts/compute_status.
   --root . --out "$TMP/estado.json"
 ```
 
+`mktemp -d` es de una shell POSIX. En PowerShell el equivalente es `$TMP = (New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([guid]::NewGuid()))).FullName`, y las rutas de abajo se escriben igual con `$TMP` delante.
+
 Sin `openspec/` **salta este paso**: ese script no arranca sin el, y no es un error del proyecto. El onboarding dira que todavia no hay nada construido con OpenSpec que consultar.
 
 ### 2. Los hechos

@@ -598,6 +598,8 @@ with tempfile.TemporaryDirectory() as tmp_onb:
     (o / "docs" / "sprint-plan.md").write_text(
         "# Plan de sprints\n\n## 4. Distribucion en sprints\n\n"
         "### Sprint 1 — (25/08/2026 a 05/09/2026)\n\nObjetivo: alta. Unidades: HU-01.\n\n"
+        # Una mencion de pasada: no puede llevarse HU-02 al Sprint 1.
+        "Deja preparada la base que necesitara HU-02.\n\n"
         "### Sprint 2 — (08/09/2026 a 19/09/2026)\n\n"
         "Objetivo: suplementos. Unidades: HU-02.\n\n"
         # Una historia nombrada fuera de los sprints: no puede colarse en el ultimo.
@@ -623,13 +625,20 @@ with tempfile.TemporaryDirectory() as tmp_onb:
         errors.append(f"compute_onboarding.py falla al calcular: {r.stderr.strip()[-300:]}")
     else:
         h = json.loads((o / "h.json").read_text(encoding="utf-8"))
+        s1 = next((x for x in h["sprints"]["lista"] if x["nombre"] == "Sprint 1"), {})
         s2 = next((x for x in h["sprints"]["lista"] if x["nombre"] == "Sprint 2"), {})
+        if s1.get("hus") != ["HU-01"]:
+            errors.append("compute_onboarding.py asigna a un sprint una historia que solo "
+                          f"nombra de pasada ({s1.get('hus')}); iba al Sprint 2")
         if h["sprints"]["actual"] != "Sprint 2":
             errors.append("compute_onboarding.py no reconoce el sprint en curso "
                           f"({h['sprints']['actual']})")
         if s2.get("hus") != ["HU-02"]:
-            errors.append("compute_onboarding.py: el ultimo sprint se queda con historias "
-                          f"de la seccion siguiente del plan ({s2.get('hus')})")
+            # Puede fallar por los dos lados --que se le cuele la seccion siguiente
+            # del plan o que otro sprint se lleve la suya--, y el mensaje no puede
+            # afirmar uno de los dos sin saber cual ha sido.
+            errors.append("compute_onboarding.py: el Sprint 2 no se queda exactamente con "
+                          f"las historias que declara ({s2.get('hus')}, esperaba ['HU-02'])")
         if "Unidades" in s2.get("objetivo", ""):
             errors.append("compute_onboarding.py: el objetivo del sprint arrastra el resto "
                           f"de la linea ({s2.get('objetivo')!r})")
@@ -681,6 +690,14 @@ with tempfile.TemporaryDirectory() as tmp_onb:
             errors.append("compute_onboarding.py no senala lo planificado en sprints "
                           "cerrados y sin construir "
                           f"({h2['resumen']['planificadas_sin_construir']})")
+        r = subprocess.run([sys.executable, str(ONB), "--render", str(o / "h2.json"),
+                            "--output", str(o / "o2.md")],
+                           capture_output=True, text=True, timeout=120)
+        md2 = (o / "o2.md").read_text(encoding="utf-8") if r.returncode == 0 else ""
+        queda = md2.split("## 5.")[1].split("## 6.")[0] if "## 5." in md2 else ""
+        if "HU-01" not in queda:
+            errors.append("compute_onboarding.py: 'Que queda' pierde las historias de "
+                          "sprints cerrados que no estan construidas, justo lo mas urgente")
 
     # Un --estado que no existe --el modelo lo pasa aunque se salte el paso 1-- no
     # puede tumbar el comando: se sigue sin OpenSpec y se dice.
