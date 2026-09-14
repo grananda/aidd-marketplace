@@ -11,8 +11,9 @@ puede comprobar sin opinar sobre el dibujo:
    (`requirements` para `aidd-requirements`).
 2. Cada plugin dice en `docs/mapas/plugins.md` cuantos skills trae, en el nodo
    que lleva su nombre, y la cifra es la real.
-3. Todo enlace relativo de los mapas lleva a algo que existe, y cada mapa --el
-   indice aparte-- tiene al menos un bloque Mermaid.
+3. Todo enlace relativo de los mapas lleva a algo que existe --y, si lleva
+   ancla, a una seccion que existe, con el mismo slug que genera GitHub--, y cada
+   mapa --el indice aparte-- tiene al menos un bloque Mermaid.
 
 Uso:  python3 .github/scripts/check_maps.py
 """
@@ -27,7 +28,8 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parents[2]
 MAPAS = RAIZ / "docs" / "mapas"
 MERMAID = re.compile(r"```mermaid\n(.*?)```", re.S)
-ENLACE = re.compile(r"\]\(([^)\s#]*)(?:#[^)]*)?\)")
+ENLACE = re.compile(r"\]\(([^)\s#]*)(?:#([^)\s]*))?\)")
+CERCADO = re.compile(r"^```.*?^```", re.S | re.M)
 
 
 def skills() -> list[Path]:
@@ -36,6 +38,19 @@ def skills() -> list[Path]:
 
 def nombre_corto(skill: Path) -> str:
     return skill.name.split("-", 1)[1]
+
+
+def anclas(md: Path) -> set[str]:
+    """Las anclas que GitHub genera para los titulos de un markdown."""
+    texto = CERCADO.sub("", md.read_text(encoding="utf-8"))
+    vistas: dict[str, int] = {}
+    salida: set[str] = set()
+    for titulo in re.findall(r"^#{1,6}\s+(.+?)\s*#*$", texto, re.M):
+        base = re.sub(r"[^\w\- ]", "", titulo.replace("`", "").lower()).replace(" ", "-")
+        n = vistas.get(base, 0)
+        vistas[base] = n + 1
+        salida.add(base if n == 0 else f"{base}-{n}")
+    return salida
 
 
 def comprobar() -> list[str]:
@@ -72,11 +87,15 @@ def comprobar() -> list[str]:
         texto = md.read_text(encoding="utf-8")
         if md.name != "README.md" and not MERMAID.search(texto):
             errores.append(f"docs/mapas/{md.name}: no tiene ningún bloque Mermaid.")
-        for destino in ENLACE.findall(texto):
-            if not destino or re.match(r"[a-z]+:", destino):
+        for destino, ancla in ENLACE.findall(texto):
+            if re.match(r"[a-z]+:", destino):
                 continue
-            if not (md.parent / destino).exists():
+            objetivo = md.parent / destino if destino else md
+            if not objetivo.exists():
                 errores.append(f"docs/mapas/{md.name}: el enlace a {destino} no lleva a ningún sitio.")
+            elif ancla and objetivo.suffix == ".md" and ancla not in anclas(objetivo):
+                errores.append(f"docs/mapas/{md.name}: el enlace a {destino or md.name}#{ancla} "
+                               "apunta a una sección que no existe.")
     return errores
 
 

@@ -6,11 +6,11 @@
 
 ```mermaid
 flowchart TB
-  subgraph F0["Fase 0 · Contexto"]
+  subgraph F0["Fase 0 · Inicialización"]
     direction LR
     brief["aidd client-requirements<br/>recoger el brief del cliente"]
   end
-  subgraph F1["Fase 1 · Requisitos e historias · AI Architect"]
+  subgraph F1["Fase 1 · Requisitos e historias"]
     direction LR
     req["aidd requirements<br/>requisitos funcionales y no funcionales"]
     mapa["aidd user-stories<br/>mapa de historias por fases"]
@@ -21,7 +21,7 @@ flowchart TB
     det -.-> rev
     det -.-> df
   end
-  subgraph F2["Fase 2 · Diseño · AI Architect"]
+  subgraph F2["Fase 2 · Diseño"]
     direction LR
     parq["aidd prototype-architecture<br/>prototipo mockeado"]
     proto["aidd prototype<br/>pantallas para validar con el cliente"]
@@ -57,6 +57,8 @@ flowchart TB
   existente -.->|"entra por aisdd init, que siembra las specs base"| F3
   F4 -.-> TR
 ```
+
+**Quién.** La Fase 0 la hace el equipo con la IA. Las Fases 1 y 2 son del AI Architect, con los comandos `aidd`; lo de `aiba` y `aifg` en esas fases es opcional. La Fase 3 es del AI Lead y la 3.5 del AI Delivery Manager. En la Fase 4, cada change pasa por AI Lead, AI Developer y Outcome Validator.
 
 ## La Fase 4 por dentro
 
@@ -111,7 +113,7 @@ Qué pasa dentro de cada change, con sus roles y lo que queda escrito: [Ciclo de
 | 2.4 | [`aidd architecture`](../../plugins/aidd/skills/aidd-architecture/SKILL.md) | Arquitectura definitiva | `docs/arquitectura-base.md` |
 | 3.1 | [`aisdd init`](../../plugins/aisdd/skills/aisdd-specs/SKILL.md) | Preparar OpenSpec | `openspec/config.yaml` y `AGENTS.md` |
 | 3.3 | [`aisdd roadmap`](../../plugins/aisdd/skills/aisdd-specs/SKILL.md) | Fasear por contexto | `docs/roadmap.md` |
-| 3.5.1 | [`aiba project-plan`](../../plugins/aiba/skills/aiba-project-plan/SKILL.md) | Plan de recursos | `docs/planificacion-proyecto.md` |
+| 3.5.1 | [`aiba project-plan`](../../plugins/aiba/skills/aiba-project-plan/SKILL.md) | Plan de recursos; puede ir en cuanto la Fase 2 está aprobada | `docs/planificacion-proyecto.md` |
 | 3.5.2 | [`aiba sprint-planning`](../../plugins/aiba/skills/aiba-sprint-planning/SKILL.md) | Sprints y Jira | `docs/sprint-plan.md` |
 | 4 | [`aisdd open change`](../../plugins/aisdd/skills/aisdd-specs/SKILL.md) | Abrir un change | `openspec/changes/<change>/` |
 | 4 | [`aisdd implement change`](../../plugins/aisdd/skills/aisdd-specs/SKILL.md) | Implementarlo | Código y tests |
@@ -124,4 +126,4 @@ Qué pasa dentro de cada change, con sus roles y lo que queda escrito: [Ciclo de
 | Cualquiera | [`aiba onboarding`](../../plugins/aiba/skills/aiba-onboarding/SKILL.md) | Visión global para quien llega | `docs/onboarding.md` |
 | Cualquiera | [`aiba handover`](../../plugins/aiba/skills/aiba-handover/SKILL.md) | Traspaso a mantenimiento | `docs/traspaso.md` |
 
-Todos los comandos terminan diciendo cuál es el siguiente, con el argumento ya resuelto. El detalle de cada fase está en la [metodología AIDD-SDD](../../plugins/aidd/methodology/native-ai-aidd-sdd.md).
+Los comandos de `aidd`, `aisdd` y `aiba` terminan diciendo cuál es el siguiente; los de `aisdd`, con el argumento ya resuelto. El detalle de cada fase está en la [metodología AIDD-SDD](../../plugins/aidd/methodology/native-ai-aidd-sdd.md).

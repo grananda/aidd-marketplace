@@ -34,12 +34,12 @@ sequenceDiagram
 
 | Paso | Rol | Escribe | En Jira, si está activo |
 |---|---|---|---|
-| `aisdd open change` | AI Lead | `proposal.md`, `design.md`, `tasks.md`, los `spec.md` y `decisions.md` en `openspec/changes/<change>/` | Anota la HU del change en `docs/jira-sync.md`; no mueve nada |
-| `aisdd implement change` | AI Developer | Código y tests; en `decisions.md`, lo que ningún documento fijaba | La HU a In Progress |
-| `aisdd amend change` | AI Developer o AI Lead | El delta: criterios nuevos en `spec.md`, la decisión en `design.md`, las tareas, y su código | — |
+| `aisdd open change` | AI Lead | `proposal.md`, `design.md`, `tasks.md`, los `spec.md` y `decisions.md` en `openspec/changes/<change>/` | Anota la HU en `docs/jira-sync.md` y, si la HU se reparte entre varios changes, crea la sub-tarea de este; no mueve nada de columna |
+| `aisdd implement change` | AI Developer | Código y tests; en `decisions.md`, lo que ningún documento fijaba | La Story, o la sub-tarea y su Story, a In Progress |
+| `aisdd amend change` | AI Developer o AI Lead | El delta: criterios nuevos en `spec.md`, la decisión en `design.md`, las tareas, y su código | No mueve nada de columna: una enmienda no abre ni cierra trabajo |
 | `aisdd close change` | Outcome Validator | Los `spec.md` pasan a `openspec/specs/` y el change a `openspec/changes/archive/` | La HU a Done; en modo sub-tarea, solo cuando todas sus sub-tareas lo están |
 
-Todos escriben además una entrada en `openspec/audit/`, con estado `ok`, `partial` o `aborted`. De ahí salen [`aiba status-report`](../../plugins/aiba/skills/aiba-status-report/SKILL.md) y [`aiba metrics`](../../plugins/aiba/skills/aiba-metrics/SKILL.md). La única excepción es `aisdd lane`, que solo mueve un puntero local.
+Todos los comandos de `aisdd` escriben además una entrada en `openspec/audit/`, con estado `ok`, `partial` o `aborted`, también cuando se detienen. La única excepción es `aisdd lane`, que solo mueve un puntero local. De esa auditoría salen [`aiba status-report`](../../plugins/aiba/skills/aiba-status-report/SKILL.md), [`aiba metrics`](../../plugins/aiba/skills/aiba-metrics/SKILL.md) y [`aiba handover`](../../plugins/aiba/skills/aiba-handover/SKILL.md).
 
 ## Cuando algo cambia a mitad
 

@@ -557,7 +557,7 @@ Ese mismo workflow corre en cada PR y en `main`:
 | `check_skill_refs.py` | Que un skill nombre un `references/…` o un `scripts/…` que no está donde lo busca, que un comando de ejemplo use una ruta relativa al skill (se ejecuta desde el proyecto del usuario, donde no existe), que quede un `references/` que nadie enlaza, o que sobreviva una ruta del empaquetado anterior (`.agents/skills/`, `%USERPROFILE%`) |
 | `check_contracts.py` | Que una invocación documentada —la de un skill o la de este README— pase una flag que el script no acepta, o se deje una obligatoria (flag o posicional), y que un documento con vista HTML no tenga entrada en `DOC_TYPES` |
 | `check_generated_html.py` | Que un `.html` de metodología no coincida con su `.md`, y que las copias de `aidd/` y `aisdd/` se desincronicen |
-| `check_maps.py` | Que un skill no tenga fila en los [mapas](docs/mapas/README.md) o no salga en su mindmap, que la cuenta de skills de un plugin no sea la real, o que un enlace de los mapas no lleve a ningún sitio |
+| `check_maps.py` | Que un skill no tenga fila en los [mapas](docs/mapas/README.md) o no salga en su mindmap, que la cuenta de skills de un plugin no sea la real, o que un enlace de los mapas lleve a un fichero o a una sección que no existe |
 | `py_compile` | Un script Python que no compila |
 | `check_mojibake.py` | UTF-8 mal codificado en los markdown, usando el propio script del skill |
 

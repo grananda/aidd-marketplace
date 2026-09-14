@@ -21,7 +21,7 @@ Seis diagramas para saber con qué herramientas cuentas, en qué momento se usa 
 
 ## Mantenerlos al día
 
-Los mapas se escriben a mano, y en este repo entran skills a menudo. `check_maps.py` falla en la CI si un skill no tiene fila en [Skills](skills.md) o no sale en su mindmap, si la cuenta de skills de un plugin en [Plugins](plugins.md) no es la real, o si un enlace de estos mapas no lleva a ningún sitio.
+Los mapas se escriben a mano, y en este repo entran skills a menudo. `check_maps.py` falla en la CI si un skill no tiene fila en [Skills](skills.md) o no sale en su mindmap, si la cuenta de skills de un plugin en [Plugins](plugins.md) no es la real, o si un enlace de estos mapas lleva a un fichero o a una sección que no existe.
 
 Cuando añadas un skill, tócalos en este orden:
 

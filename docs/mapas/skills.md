@@ -1,6 +1,6 @@
 # Skills
 
-**¿Qué trae cada plugin?** Las 36 skills de un vistazo, y debajo, una tabla por plugin con el comando y para qué sirve cada una.
+**¿Qué trae cada plugin?** Todas las skills de un vistazo, y debajo, una tabla por plugin con el comando y para qué sirve cada una.
 
 ```mermaid
 mindmap
