@@ -3,7 +3,7 @@ name: booster-docs
 description: Genera una vista HTML de un solo fichero, dinamica y visual a partir de un documento de planificacion AIDD/SDD en Markdown (por ejemplo `docs/cliente-requisitos.md`, `docs/requisitos.md`, `docs/mapa-historias-usuario.md`, `docs/roadmap.md`, `docs/sprint-plan.md`). Usar cuando un skill AIDD/SDD necesite entregar la vista HTML complementaria al final de su comando, o cuando el usuario pida "genera el HTML de este documento", "vista HTML de los requisitos", "renderiza el roadmap a HTML" o equivalentes. El Markdown sigue siendo la unica fuente de verdad; este booster produce un HTML complementario para consumo humano y NO modifica el Markdown.
 metadata:
   author: NTT DATA Spain GDN-e
-  version: "1.14.0"
+  version: "1.15.0"
 ---
 
 # booster-docs
@@ -25,6 +25,7 @@ Un unico fichero `.html` (HTML + CSS + JS inline, sin build, abrible con doble c
 - **Chips de color** para IDs trazables (`RF-XX`, `NFR-XX`, `HU-XX`/`US-XX`), prioridad (`Alta`/`Media`/`Baja`/`Critica`), MoSCoW (`Must`/`Should`/`Could`/`Won't`), esfuerzo (`XS`/`S`/`M`/`L`/`XL`), el marcador `[IMPRESCINDIBLE]` (pill rojo-anaranjado prominente, criterio esencial) y `[BLOQUEANTE]` (rojo, impedimento real), tanto inline como en tablas. En roadmaps con paralelismo tambien se marcan los identificadores de fase: `F-<lane>-NN` como chip de lane y `F0`/`FB-NN` como chip de barrera (multilane), `Oleada <N>` como chip de oleada (waves), junto al marcador `[CONFLICTO DE FASEADO]`. Los valores inline de `Prioridad:` y `Estimacion:` tambien se convierten en pills (la estimacion salta a su propia linea).
 - **Swatch de color** junto a cualquier codigo `#hex` / `rgb()` / `hsl()` (util para la guia de estilos y design tokens).
 - **Sello de version en cabecera**: la linea `> **Version N** - **Generado:** ...` que estampa `stamp_doc.py` se integra en la cabecera del documento, junto a los badges, en lugar de quedar como cita suelta.
+- **Forma propia por tipo de documento** en `detalle-historias-usuario`, `sprint-plan` y `roadmap`: una tarjeta por historia, una caja por sprint con su carga y las fases como linea temporal (ver [Forma por tipo de documento](#forma-por-tipo-de-documento)).
 - **Alcance dentro/fuera** con estilo diferenciado, tablas con formato, blockquotes, separadores `---` como `<hr>`, **listas anidadas**, **checkboxes de tareas** (`- [ ]` / `- [x]`), enlaces relativos y **bloques Mermaid renderizados** si el documento los incluye (ver [Diagramas Mermaid](#diagramas-mermaid)).
 - **Indice lateral (TOC) sticky con scroll-spy**, modo claro/oscuro automatico con **boton de tema** (auto/claro/oscuro, persistido en el navegador) y estilos de impresion.
 
@@ -67,6 +68,24 @@ Flags:
 - `--title <texto>`: sobreescribe el titulo del documento (por defecto usa el `# H1`).
 - `--open`: abre el HTML generado en el navegador por defecto (best-effort; no hace nada en entornos sin GUI/headless y nunca hace fallar el render). Los skills AIDD/SDD lo pasan para abrir la vista automaticamente al terminar el comando, salvo en modo no interactivo (CI/auto).
 - `--no-mermaid-asset`: no provisiona `mermaid.min.js` junto al HTML (util en CI o en entornos sin salida a internet donde la descarga solo anadiria ruido). Con este flag los diagramas dependen de la CDN en el momento de abrir el HTML.
+
+## Forma por tipo de documento
+
+El script sabe que documento esta pintando, y en tres tipos lo usa para darle la forma de lo que cuenta: asi se sabe que es cada cosa sin leerlo entero.
+
+| Tipo | Que reconoce | Como lo pinta |
+|---|---|---|
+| `detalle-historias-usuario` | Cada `### HU-XX — titulo` con sus vinetas `**Fase**`, `**Prioridad**`, `**Estimacion**`, `**RF cubierto(s)**`, `**Descripcion**`, `**Criterios de aceptacion**` y `**Notas tecnicas y dependencias**` | Una tarjeta por historia con chips de fase, prioridad, talla y RF, y los criterios plegados con cuantos hay y cuantos son imprescindibles. Agrupadas por fase con su esfuerzo, y con un indice de acceso rapido cuando hay seis o mas |
+| `sprint-plan` | Cada `### Sprint N — objetivo (fechas)` con sus lineas de `Objetivo`, `Unidades`, `Carga` y `Capacidad` | Una caja numerada por sprint con sus fechas, su objetivo, sus unidades y una barra de carga frente a capacidad que dice, con palabras, si esta en capacidad, con holgura o sobrecargado |
+| `roadmap` | La tabla de fases --una fila por `F0`, `F1`, `F-<lane>-NN`, `FB-NN`-- o una fase por titulo (`### F1 — nombre`) | Linea temporal: una calle por lane con las barreras cruzandolas todas (multilane), una fila por oleada con sus fases en paralelo (waves) o una linea (atomic), con estado, riesgo de contexto, sprint y dependencias |
+
+Reglas:
+
+- **El markdown manda.** Solo se transforma lo que tiene la forma esperada; lo que no, se pinta como siempre. Dentro de cada tarjeta o caja se pinta tambien lo que no se sabe clasificar, asi que no se pierde texto.
+- Solo se forman bloques de nivel `###` o inferior: los `##` son las secciones del indice lateral.
+- En el roadmap, la tabla de dependencias cross-lane (columnas `Origen` y `Destino`) y la de oleadas (una celda con varias fases) se quedan como tabla.
+- Lo plegado se despliega al imprimir.
+- La CI lo comprueba en `.github/scripts/check_generated_html.py`: cada tipo con forma se pinta con una entrada que la tiene y con otra que no.
 
 ## Diagramas Mermaid
 
