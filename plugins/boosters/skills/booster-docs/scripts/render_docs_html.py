@@ -827,10 +827,22 @@ def _heading(line: str) -> tuple[int, str] | None:
     return (len(m.group(1)), m.group(2).strip()) if m else None
 
 
+def _fence_end(lines: list[str], start: int) -> int:
+    """La linea siguiente al cierre del cercado de codigo que abre en `start`."""
+    marca = lines[start].strip()[:3]
+    j = start + 1
+    while j < len(lines) and not lines[j].strip().startswith(marca):
+        j += 1
+    return min(j + 1, len(lines))
+
+
 def _block_end(lines: list[str], start: int, level: int) -> int:
     """Donde acaba el bloque que abre un titulo de nivel `level`."""
     j = start
     while j < len(lines):
+        if lines[j].lstrip().startswith("```"):
+            j = _fence_end(lines, j)
+            continue
         h = _heading(lines[j])
         if h and h[0] <= level:
             break
@@ -910,6 +922,15 @@ def _runs(markdown: str, match, build, comps: dict) -> str:
     lines = markdown.splitlines()
     out, i = [], 0
     while i < len(lines):
+        # Un ejemplo dentro de un cercado de codigo es codigo, no un bloque que
+        # formar: se copia tal cual. Sin esto, la plantilla que un documento
+        # ensena de si mismo acababa pintada como tarjeta y el marcador se
+        # quedaba crudo dentro del `<pre>`.
+        if lines[i].lstrip().startswith("```"):
+            end = _fence_end(lines, i)
+            out += lines[i:end]
+            i = end
+            continue
         h = _heading(lines[i])
         m = match(h[1]) if h and h[0] >= 3 else None
         if not m:
@@ -1433,6 +1454,11 @@ def shape_roadmap(markdown: str, comps: dict) -> str:
     lines, out, i = markdown.splitlines(), [], 0
     while i < len(lines):
         s = lines[i].strip()
+        if s.startswith("```"):
+            end = _fence_end(lines, i)
+            out += lines[i:end]
+            i = end
+            continue
         if s.startswith("|") and s.endswith("|"):
             j = i
             while j < len(lines) and lines[j].strip().startswith("|") and lines[j].strip().endswith("|"):

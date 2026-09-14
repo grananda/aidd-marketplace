@@ -159,6 +159,15 @@ Párrafo suelto obsidiana.
 - **Fase**: F2   **Prioridad**: Baja
 - **Estimación**: S (1,5 d)
 
+## Plantilla
+
+Cada historia se escribe asi:
+
+```markdown
+### HU-99 — Ejemplo lapislazuli
+- **Fase**: F9   **Prioridad**: Alta
+```
+
 ## Cobertura
 
 | HU | Estado |
@@ -174,8 +183,11 @@ Párrafo suelto obsidiana.
              "no agrupa por fase con su recuento y su esfuerzo"),
             ("chip-prio-high", 1, "no pinta la prioridad como chip"),
             ("<table>", 1, "pierde la tabla de cobertura, que no es una historia"),
+            ("### HU-99 — Ejemplo lapislazuli", 1,
+             "forma el ejemplo escrito dentro de un cercado de codigo, que es codigo"),
         ],
-        "testigos": ["zafiro", "esmeralda", "ámbar", "turquesa", "coral", "obsidiana", "granate"],
+        "testigos": ["zafiro", "esmeralda", "ámbar", "turquesa", "coral", "obsidiana",
+                     "granate", "lapislazuli"],
         "mal": """# Detalle de historias
 
 ## Historias detalladas
@@ -239,6 +251,17 @@ Objetivo: cierre. Unidades: HU-05. Capacidad: 10 d. Carga: 4 d.
     "roadmap": {
         "bien": """# Roadmap — Pólizas
 
+## Plantilla
+
+La tabla de fases se escribe asi:
+
+```markdown
+| Fase | Nombre | Estado |
+|---|---|---|
+| F9 | Ejemplo lapislazuli | cerrada |
+| F8 | Otro ejemplo | pendiente |
+```
+
 ## Fases
 
 | Fase | Nombre | Depende de | Riesgo de contexto | Estado | Notas |
@@ -299,8 +322,11 @@ Objetivo: cierre. Unidades: HU-05. Capacidad: 10 d. Carga: 4 d.
              "convierte en fases la tabla de dependencias cross-lane"),
             ("<th>Ancho</th>", 1, "convierte en fases la tabla de oleadas"),
             ('<details class="rm-more">', 1, "pierde el detalle de la fase escrita por titulo"),
+            ("| F9 | Ejemplo lapislazuli | cerrada |", 1,
+             "forma la plantilla escrita dentro de un cercado de codigo, que es codigo"),
         ],
-        "testigos": ["zafiro", "ámbar", "turquesa", "coral", "obsidiana", "granate"],
+        "testigos": ["zafiro", "ámbar", "turquesa", "coral", "obsidiana", "granate",
+                     "lapislazuli"],
         "mal": """# Roadmap
 
 ## Fases
@@ -324,6 +350,9 @@ for tipo, caso in FORMAS.items():
     if pagina is None:
         errors.append(f"{tipo}: el renderer falla con una entrada minima: {err.strip()[-300:]}")
         continue
+    if "\x00" in pagina:
+        errors.append(f"{tipo}: queda un marcador de componente crudo en el HTML; "
+                      "un tramo formado ha acabado donde no se pinta")
     if "no se pudo dar forma" in err:
         errors.append(f"{tipo}: el formador revienta y cae al texto plano: {err.strip()[-300:]}")
     for fragmento, veces, motivo in caso["espera"]:
