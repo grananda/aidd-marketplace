@@ -52,6 +52,11 @@ jobs:
       - name: HTML de metodologia regenerado
         run: python3 .github/scripts/check_generated_html.py
 
+      # Los mapas se escriben a mano y los skills entran a menudo. Un mapa que no
+      # nombra un skill le dice a quien llega que esa herramienta no existe.
+      - name: Los mapas de docs/mapas nombran todos los skills
+        run: python3 .github/scripts/check_maps.py
+
       - name: Scripts Python compilan
         run: |
           find plugins .github/scripts -name '*.py' -not -path '*__pycache__*' -print0 \
