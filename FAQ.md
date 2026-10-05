@@ -1,5 +1,7 @@
 # FAQ — El proceso AISDD
 
+> **English:** [FAQ-EN.md](FAQ-EN.md)
+
 Preguntas frecuentes sobre el ciclo de ejecución de **AISDD** (`aisdd-specs`): qué hace cada comando, qué toca en Jira y qué no. Referencia rápida para talleres y onboarding; el detalle normativo vive en `plugins/aisdd/skills/aisdd-specs/SKILL.md`.
 
 > Comandos con prefijo primario `aisdd`; el alias legacy `native-ai <cmd>` es equivalente.
