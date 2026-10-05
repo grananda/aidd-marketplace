@@ -1,5 +1,7 @@
 # Mapas de AIDD
 
+> **English:** [docs/maps/](../maps/README.md)
+
 Seis diagramas para saber con qué herramientas cuentas, en qué momento se usa cada una y para qué. Se ven pintados aquí mismo, en GitHub.
 
 | Si te preguntas... | Mapa |
